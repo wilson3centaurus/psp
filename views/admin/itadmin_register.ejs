@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>IT Admin | PSP</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="/css/style.css" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/logo.png">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+  <div class="erp-shell">
+    <aside class="erp-sidebar">
+      <div class="sidebar-brand">
+        <img src="/assets/logo.png" alt="System Logo" class="logo">
+        <div class="brand-text">Primary School Performance</div>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="sidebar-link active" href="/itadmin"><i class="fas fa-user-shield"></i> IT Admin</a>
+        <a class="sidebar-link" href="/admin/dashboard"><i class="fas fa-gauge"></i> Admin Dashboard</a>
+        <a class="sidebar-link" href="/login"><i class="fas fa-sign-in-alt"></i> Login</a>
+      </nav>
+    </aside>
+
+    <div class="erp-main">
+      <header class="erp-topbar">
+        <div class="title">IT Admin · Create User</div>
+        <div class="nav-actions">
+          <a class="nav-link" href="/login"><i class="fas fa-sign-in-alt"></i> Go to Login</a>
+        </div>
+      </header>
+
+      <section class="erp-content">
+        <div class="page-header">
+          <div>
+            <h2><i class="fas fa-user-shield"></i> Provision Accounts</h2>
+            <p class="subhead">Use the IT admin access code to create school or admin users.</p>
+          </div>
+        </div>
+
+        <% if (error) { %>
+          <div class="alert alert-danger"><%= error %></div>
+        <% } %>
+        <% if (success) { %>
+          <div class="alert alert-success"><%= success %></div>
+        <% } %>
+
+        <div class="card" style="max-width: 540px;">
+          <form method="POST" action="/itadmin" class="actions-row" style="flex-direction: column; gap: 0.9rem;">
+            <div style="width: 100%;">
+              <label>Access Code</label>
+              <input type="text" name="accessCode" placeholder="Enter IT admin access code" required>
+            </div>
+            <div style="width: 100%;">
+              <label>Username</label>
+              <input type="text" name="username" placeholder="Choose a unique username" required>
+            </div>
+            <div style="width: 100%;">
+              <label>Password</label>
+              <div class="password-field">
+                <input type="password" name="password" id="passwordInput" placeholder="Set a secure password" required>
+                <button type="button" class="password-toggle" id="togglePassword" aria-label="Show or hide password">
+                  <i class="fas fa-eye"></i>
+                </button>
+              </div>
+            </div>
+            <div style="width: 100%;">
+              <label>Role</label>
+              <select name="role" required>
+                <option value="">Select role</option>
+                <option value="school">School</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+
+            <button class="btn btn-primary" type="submit" style="width: 100%; margin-top: 0.2rem;">
+              <i class="fas fa-user-plus"></i> Add User
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <footer class="footer">
+        2025 Primary School Performance System | powered by memory nikisi
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const input = document.getElementById('passwordInput');
+      const toggle = document.getElementById('togglePassword');
+      if (toggle && input) {
+        toggle.addEventListener('click', () => {
+          const isPwd = input.type === 'password';
+          input.type = isPwd ? 'text' : 'password';
+          toggle.innerHTML = isPwd ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

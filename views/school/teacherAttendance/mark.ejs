@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mark Teacher Attendance | School</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/style.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+  <div class="erp-shell">
+    <aside class="erp-sidebar">
+      <div class="sidebar-brand">
+        <img src="/assets/logo.png" alt="Logo" class="logo">
+        <div class="brand-text"><%= user.username %> (School)</div>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="sidebar-link" href="/school/dashboard"><i class="fas fa-gauge"></i> Dashboard</a>
+        <a class="sidebar-link" href="/student"><i class="fas fa-user-graduate"></i> Students</a>
+        <a class="sidebar-link" href="/teacher"><i class="fas fa-chalkboard-teacher"></i> Teachers</a>
+        <a class="sidebar-link" href="/student-attendance"><i class="fas fa-user-check"></i> Student Attendance</a>
+        <a class="sidebar-link active" href="/teacher-attendance"><i class="fas fa-user-clock"></i> Teacher Attendance</a>
+        <a class="sidebar-link" href="/resources"><i class="fas fa-boxes-stacked"></i> Resources</a>
+      </nav>
+    </aside>
+
+    <div class="erp-main">
+      <header class="erp-topbar">
+        <div class="title">Teacher Attendance</div>
+        <div class="nav-actions">
+          <a class="nav-link" href="/teacher-attendance"><i class="fas fa-calendar"></i> Sessions</a>
+          <a class="nav-link" href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+      </header>
+
+      <section class="erp-content">
+        <div class="page-header">
+          <div>
+            <h2><i class="fas fa-user-clock"></i> Mark Attendance</h2>
+            <p class="subhead">Select a date and record teacher attendance.</p>
+          </div>
+        </div>
+
+        <% if (success_msg) { %>
+          <div class="alert alert-success"><%= success_msg %></div>
+        <% } %>
+        <% if (error_msg) { %>
+          <div class="alert alert-danger"><%= error_msg %></div>
+        <% } %>
+
+        <div class="card">
+          <form method="POST" action="/teacher-attendance/mark" class="actions-row" style="flex-wrap: wrap;">
+            <div style="flex:1; min-width: 200px;">
+              <label>Date</label>
+              <input type="date" name="date" value="<%= selectedDate || '' %>" required>
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Attendance</button>
+          </form>
+        </div>
+
+        <div class="card" style="margin-top: 1rem;">
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Name</th>
+                  <th>Subject</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Status</th>
+                  <th>Late (min)</th>
+                  <th>Left Early (min)</th>
+                  <th>Reason / Notes</th>
+                  <th>Excused?</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if (!teachers || !teachers.length) { %>
+                  <tr><td colspan="10">No teachers found.</td></tr>
+                <% } else { %>
+                  <% teachers.forEach((teacher, idx) => { %>
+                    <tr>
+                      <td><%= idx + 1 %></td>
+                      <td><%= teacher.name %></td>
+                      <td><%= teacher.subject %></td>
+                      <td><%= teacher.email %></td>
+                      <td><%= teacher.phone %></td>
+                      <td class="actions-row">
+                        <label class="badge">
+                          <input type="radio" name="status_<%= teacher.id %>" value="Present" checked> Present
+                        </label>
+                        <label class="badge" style="background:#fee2e2; color:#b91c1c;">
+                          <input type="radio" name="status_<%= teacher.id %>" value="Absent"> Absent
+                        </label>
+                      </td>
+                      <td>
+                        <input type="number" name="late_<%= teacher.id %>" min="0" step="1" placeholder="0" style="max-width:90px;">
+                      </td>
+                      <td>
+                        <input type="number" name="early_<%= teacher.id %>" min="0" step="1" placeholder="0" style="max-width:90px;">
+                      </td>
+                      <td>
+                        <input type="text" name="reason_<%= teacher.id %>" placeholder="Reason or note" style="min-width: 160px;">
+                      </td>
+                      <td style="text-align:center;">
+                        <label class="badge" style="background:#e0f2fe; color:#0f172a;">
+                          <input type="checkbox" name="excused_<%= teacher.id %>"> Excused
+                        </label>
+                      </td>
+                    </tr>
+                  <% }) %>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <footer class="footer">
+        2025 Primary School Performance System | powered by memory nikisi
+      </footer>
+    </div>
+  </div>
+</body>
+</html>

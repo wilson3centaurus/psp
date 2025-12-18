@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Attendance for <%= date %> | School</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/style.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+  <div class="erp-shell">
+    <aside class="erp-sidebar">
+      <div class="sidebar-brand">
+        <img src="/assets/logo.png" alt="Logo" class="logo">
+        <div class="brand-text"><%= user.username %> (School)</div>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="sidebar-link" href="/school/dashboard"><i class="fas fa-gauge"></i> Dashboard</a>
+        <a class="sidebar-link" href="/student"><i class="fas fa-user-graduate"></i> Students</a>
+        <a class="sidebar-link" href="/teacher"><i class="fas fa-chalkboard-teacher"></i> Teachers</a>
+        <a class="sidebar-link active" href="/student-attendance"><i class="fas fa-user-check"></i> Student Attendance</a>
+        <a class="sidebar-link" href="/teacher-attendance"><i class="fas fa-user-clock"></i> Teacher Attendance</a>
+        <a class="sidebar-link" href="/resources"><i class="fas fa-boxes-stacked"></i> Resources</a>
+      </nav>
+    </aside>
+
+    <div class="erp-main">
+      <header class="erp-topbar">
+        <div class="title">Attendance for <%= date %></div>
+        <div class="nav-actions">
+          <a class="nav-link" href="/student-attendance"><i class="fas fa-arrow-left"></i> Sessions</a>
+          <a class="nav-link" href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+      </header>
+
+      <section class="erp-content">
+        <div class="page-header">
+          <div>
+            <h2><i class="fas fa-calendar-check"></i> Attendance Records</h2>
+            <p class="subhead">Recorded statuses for <%= date %>.</p>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Full Name</th>
+                <th>Grade</th>
+                <th>Class</th>
+                <th>Status</th>
+                <th>Late (min)</th>
+                <th>Left Early (min)</th>
+                <th>Reason</th>
+                <th>Excused?</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if (records.length === 0) { %>
+                <tr><td colspan="9">No records found for this date.</td></tr>
+              <% } else { %>
+                <% records.forEach((record, index) => { %>
+                  <tr>
+                    <td><%= index + 1 %></td>
+                    <td><%= record.name %></td>
+                    <td><%= record.grade %></td>
+                    <td><%= record.student_class %></td>
+                    <td>
+                      <span class="badge" style="background:<%= record.status === 'Present' ? '#dcfce7' : '#fee2e2' %>; color:<%= record.status === 'Present' ? '#15803d' : '#b91c1c' %>;">
+                        <%= record.status %>
+                      </span>
+                    </td>
+                    <td><%= record.late_minutes || 0 %></td>
+                    <td><%= record.early_minutes || 0 %></td>
+                    <td><%= record.reason || '-' %></td>
+                    <td><%= record.excused ? 'Yes' : 'No' %></td>
+                  </tr>
+                <% }) %>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <footer class="footer">
+        2025 Primary School Performance System | powered by memory nikisi
+      </footer>
+    </div>
+  </div>
+</body>
+</html>

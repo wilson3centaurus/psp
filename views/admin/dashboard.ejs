@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard | PSP</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/style.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+  <div class="erp-shell">
+    <aside class="erp-sidebar">
+      <div class="sidebar-brand">
+        <img src="/assets/logo.png" alt="Logo" class="logo">
+        <div class="brand-text">Primary School Performance</div>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="sidebar-link active" href="/admin/dashboard"><i class="fas fa-gauge"></i> Dashboard</a>
+        <a class="sidebar-link" href="/admin/schools"><i class="fas fa-school"></i> Schools</a>
+        <a class="sidebar-link" href="/admin/teachers"><i class="fas fa-users"></i> Teachers</a>
+        <a class="sidebar-link" href="/admin/students"><i class="fas fa-child"></i> Students</a>
+        <a class="sidebar-link" href="/admin/resources"><i class="fas fa-boxes-stacked"></i> Resources</a>
+        <a class="sidebar-link" href="/admin/attendance"><i class="fas fa-calendar-check"></i> Attendance</a>
+        <a class="sidebar-link" href="/admin/analytics"><i class="fas fa-chart-pie"></i> Analytics</a>
+        <a class="sidebar-link" href="/admin/reports"><i class="fas fa-file-alt"></i> Reports</a>
+        <a class="sidebar-link" href="/itadmin"><i class="fas fa-user-cog"></i> IT Admins</a>
+      </nav>
+    </aside>
+
+    <div class="erp-main">
+      <header class="erp-topbar">
+        <div class="title">Admin Dashboard</div>
+        <div class="nav-actions">
+          <a class="nav-link" href="/admin/dashboard"><i class="fas fa-home"></i> Home</a>
+          <a class="nav-link" href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+      </header>
+
+      <section class="erp-content">
+        <div class="page-header">
+          <div>
+            <h2><i class="fas fa-gauge"></i> Control Center</h2>
+            <p class="subhead">Quick links to manage schools, teachers, students, resources, attendance, and reports.</p>
+          </div>
+        </div>
+
+        <div class="card-grid">
+          <a class="card" href="/admin/schools">
+            <div class="metric">
+              <i class="fas fa-school"></i>
+              <div>
+                <div class="label">Schools</div>
+                <div class="value">Manage</div>
+              </div>
+            </div>
+          </a>
+          <a class="card" href="/admin/teachers">
+            <div class="metric">
+              <i class="fas fa-users"></i>
+              <div>
+                <div class="label">Teachers</div>
+                <div class="value">Overview</div>
+              </div>
+            </div>
+          </a>
+          <a class="card" href="/admin/students">
+            <div class="metric">
+              <i class="fas fa-child"></i>
+              <div>
+                <div class="label">Students</div>
+                <div class="value">Overview</div>
+              </div>
+            </div>
+          </a>
+          <a class="card" href="/admin/resources">
+            <div class="metric">
+              <i class="fas fa-boxes-stacked"></i>
+              <div>
+                <div class="label">Resources</div>
+                <div class="value">Summary</div>
+              </div>
+            </div>
+          </a>
+          <a class="card" href="/admin/attendance">
+            <div class="metric">
+              <i class="fas fa-calendar-check"></i>
+              <div>
+                <div class="label">Attendance</div>
+                <div class="value">Weekly</div>
+              </div>
+            </div>
+          </a>
+          <a class="card" href="/admin/analytics">
+            <div class="metric">
+              <i class="fas fa-chart-line"></i>
+              <div>
+                <div class="label">Analytics</div>
+                <div class="value">Ratios</div>
+              </div>
+            </div>
+          </a>
+          <a class="card" href="/admin/reports">
+            <div class="metric">
+              <i class="fas fa-file-pdf"></i>
+              <div>
+                <div class="label">Reports</div>
+                <div class="value">Generate</div>
+              </div>
+            </div>
+          </a>
+          <a class="card" href="/itadmin">
+            <div class="metric">
+              <i class="fas fa-user-cog"></i>
+              <div>
+                <div class="label">IT Admins</div>
+                <div class="value">Manage</div>
+              </div>
+            </div>
+          </a>
+        </div>
+      </section>
+
+      <footer class="footer">
+        2025 Primary School Performance System | powered by memory nikisi
+      </footer>
+    </div>
+  </div>
+</body>
+</html>

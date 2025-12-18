@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Teachers | Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/style.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+  <div class="erp-shell">
+    <aside class="erp-sidebar">
+      <div class="sidebar-brand">
+        <img src="/assets/logo.png" alt="Logo" class="logo">
+        <div class="brand-text">Primary School Performance</div>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="sidebar-link" href="/admin/dashboard"><i class="fas fa-gauge"></i> Dashboard</a>
+        <a class="sidebar-link" href="/admin/schools"><i class="fas fa-school"></i> Schools</a>
+        <a class="sidebar-link active" href="/admin/teachers"><i class="fas fa-users"></i> Teachers</a>
+        <a class="sidebar-link" href="/admin/students"><i class="fas fa-child"></i> Students</a>
+        <a class="sidebar-link" href="/admin/resources"><i class="fas fa-boxes-stacked"></i> Resources</a>
+        <a class="sidebar-link" href="/admin/attendance"><i class="fas fa-calendar-check"></i> Attendance</a>
+        <a class="sidebar-link" href="/admin/analytics"><i class="fas fa-chart-pie"></i> Analytics</a>
+        <a class="sidebar-link" href="/admin/reports"><i class="fas fa-file-alt"></i> Reports</a>
+        <a class="sidebar-link" href="/itadmin"><i class="fas fa-user-cog"></i> IT Admins</a>
+      </nav>
+    </aside>
+
+    <div class="erp-main">
+      <header class="erp-topbar">
+        <div class="title">Teachers</div>
+        <div class="nav-actions">
+          <a class="nav-link" href="/admin/dashboard"><i class="fas fa-home"></i> Dashboard</a>
+          <a class="nav-link" href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+      </header>
+
+      <section class="erp-content">
+        <div class="page-header">
+          <div>
+            <h2><i class="fas fa-chalkboard-teacher"></i> All Teachers</h2>
+            <p class="subhead">Read-only view of every teacher across schools.</p>
+          </div>
+          <div class="card">
+            <div class="metric">
+              <i class="fas fa-users"></i>
+              <div>
+                <div class="label">Total Teachers</div>
+                <div class="value"><%= totalTeachers %></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <% if (success_msg) { %>
+          <div class="alert alert-success"><%= success_msg %></div>
+        <% } %>
+        <% if (error_msg) { %>
+          <div class="alert alert-danger"><%= error_msg %></div>
+        <% } %>
+
+        <% const queryString = `q=${encodeURIComponent(filters.search || '')}&schoolId=${encodeURIComponent(filters.schoolId || 'all')}`; %>
+
+        <div class="card">
+          <form class="actions-row" method="GET" action="/admin/teachers">
+            <input type="text" name="q" placeholder="Search name, subject, email, ID..." value="<%= filters.search || '' %>">
+
+            <select name="schoolId">
+              <option value="all" <%= filters.schoolId === 'all' ? 'selected' : '' %>>All Schools</option>
+              <% schools.forEach(school => { %>
+                <option value="<%= school.id %>" <%= String(filters.schoolId) === String(school.id) ? 'selected' : '' %>>
+                  <%= school.username %>
+                </option>
+              <% }) %>
+            </select>
+
+            <button class="btn btn-primary" type="submit"><i class="fas fa-filter"></i> Apply</button>
+
+            <a class="btn btn-outline" href="/admin/teachers/export/csv?<%= queryString %>">
+              <i class="fas fa-file-csv"></i> Export CSV
+            </a>
+            <a class="btn btn-outline" href="/admin/teachers/export/pdf?<%= queryString %>">
+              <i class="fas fa-file-pdf"></i> Export PDF
+            </a>
+          </form>
+        </div>
+
+        <div class="table-wrapper" style="margin-top: 1rem;">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Full Name</th>
+                <th>Subject</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Teacher ID</th>
+                <th>School</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if (!teachers || teachers.length === 0) { %>
+                <tr>
+                  <td colspan="7">No teachers found.</td>
+                </tr>
+              <% } %>
+              <% teachers.forEach((teacher, idx) => { %>
+                <tr>
+                  <td><%= idx + 1 %></td>
+                  <td><%= teacher.name %></td>
+                  <td><%= teacher.subject %></td>
+                  <td><%= teacher.email %></td>
+                  <td><%= teacher.phone %></td>
+                  <td><%= teacher.teacher_id %></td>
+                  <td>
+                    <span class="badge">
+                      <%= teacher.school_name || (`School #${teacher.school_id}`) %>
+                    </span>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <footer class="footer">
+        2025 Primary School Performance System | powered by memory nikisi
+      </footer>
+    </div>
+  </div>
+</body>
+</html>

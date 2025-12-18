@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Students | School</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/style.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+  <div class="erp-shell">
+    <aside class="erp-sidebar">
+      <div class="sidebar-brand">
+        <img src="/assets/logo.png" alt="Logo" class="logo">
+        <div class="brand-text"><%= user.username %> (School)</div>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="sidebar-link" href="/school/dashboard"><i class="fas fa-gauge"></i> Dashboard</a>
+        <a class="sidebar-link active" href="/student"><i class="fas fa-user-graduate"></i> Students</a>
+        <a class="sidebar-link" href="/teacher"><i class="fas fa-chalkboard-teacher"></i> Teachers</a>
+        <a class="sidebar-link" href="/student-attendance"><i class="fas fa-user-check"></i> Student Attendance</a>
+        <a class="sidebar-link" href="/teacher-attendance"><i class="fas fa-user-clock"></i> Teacher Attendance</a>
+        <a class="sidebar-link" href="/resources"><i class="fas fa-boxes-stacked"></i> Resources</a>
+      </nav>
+    </aside>
+
+    <div class="erp-main">
+      <header class="erp-topbar">
+        <div class="title">Students</div>
+        <div class="nav-actions">
+          <a class="nav-link" href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+      </header>
+
+      <section class="erp-content">
+        <div class="page-header">
+          <div>
+            <h2><i class="fas fa-user-graduate"></i> Students</h2>
+            <p class="subhead">Manage your student roster, search, and bulk upload.</p>
+          </div>
+        </div>
+
+        <% if (success_msg) { %>
+          <div class="alert alert-success"><%= success_msg %></div>
+        <% } %>
+        <% if (error_msg && String(error_msg).trim() !== "") { %>
+          <div class="alert alert-danger"><%= error_msg %></div>
+        <% } %>
+
+        <div class="card">
+          <form action="/student/search" method="GET" class="actions-row">
+            <input 
+              type="text"
+              name="q"
+              placeholder="Search by name, grade, class or ID"
+              value="<%= typeof query !== 'undefined' ? query : '' %>"
+              required
+            >
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-search"></i> Search
+            </button>
+            <a href="/student" class="btn btn-outline"><i class="fas fa-rotate-left"></i> Reset</a>
+          </form>
+        </div>
+
+        <div class="card" style="margin-top: 1rem;">
+          <div class="actions-row" style="flex-wrap: wrap;">
+            <a href="/student/add" class="btn btn-primary">
+              <i class="fas fa-user-plus"></i> Add Student
+            </a>
+            <form action="/student/upload" method="POST" enctype="multipart/form-data" class="actions-row" style="gap: 0.5rem;">
+              <input type="file" id="csv" name="csv" accept=".csv" required>
+              <button type="submit" class="btn btn-secondary">
+                <i class="fas fa-upload"></i> Upload CSV
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <div class="table-wrapper" style="margin-top: 1rem;">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Grade</th>
+                <th>Class</th>
+                <th>Gender</th>
+                <th>Student ID</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if (students.length === 0) { %>
+                <tr><td colspan="7">No students found.</td></tr>
+              <% } else { %>
+                <% students.forEach((student, index) => { %>
+                  <tr>
+                    <td><%= index + 1 %></td>
+                    <td><%= student.name %></td>
+                    <td><%= student.grade %></td>
+                    <td><%= student.student_class %></td>
+                    <td><%= student.gender %></td>
+                    <td><%= student.student_id %></td>
+                    <td class="actions-row">
+                      <a href="/student/edit/<%= student.id %>" class="btn btn-outline" style="padding: 0.45rem 0.6rem;"><i class="fas fa-pen"></i></a>
+                      <form action="/student/delete/<%= student.id %>" method="POST" class="inline-form" onsubmit="return confirm('Delete this student?')">
+                        <button type="submit" class="btn btn-danger" style="padding: 0.45rem 0.6rem;"><i class="fas fa-trash"></i></button>
+                      </form>
+                    </td>
+                  </tr>
+                <% }) %>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <footer class="footer">
+        2025 Primary School Performance System | powered by memory nikisi
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    // Clear search if emptied
+    (function() {
+      const searchInput = document.querySelector('input[name="q"]');
+      searchInput?.addEventListener('input', function () {
+        if (this.value.trim() === '') {
+          window.location.href = '/student';
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

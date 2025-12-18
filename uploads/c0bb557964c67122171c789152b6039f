@@ -1,0 +1,11 @@
+teacher_id,name,Gender,subject,email,phone,school_id
+T001,Marara Tinashe,Male,Mathematics,marara.tinashe@example.com,772456100,1
+T002,Nyasha Chikomo,Female,English,nyasha.chikomo@example.com,772987654,1
+T003,John Dube,Male,Science,john.dube@example.com,772111222,1
+T004,Linda Nkomo,Female,Social Studies,linda.nkomo@example.com,772333444,1
+T005,Charity Gondo,Female,Agriculture,charity.gondo@example.com,772555666,1
+T006,Robert Makusha,Male,Computer Science,robert.makusha@example.com,772999888,1
+T007,Sarah Mutasa,Female,Shona,sarah.mutasa@example.com,772444333,1
+T008,Tawanda Bvunzawabaya,Male,Art,tawanda.b@example.com,772666777,1
+T009,Nyarai Moyo,Female,Music,nyarai.moyo@example.com,772777888,1
+T010,Elvis Tafirenyika,Male,Religious Studies,elvis.t@example.com,772888999,1

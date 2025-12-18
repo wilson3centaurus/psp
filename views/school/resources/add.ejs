@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Add Resource | School</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/style.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+  <div class="erp-shell">
+    <aside class="erp-sidebar">
+      <div class="sidebar-brand">
+        <img src="/assets/logo.png" alt="Logo" class="logo">
+        <div class="brand-text"><%= user.username %> (School)</div>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="sidebar-link" href="/school/dashboard"><i class="fas fa-gauge"></i> Dashboard</a>
+        <a class="sidebar-link" href="/student"><i class="fas fa-user-graduate"></i> Students</a>
+        <a class="sidebar-link" href="/teacher"><i class="fas fa-chalkboard-teacher"></i> Teachers</a>
+        <a class="sidebar-link" href="/student-attendance"><i class="fas fa-user-check"></i> Student Attendance</a>
+        <a class="sidebar-link" href="/teacher-attendance"><i class="fas fa-user-clock"></i> Teacher Attendance</a>
+        <a class="sidebar-link active" href="/resources"><i class="fas fa-boxes-stacked"></i> Resources</a>
+      </nav>
+    </aside>
+
+    <div class="erp-main">
+      <header class="erp-topbar">
+        <div class="title">Add Resource</div>
+        <div class="nav-actions">
+          <a class="nav-link" href="/resources"><i class="fas fa-arrow-left"></i> Back</a>
+          <a class="nav-link" href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+      </header>
+
+      <section class="erp-content">
+        <div class="page-header">
+          <div>
+            <h2><i class="fas fa-plus-circle"></i> New Resource Entry</h2>
+            <p class="subhead">Capture subject resource counts for this school.</p>
+          </div>
+        </div>
+
+        <div class="card" style="max-width: 720px;">
+          <form action="/resources/add" method="POST">
+            <label for="subject_id"><i class="fas fa-id-badge"></i> Subject ID</label>
+            <input type="text" name="subject_id" required>
+
+            <label for="subject_name"><i class="fas fa-book-open"></i> Subject Name</label>
+            <input type="text" name="subject_name" required>
+
+            <label for="grade"><i class="fas fa-graduation-cap"></i> Grade</label>
+            <input type="text" name="grade" placeholder="Example: Grade 5" required>
+
+            <label for="num_students"><i class="fas fa-users"></i> Number of Students</label>
+            <input type="number" name="num_students" min="0" required>
+
+            <label for="num_books"><i class="fas fa-book"></i> Number of Books</label>
+            <input type="number" name="num_books" min="0" required>
+
+            <label for="num_computers"><i class="fas fa-desktop"></i> Number of Computers</label>
+            <input type="number" name="num_computers" min="0" required>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.75rem;">
+              <i class="fas fa-save"></i> Save Resource
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <footer class="footer">
+        2025 Primary School Performance System | powered by memory nikisi
+      </footer>
+    </div>
+  </div>
+</body>
+</html>

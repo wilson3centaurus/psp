@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Student</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+
+  <!-- Header -->
+  <header class="topbar">
+    <div class="nav-left">
+      <img src="/assets/logo.png" alt="Logo" class="logo">
+    </div>
+    <div class="nav-right">
+      <a href="/school/dashboard" class="nav-link"><i class="fas fa-home"></i> Dashboard</a>
+    </div>
+  </header>
+
+  <!-- Popup Messages -->
+  <% if (success_msg) { %>
+    <div class="popup success">
+      <i class="fas fa-check-circle"></i>
+      <%= success_msg %>
+    </div>
+  <% } %>
+
+  <% if (error_msg && String(error_msg).trim() !== "") { %>
+    <div class="popup error">
+      <i class="fas fa-exclamation-circle"></i>
+      <%= error_msg %>
+    </div>
+  <% } %>
+
+  <!-- Edit Student Form -->
+  <main>
+    <div class="form-box">
+      <h2><i class="fas fa-pen"></i> Edit Student</h2>
+
+      <form action="/student/edit/<%= student.id %>" method="POST">
+
+        <label for="name">Full Name</label>
+        <input type="text" id="name" name="name" required value="<%= student.name %>">
+
+        <label for="grade">Grade</label>
+        <input type="number" id="grade" name="grade" required min="1" value="<%= student.grade %>">
+
+        <label for="student_class">Class</label>
+        <input type="text" id="student_class" name="student_class" required value="<%= student.student_class %>">
+
+        <label for="gender">Gender</label>
+        <select id="gender" name="gender" required>
+          <option value="">Select Gender</option>
+          <option value="Male" <%= student.gender === 'Male' ? 'selected' : '' %>>Male</option>
+          <option value="Female" <%= student.gender === 'Female' ? 'selected' : '' %>>Female</option>
+          <option value="Other" <%= student.gender === 'Other' ? 'selected' : '' %>>Other</option>
+        </select>
+
+        <label for="student_id">Student ID</label>
+        <input type="text" id="student_id" name="student_id" required value="<%= student.student_id %>">
+
+        <button type="submit"><i class="fas fa-save"></i> Update Student</button>
+      </form>
+
+      <a href="/student" class="back-link">← Back to Students</a>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+2025 Primary School Performance System | powered by memory nikisi
+  </footer>
+
+  <script>
+    // Auto-hide popups
+    setTimeout(() => {
+      document.querySelectorAll(".popup").forEach(p => p.style.display = "none");
+    }, 3000);
+
+    // Force CLASS uppercase
+    const cls = document.getElementById("student_class");
+    cls.addEventListener("input", () => {
+      cls.value = cls.value.toUpperCase();
+    });
+  </script>
+
+</body>
+</html>

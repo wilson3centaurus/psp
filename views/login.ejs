@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login | Primary School Performance</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/logo.png">
+</head>
+<body class="login-page">
+  <div class="login-card" style="max-width: 420px;">
+    <div style="text-align:center; margin-bottom: 0.5rem;">
+      <img src="/assets/logo.png" alt="Logo" class="logo" style="margin: 0 auto 0.6rem; width: 70px; height: 70px;">
+      <div style="font-weight: 800; color: #0b3b6e;">Primary School Performance</div>
+    </div>
+    <h2 style="margin-bottom: 0.5rem;"><i class="fa-solid fa-right-to-bracket"></i> Login</h2>
+
+    <% if (error_msg) { %>
+      <p class="error"><%= error_msg %></p>
+    <% } %>
+
+    <form action="/login" method="POST" style="display:flex; flex-direction:column; gap: 0.9rem; align-items:center;">
+      <div style="width: 100%; max-width: 280px; text-align: center; margin: 0 auto;">
+        <label style="display:block; text-align:center;">Username</label>
+        <input type="text" name="username" required value="<%= typeof username !== 'undefined' ? username : '' %>" placeholder="Enter your username" style="width:100%; max-width: 260px; margin: 0 auto;">
+      </div>
+
+      <div style="width: 100%; max-width: 280px; text-align: center; margin: 0 auto; position: relative;">
+        <label style="display:block; text-align:center;">Password</label>
+        <div class="password-field" style="width:100%; max-width: 260px; margin: 0 auto;">
+          <input type="password" name="password" id="passwordInput" required placeholder="Enter your password">
+          <button type="button" class="password-toggle" id="togglePassword" aria-label="Show or hide password">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width: 100%; max-width: 280px; margin-top: 0.2rem;">Login</button>
+    </form>
+  </div>
+  <script>
+    (function() {
+      const input = document.getElementById('passwordInput');
+      const toggle = document.getElementById('togglePassword');
+      if (toggle && input) {
+        toggle.addEventListener('click', () => {
+          const isPwd = input.type === 'password';
+          input.type = isPwd ? 'text' : 'password';
+          toggle.innerHTML = isPwd ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

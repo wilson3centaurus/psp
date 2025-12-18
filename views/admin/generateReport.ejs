@@ -1,0 +1,12 @@
+<!-- views/admin/generateReport.ejs -->
+<%- include('../partials/header') %>
+<div class="container">
+  <h2>Generate Reports</h2>
+  <div class="report-actions">
+    <p>Download complete list of registered schools:</p>
+    <a href="/admin/export/excel" class="btn">Download Excel</a>
+    <a href="/admin/export/pdf" class="btn">Download PDF</a>
+  </div>
+  <p style="margin-top:20px;">*Future upgrades will include report filtering by province, term, and performance level.</p>
+</div>
+<%- include('../partials/footer') %>

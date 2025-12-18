@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Schools | Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/style.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+  <div class="erp-shell">
+    <aside class="erp-sidebar">
+      <div class="sidebar-brand">
+        <img src="/assets/logo.png" alt="Logo" class="logo">
+        <div class="brand-text">Primary School Performance</div>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="sidebar-link" href="/admin/dashboard"><i class="fas fa-gauge"></i> Dashboard</a>
+        <a class="sidebar-link active" href="/admin/schools"><i class="fas fa-school"></i> Schools</a>
+        <a class="sidebar-link" href="/admin/teachers"><i class="fas fa-users"></i> Teachers</a>
+        <a class="sidebar-link" href="/admin/students"><i class="fas fa-child"></i> Students</a>
+        <a class="sidebar-link" href="/admin/resources"><i class="fas fa-boxes-stacked"></i> Resources</a>
+        <a class="sidebar-link" href="/admin/attendance"><i class="fas fa-calendar-check"></i> Attendance</a>
+        <a class="sidebar-link" href="/admin/analytics"><i class="fas fa-chart-pie"></i> Analytics</a>
+        <a class="sidebar-link" href="/admin/reports"><i class="fas fa-file-alt"></i> Reports</a>
+        <a class="sidebar-link" href="/itadmin"><i class="fas fa-user-cog"></i> IT Admins</a>
+      </nav>
+    </aside>
+
+    <div class="erp-main">
+      <header class="erp-topbar">
+        <div class="title">Schools</div>
+        <div class="nav-actions">
+          <a class="nav-link" href="/admin/dashboard"><i class="fas fa-home"></i> Dashboard</a>
+          <a class="nav-link" href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+      </header>
+
+      <section class="erp-content">
+        <div class="page-header">
+          <div>
+            <h2><i class="fas fa-school"></i> All Registered Schools</h2>
+            <p class="subhead">Manage school profiles and impersonate their dashboards.</p>
+          </div>
+        </div>
+
+        <% if (success_msg) { %>
+          <div class="alert alert-success"><%= success_msg %></div>
+        <% } %>
+        <% if (error_msg) { %>
+          <div class="alert alert-danger"><%= error_msg %></div>
+        <% } %>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>School Name</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% schools.forEach((school, i) => { %>
+                <tr>
+                  <td><%= i + 1 %></td>
+                  <td><%= school.username %></td>
+                  <td class="actions">
+                    <a href="/admin/schools/dashboard/<%= school.id %>" class="btn btn-outline">
+                      <i class="fas fa-arrow-right"></i> View
+                    </a>
+                    <form action="/admin/schools/delete/<%= school.id %>" method="POST" onsubmit="return confirm('Delete this school?')" style="display:inline;">
+                      <button class="btn btn-danger" type="submit">
+                        <i class="fas fa-trash"></i> Delete
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <footer class="footer">
+        2025 Primary School Performance System | powered by memory nikisi
+      </footer>
+    </div>
+  </div>
+</body>
+</html>

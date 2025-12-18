@@ -1,0 +1,31 @@
+<div class="container">
+<h2>System Analytics</h2>
+<div class="stats-row">
+<div class="stat-card">Schools<br><strong><%= stats.schools %></strong></div>
+<div class="stat-card">Students<br><strong><%= stats.students %></strong></div>
+<div class="stat-card">Teachers<br><strong><%= stats.teachers %></strong></div>
+<div class="stat-card">Resources<br><strong><%= stats.resources %></strong></div>
+</div>
+<canvas id="barChart" width="400" height="200"></canvas>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('barChart');
+new Chart(ctx, {
+type: 'bar',
+data: {
+labels: ['Schools', 'Students', 'Teachers', 'Resources'],
+datasets: [{
+label: 'Totals',
+data: [<%= stats.schools %>, <%= stats.students %>, <%= stats.teachers %>, <%= stats.resources %>],
+backgroundColor: ['#3F00FF', '#FFCC00', '#FFA500', '#4B00B0']
+}]
+},
+options: {
+responsive: true,
+plugins: { legend: { display: false } },
+scales: { y: { beginAtZero: true } }
+}
+});
+</script>
+<%- include('../partials/footer') %>
