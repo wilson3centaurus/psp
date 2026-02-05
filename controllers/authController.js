@@ -9,8 +9,9 @@ res.render('login');
 
 exports.loginUser = (req, res) => {
 const { username, password } = req.body;
-const q = 'SELECT * FROM users WHERE username = ?';
-db.query(q, [username], async (err, results) => {
+const safeUser = (username || '').trim();
+const q = 'SELECT * FROM users WHERE LOWER(TRIM(username)) = LOWER(?) LIMIT 1';
+db.query(q, [safeUser], async (err, results) => {
 if (err || results.length === 0) {
 req.flash('error_msg', 'Invalid username or password');
 return res.redirect('/login');

@@ -88,7 +88,23 @@
               </div>
             </div>
           </div>
+          <div class="card">
+            <div class="metric">
+              <i class="fas fa-star"></i>
+              <div>
+                <div class="label">Predicted Performance (Overall)</div>
+                <div class="value" id="combinedPerformanceValue">--</div>
+              </div>
+            </div>
+          </div>
         </div>
+
+        <section class="card section">
+          <h3><i class="fas fa-chart-pie"></i> Attendance Split (Students + Teachers, last <%= lookbackDays %>d)</h3>
+          <div class="chart-box">
+            <canvas id="attendancePieChart" aria-label="Attendance split pie chart"></canvas>
+          </div>
+        </section>
 
         <section class="card section">
           <h3><i class="fas fa-chart-line"></i> Attendance Trend (last <%= lookbackDays %> days)</h3>
@@ -214,6 +230,14 @@
         </section>
 
         <section class="card section">
+          <h3><i class="fas fa-sparkles"></i> Predicted Performance by School</h3>
+          <p class="subhead" style="margin-top:0;">Modelled from attendance and resource coverage (auto-adapts as schools change).</p>
+          <div class="chart-box">
+            <canvas id="predictedPerformanceChart" aria-label="Predicted performance per school"></canvas>
+          </div>
+        </section>
+
+        <section class="card section">
           <h3><i class="fas fa-chart-bar"></i> Students per School</h3>
           <div class="chart-box">
             <canvas id="studentsChart" aria-label="Students per school bar chart"></canvas>
@@ -228,11 +252,13 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/brain.js@2.0.0-beta.2/dist/browser.js"></script>
   <script>
     (function() {
       // Students per school (existing)
       const labels = <%- JSON.stringify((chartData && chartData.labels) || []) %>;
       const values = <%- JSON.stringify((chartData && chartData.values) || []) %>;
+      const attendanceCounts = <%- JSON.stringify(attendanceCounts || {}) %>;
       if (labels.length && values.length) {
         const ctx = document.getElementById('studentsChart').getContext('2d');
         new Chart(ctx, {
@@ -264,9 +290,31 @@
         });
       }
 
+      // Attendance pie (students + teachers combined)
+      if (attendanceCounts.students && attendanceCounts.teachers) {
+        const totalPresent = (attendanceCounts.students.present || 0) + (attendanceCounts.teachers.present || 0);
+        const totalAbsent = (attendanceCounts.students.absent || 0) + (attendanceCounts.teachers.absent || 0);
+        const ctxPie = document.getElementById('attendancePieChart').getContext('2d');
+        new Chart(ctxPie, {
+          type: 'pie',
+          data: {
+            labels: ['Present', 'Absent'],
+            datasets: [{
+              data: [totalPresent, totalAbsent],
+              backgroundColor: ['#10b981', '#ef4444']
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom' } }
+          }
+        });
+      }
+
       // Attendance trend (students vs teachers)
       const trendStudents = <%- JSON.stringify((attendanceTrend && attendanceTrend.students) || []) %>;
       const trendTeachers = <%- JSON.stringify((attendanceTrend && attendanceTrend.teachers) || []) %>;
+      const performanceFeatures = <%- JSON.stringify(performanceFeatures || []) %>;
       const trendLabels = trendStudents.map(r => r.date);
       if (trendLabels.length) {
         const studentPresent = trendStudents.map(r => Number(r.present) || 0);
@@ -305,6 +353,171 @@
           }
         });
       }
+
+      // Predicted performance (brain.js in-browser to avoid extra server deps)
+      if (performanceFeatures.length && window.brain && window.brain.NeuralNetwork) {
+        const normalize = (f) => ({
+          studentAttendance: Math.max(0, Math.min(1, f.studentAttendanceRate || 0)),
+          teacherAttendance: Math.max(0, Math.min(1, f.teacherAttendanceRate || 0)),
+          booksPerStudent: Math.min((f.booksPerStudent || 0) / 10, 1), // cap at 10 books/student
+          computersPerStudent: Math.min((f.computersPerStudent || 0) / 3, 1), // cap at 3 computers/student
+          teacherStudentRatio: Math.min((f.teacherStudentRatio || 0) / 30, 1) // cap ratio at 30:1
+        });
+
+        const heuristicScore = (f) => {
+          // baseline + attendance + resources; penalize large student/teacher ratio
+          const att = 0.5 * f.studentAttendance + 0.15 * f.teacherAttendance;
+          const res = 0.2 * f.booksPerStudent + 0.1 * f.computersPerStudent;
+          const ratioPenalty = 0.05 * Math.max(0, f.teacherStudentRatio - 1); // already normalized 0-1
+          const raw = 0.5 + att + res - ratioPenalty;
+          return Math.max(0, Math.min(1, raw));
+        };
+
+        const training = performanceFeatures.map(f => {
+          const input = normalize(f);
+          return { input, output: { score: heuristicScore(input) } };
+        });
+
+        // Light jitter to avoid overfitting when few schools
+        const augmented = [];
+        training.forEach(t => {
+          augmented.push(t);
+          augmented.push({
+            input: Object.fromEntries(Object.entries(t.input).map(([k,v]) => [k, Math.max(0, Math.min(1, v + (Math.random() - 0.5) * 0.05))])),
+            output: t.output
+          });
+        });
+
+        const net = new brain.NeuralNetwork({ hiddenLayers: [5, 3] });
+        net.train(augmented, { iterations: 300, log: false, errorThresh: 0.003 });
+
+        const predictions = performanceFeatures.map(f => {
+          const out = net.run(normalize(f)) || {};
+          const score = Math.max(0, Math.min(1, out.score || 0));
+          return { school: f.schoolName, scorePct: +(score * 100).toFixed(1) };
+        });
+
+        const combined = predictions.length
+          ? predictions.reduce((sum, p) => sum + p.scorePct, 0) / predictions.length
+          : 0;
+
+        const combinedEl = document.getElementById('combinedPerformanceValue');
+        if (combinedEl) combinedEl.textContent = `${combined.toFixed(1)}%`;
+
+        if (predictions.length) {
+          const ctxPred = document.getElementById('predictedPerformanceChart').getContext('2d');
+          new Chart(ctxPred, {
+            type: 'bar',
+            data: {
+              labels: predictions.map(p => p.school),
+              datasets: [{
+                label: 'Predicted Performance (%)',
+                data: predictions.map(p => p.scorePct),
+                backgroundColor: '#10b981',
+                borderRadius: 6,
+                borderSkipped: false
+              }]
+            },
+            options: {
+              responsive: true,
+              plugins: { legend: { display: false } },
+              scales: {
+                y: { beginAtZero: true, max: 100, title: { display: true, text: '%' } },
+                x: { title: { display: true, text: 'School' } }
+              }
+            }
+          });
+        }
+      } else {
+        const combinedEl = document.getElementById('combinedPerformanceValue');
+        if (combinedEl) combinedEl.textContent = 'N/A';
+      }
+
+      // Predicted performance (AI + heuristic fallback)
+      (function runPerformanceModel() {
+        const combinedEl = document.getElementById('combinedPerformanceValue');
+
+        if (!performanceFeatures.length) {
+          if (combinedEl) combinedEl.textContent = 'N/A';
+          return;
+        }
+
+        const normalize = (f) => ({
+          studentAttendance: Math.max(0, Math.min(1, f.studentAttendanceRate || 0)),
+          teacherAttendance: Math.max(0, Math.min(1, f.teacherAttendanceRate || 0)),
+          booksPerStudent: Math.min((f.booksPerStudent || 0) / 10, 1), // cap at 10 books/student
+          computersPerStudent: Math.min((f.computersPerStudent || 0) / 3, 1), // cap at 3 computers/student
+          teacherStudentRatio: Math.min((f.teacherStudentRatio || 0) / 30, 1) // cap ratio at 30:1
+        });
+
+        const heuristicScore = (f) => {
+          // weighted attendance + resources, slight penalty for crowded ratio
+          const att = 0.55 * f.studentAttendance + 0.15 * f.teacherAttendance;
+          const res = 0.2 * f.booksPerStudent + 0.1 * f.computersPerStudent;
+          const ratioPenalty = 0.08 * Math.max(0, f.teacherStudentRatio - 0.33); // ideal ~1 teacher per 3 students normalized
+          const raw = 0.45 + att + res - ratioPenalty;
+          return Math.max(0, Math.min(1, raw));
+        };
+
+        const baseSamples = performanceFeatures.map(f => {
+          const input = normalize(f);
+          return { input, output: { score: heuristicScore(input) } };
+        });
+
+        let predictions = [];
+
+        if (window.brain && window.brain.NeuralNetwork) {
+          // Train quickly; fall back to heuristic if anything fails
+          try {
+            const net = new brain.NeuralNetwork({ hiddenLayers: [6, 4] });
+            net.train(baseSamples, { iterations: 400, log: false, errorThresh: 0.002 });
+            predictions = performanceFeatures.map(f => {
+              const out = net.run(normalize(f)) || {};
+              const score = Math.max(0, Math.min(1, out.score || heuristicScore(normalize(f))));
+              return { school: f.schoolName, scorePct: +(score * 100).toFixed(1) };
+            });
+          } catch (e) {
+            console.warn('AI model fallback to heuristic:', e);
+          }
+        }
+
+        if (!predictions.length) {
+          predictions = performanceFeatures.map(f => {
+            const score = heuristicScore(normalize(f));
+            return { school: f.schoolName, scorePct: +(score * 100).toFixed(1) };
+          });
+        }
+
+        const combined = predictions.length
+          ? predictions.reduce((sum, p) => sum + p.scorePct, 0) / predictions.length
+          : 0;
+        if (combinedEl) combinedEl.textContent = `${combined.toFixed(1)}%`;
+
+        if (predictions.length) {
+          const ctxPred = document.getElementById('predictedPerformanceChart').getContext('2d');
+          new Chart(ctxPred, {
+            type: 'bar',
+            data: {
+              labels: predictions.map(p => p.school),
+              datasets: [{
+                label: 'Predicted Performance (%)',
+                data: predictions.map(p => p.scorePct),
+                backgroundColor: '#10b981',
+                borderRadius: 6,
+                borderSkipped: false
+              }]
+            },
+            options: {
+              responsive: true,
+              plugins: { legend: { display: false } },
+              scales: {
+                y: { beginAtZero: true, max: 100, title: { display: true, text: '%' } },
+                x: { title: { display: true, text: 'School' } }
+              }
+            }
+          });
+        }
+      })();
 
       // Lateness by weekday
       const latenessRows = <%- JSON.stringify(latenessHeatmap || []) %>;

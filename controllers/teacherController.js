@@ -200,11 +200,11 @@ exports.searchTeachers = (req, res) => {
     FROM teachers
     WHERE school_id = ?
       AND (
-        name LIKE ? OR
-        subject LIKE ? OR
-        teacher_id LIKE ? OR
-        email LIKE ? OR
-        phone LIKE ?
+        BINARY name LIKE BINARY ? OR
+        BINARY subject LIKE BINARY ? OR
+        BINARY teacher_id LIKE BINARY ? OR
+        BINARY email LIKE BINARY ? OR
+        BINARY phone LIKE BINARY ?
       )
     ORDER BY name ASC
   `;

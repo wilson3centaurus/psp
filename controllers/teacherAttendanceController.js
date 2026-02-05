@@ -79,31 +79,44 @@ exports.submitAttendance = (req, res) => {
     return res.redirect("/teacher-attendance");
   }
 
-  const attendanceRows = submittedKeys.map(key => {
-    const teacherId = key.split("_")[1];
-    const status = req.body[key];
-    const reason = req.body[`reason_${teacherId}`] || '';
-    const excused = req.body[`excused_${teacherId}`] ? 1 : 0;
-    const lateMinutes = Number(req.body[`late_${teacherId}`]) || 0;
-    const earlyMinutes = Number(req.body[`early_${teacherId}`]) || 0;
+  // Overwrite existing records for this date to allow updates to late/early minutes
+  db.query(
+    'DELETE FROM teacher_attendance WHERE school_id = ? AND date = ?',
+    [schoolId, date],
+    (delErr) => {
+      if (delErr) {
+        console.error("Cleanup error:", delErr);
+        req.flash("error_msg", "Could not save attendance. Try again.");
+        return res.redirect("/teacher-attendance");
+      }
 
-    return [teacherId, schoolId, date, status, reason, excused, lateMinutes, earlyMinutes];
-  });
+      const attendanceRows = submittedKeys.map(key => {
+        const teacherId = key.split("_")[1];
+        const status = req.body[key];
+        const reason = req.body[`reason_${teacherId}`] || '';
+        const excused = req.body[`excused_${teacherId}`] ? 1 : 0;
+        const lateMinutes = Number(req.body[`late_${teacherId}`]) || 0;
+        const earlyMinutes = Number(req.body[`early_${teacherId}`]) || 0;
 
-  const sql = `
-    INSERT INTO teacher_attendance (teacher_id, school_id, date, status, reason, excused, late_minutes, early_minutes)
-    VALUES ?
-  `;
+        return [teacherId, schoolId, date, status, reason, excused, lateMinutes, earlyMinutes];
+      });
 
-  db.query(sql, [attendanceRows], err => {
-    if (err) {
-      console.error("Manual insert error:", err);
-      req.flash("error_msg", "Failed to save attendance.");
-    } else {
-      req.flash("success_msg", "Attendance recorded.");
+      const sql = `
+        INSERT INTO teacher_attendance (teacher_id, school_id, date, status, reason, excused, late_minutes, early_minutes)
+        VALUES ?
+      `;
+
+      db.query(sql, [attendanceRows], err => {
+        if (err) {
+          console.error("Manual insert error:", err);
+          req.flash("error_msg", "Failed to save attendance.");
+        } else {
+          req.flash("success_msg", "Attendance recorded.");
+        }
+        res.redirect("/teacher-attendance");
+      });
     }
-    res.redirect("/teacher-attendance");
-  });
+  );
 };
 
 /* ===========================

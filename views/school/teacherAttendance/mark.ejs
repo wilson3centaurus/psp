@@ -48,73 +48,75 @@
           <div class="alert alert-danger"><%= error_msg %></div>
         <% } %>
 
-        <div class="card">
-          <form method="POST" action="/teacher-attendance/mark" class="actions-row" style="flex-wrap: wrap;">
-            <div style="flex:1; min-width: 200px;">
-              <label>Date</label>
-              <input type="date" name="date" value="<%= selectedDate || '' %>" required>
+        <form method="POST" action="/teacher-attendance/mark">
+          <div class="card">
+            <div class="actions-row" style="flex-wrap: wrap;">
+              <div style="flex:1; min-width: 200px;">
+                <label>Date</label>
+                <input type="date" name="date" value="<%= selectedDate || '' %>" required>
+              </div>
+              <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Attendance</button>
             </div>
-            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Attendance</button>
-          </form>
-        </div>
-
-        <div class="card" style="margin-top: 1rem;">
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Name</th>
-                  <th>Subject</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th>Status</th>
-                  <th>Late (min)</th>
-                  <th>Left Early (min)</th>
-                  <th>Reason / Notes</th>
-                  <th>Excused?</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% if (!teachers || !teachers.length) { %>
-                  <tr><td colspan="10">No teachers found.</td></tr>
-                <% } else { %>
-                  <% teachers.forEach((teacher, idx) => { %>
-                    <tr>
-                      <td><%= idx + 1 %></td>
-                      <td><%= teacher.name %></td>
-                      <td><%= teacher.subject %></td>
-                      <td><%= teacher.email %></td>
-                      <td><%= teacher.phone %></td>
-                      <td class="actions-row">
-                        <label class="badge">
-                          <input type="radio" name="status_<%= teacher.id %>" value="Present" checked> Present
-                        </label>
-                        <label class="badge" style="background:#fee2e2; color:#b91c1c;">
-                          <input type="radio" name="status_<%= teacher.id %>" value="Absent"> Absent
-                        </label>
-                      </td>
-                      <td>
-                        <input type="number" name="late_<%= teacher.id %>" min="0" step="1" placeholder="0" style="max-width:90px;">
-                      </td>
-                      <td>
-                        <input type="number" name="early_<%= teacher.id %>" min="0" step="1" placeholder="0" style="max-width:90px;">
-                      </td>
-                      <td>
-                        <input type="text" name="reason_<%= teacher.id %>" placeholder="Reason or note" style="min-width: 160px;">
-                      </td>
-                      <td style="text-align:center;">
-                        <label class="badge" style="background:#e0f2fe; color:#0f172a;">
-                          <input type="checkbox" name="excused_<%= teacher.id %>"> Excused
-                        </label>
-                      </td>
-                    </tr>
-                  <% }) %>
-                <% } %>
-              </tbody>
-            </table>
           </div>
-        </div>
+
+          <div class="card" style="margin-top: 1rem;">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Name</th>
+                    <th>Subject</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Status</th>
+                    <th>Late (min)</th>
+                    <th>Left Early (min)</th>
+                    <th>Reason / Notes</th>
+                    <th>Excused?</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% if (!teachers || !teachers.length) { %>
+                    <tr><td colspan="10">No teachers found.</td></tr>
+                  <% } else { %>
+                    <% teachers.forEach((teacher, idx) => { %>
+                      <tr>
+                        <td><%= idx + 1 %></td>
+                        <td><%= teacher.name %></td>
+                        <td><%= teacher.subject %></td>
+                        <td><%= teacher.email %></td>
+                        <td><%= teacher.phone %></td>
+                        <td class="actions-row">
+                          <label class="badge">
+                            <input type="radio" name="status_<%= teacher.id %>" value="Present" checked> Present
+                          </label>
+                          <label class="badge" style="background:#fee2e2; color:#b91c1c;">
+                            <input type="radio" name="status_<%= teacher.id %>" value="Absent"> Absent
+                          </label>
+                        </td>
+                        <td>
+                          <input type="number" name="late_<%= teacher.id %>" min="0" step="1" placeholder="0" style="max-width:90px;">
+                        </td>
+                        <td>
+                          <input type="number" name="early_<%= teacher.id %>" min="0" step="1" placeholder="0" style="max-width:90px;">
+                        </td>
+                        <td>
+                          <input type="text" name="reason_<%= teacher.id %>" placeholder="Reason or note" style="min-width: 160px;">
+                        </td>
+                        <td style="text-align:center;">
+                          <label class="badge" style="background:#e0f2fe; color:#0f172a;">
+                            <input type="checkbox" name="excused_<%= teacher.id %>"> Excused
+                          </label>
+                        </td>
+                      </tr>
+                    <% }) %>
+                  <% } %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </form>
       </section>
 
       <footer class="footer">
