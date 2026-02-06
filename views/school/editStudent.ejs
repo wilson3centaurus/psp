@@ -3,89 +3,88 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Edit Student</title>
+  <title>Edit Student | PSP</title>
   <link rel="stylesheet" href="/css/style.css">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/logo.png">
 </head>
-
-<body>
-
-  <!-- Header -->
-  <header class="topbar">
-    <div class="nav-left">
-      <img src="/assets/logo.png" alt="Logo" class="logo">
+<body class="form-page">
+  <div class="form-page-container">
+    <div class="form-page-header">
+      <a href="/student" class="back-btn"><i class="fas fa-arrow-left"></i></a>
+      <h1><i class="fas fa-pen"></i> Edit Student</h1>
+      <button class="theme-toggle" aria-label="Toggle theme">
+        <i class="fas fa-moon"></i>
+        <i class="fas fa-sun"></i>
+      </button>
     </div>
-    <div class="nav-right">
-      <a href="/school/dashboard" class="nav-link"><i class="fas fa-home"></i> Dashboard</a>
-    </div>
-  </header>
 
-  <!-- Popup Messages -->
-  <% if (success_msg) { %>
-    <div class="popup success">
-      <i class="fas fa-check-circle"></i>
-      <%= success_msg %>
-    </div>
-  <% } %>
+    <% if (success_msg && String(success_msg).trim() !== "") { %>
+      <div class="alert success"><i class="fas fa-check-circle"></i> <%= success_msg %></div>
+    <% } %>
+    <% if (error_msg && String(error_msg).trim() !== "") { %>
+      <div class="alert error"><i class="fas fa-exclamation-circle"></i> <%= error_msg %></div>
+    <% } %>
 
-  <% if (error_msg && String(error_msg).trim() !== "") { %>
-    <div class="popup error">
-      <i class="fas fa-exclamation-circle"></i>
-      <%= error_msg %>
-    </div>
-  <% } %>
-
-  <!-- Edit Student Form -->
-  <main>
-    <div class="form-box">
-      <h2><i class="fas fa-pen"></i> Edit Student</h2>
-
+    <div class="card form-card">
       <form action="/student/edit/<%= student.id %>" method="POST">
+        <div class="form-group">
+          <label for="name"><i class="fas fa-user"></i> Full Name</label>
+          <input type="text" id="name" name="name" class="form-input" required value="<%= student.name %>">
+        </div>
 
-        <label for="name">Full Name</label>
-        <input type="text" id="name" name="name" required value="<%= student.name %>">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="grade"><i class="fas fa-layer-group"></i> Grade</label>
+            <select id="grade" name="grade" class="form-input" required>
+              <option value="">Select Grade</option>
+              <option value="1" <%= student.grade == 1 ? 'selected' : '' %>>Grade 1</option>
+              <option value="2" <%= student.grade == 2 ? 'selected' : '' %>>Grade 2</option>
+              <option value="3" <%= student.grade == 3 ? 'selected' : '' %>>Grade 3</option>
+              <option value="4" <%= student.grade == 4 ? 'selected' : '' %>>Grade 4</option>
+              <option value="5" <%= student.grade == 5 ? 'selected' : '' %>>Grade 5</option>
+              <option value="6" <%= student.grade == 6 ? 'selected' : '' %>>Grade 6</option>
+              <option value="7" <%= student.grade == 7 ? 'selected' : '' %>>Grade 7</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="student_class"><i class="fas fa-door-open"></i> Class</label>
+            <select id="student_class" name="student_class" class="form-input" required>
+              <option value="">Select Class</option>
+              <option value="A" <%= student.student_class === 'A' ? 'selected' : '' %>>Class A</option>
+              <option value="B" <%= student.student_class === 'B' ? 'selected' : '' %>>Class B</option>
+              <option value="C" <%= student.student_class === 'C' ? 'selected' : '' %>>Class C</option>
+              <option value="D" <%= student.student_class === 'D' ? 'selected' : '' %>>Class D</option>
+              <option value="E" <%= student.student_class === 'E' ? 'selected' : '' %>>Class E</option>
+              <option value="F" <%= student.student_class === 'F' ? 'selected' : '' %>>Class F</option>
+            </select>
+          </div>
+        </div>
 
-        <label for="grade">Grade</label>
-        <input type="number" id="grade" name="grade" required min="1" value="<%= student.grade %>">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="gender"><i class="fas fa-venus-mars"></i> Gender</label>
+            <select id="gender" name="gender" class="form-input" required>
+              <option value="">Select Gender</option>
+              <option value="Male" <%= student.gender === 'Male' ? 'selected' : '' %>>Male</option>
+              <option value="Female" <%= student.gender === 'Female' ? 'selected' : '' %>>Female</option>
+              <option value="Other" <%= student.gender === 'Other' ? 'selected' : '' %>>Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="student_id"><i class="fas fa-id-card"></i> Student ID</label>
+            <input type="text" id="student_id" name="student_id" class="form-input" required value="<%= student.student_id %>">
+          </div>
+        </div>
 
-        <label for="student_class">Class</label>
-        <input type="text" id="student_class" name="student_class" required value="<%= student.student_class %>">
-
-        <label for="gender">Gender</label>
-        <select id="gender" name="gender" required>
-          <option value="">Select Gender</option>
-          <option value="Male" <%= student.gender === 'Male' ? 'selected' : '' %>>Male</option>
-          <option value="Female" <%= student.gender === 'Female' ? 'selected' : '' %>>Female</option>
-          <option value="Other" <%= student.gender === 'Other' ? 'selected' : '' %>>Other</option>
-        </select>
-
-        <label for="student_id">Student ID</label>
-        <input type="text" id="student_id" name="student_id" required value="<%= student.student_id %>">
-
-        <button type="submit"><i class="fas fa-save"></i> Update Student</button>
+        <div class="form-actions">
+          <a href="/student" class="btn outline"><i class="fas fa-times"></i> Cancel</a>
+          <button type="submit" class="btn primary"><i class="fas fa-save"></i> Update Student</button>
+        </div>
       </form>
-
-      <a href="/student" class="back-link">← Back to Students</a>
     </div>
-  </main>
+  </div>
 
-  <!-- Footer -->
-  <footer class="footer">
-2025 Primary School Performance System | powered by memory nikisi
-  </footer>
-
-  <script>
-    // Auto-hide popups
-    setTimeout(() => {
-      document.querySelectorAll(".popup").forEach(p => p.style.display = "none");
-    }, 3000);
-
-    // Force CLASS uppercase
-    const cls = document.getElementById("student_class");
-    cls.addEventListener("input", () => {
-      cls.value = cls.value.toUpperCase();
-    });
-  </script>
-
+  <script src="/js/main.js"></script>
 </body>
 </html>

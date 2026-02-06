@@ -1,119 +1,366 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <title>Attendance Summary | Admin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="/css/style.css">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/logo.png">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <div class="erp-shell">
-    <aside class="erp-sidebar">
-      <div class="sidebar-brand">
-        <img src="/assets/logo.png" alt="Logo" class="logo">
-        <div class="brand-text">Primary School Performance</div>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <i class="fas fa-graduation-cap"></i>
+          <span>PSP Admin</span>
+        </div>
+        <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+          <i class="fas fa-moon"></i>
+        </button>
       </div>
       <nav class="sidebar-nav">
-        <a class="sidebar-link" href="/admin/dashboard"><i class="fas fa-gauge"></i> Dashboard</a>
-        <a class="sidebar-link" href="/admin/schools"><i class="fas fa-school"></i> Schools</a>
-        <a class="sidebar-link" href="/admin/teachers"><i class="fas fa-users"></i> Teachers</a>
-        <a class="sidebar-link" href="/admin/students"><i class="fas fa-child"></i> Students</a>
-        <a class="sidebar-link" href="/admin/resources"><i class="fas fa-boxes-stacked"></i> Resources</a>
-        <a class="sidebar-link active" href="/admin/attendance"><i class="fas fa-calendar-check"></i> Attendance</a>
-        <a class="sidebar-link" href="/admin/analytics"><i class="fas fa-chart-pie"></i> Analytics</a>
-        <a class="sidebar-link" href="/admin/reports"><i class="fas fa-file-alt"></i> Reports</a>
-        <a class="sidebar-link" href="/itadmin"><i class="fas fa-user-cog"></i> IT Admins</a>
+        <a href="/admin/dashboard" class="nav-item"><i class="fas fa-gauge"></i><span>Dashboard</span></a>
+        <a href="/admin/schools" class="nav-item"><i class="fas fa-school"></i><span>Schools</span></a>
+        <a href="/admin/teachers" class="nav-item"><i class="fas fa-chalkboard-teacher"></i><span>Teachers</span></a>
+        <a href="/admin/students" class="nav-item"><i class="fas fa-user-graduate"></i><span>Students</span></a>
+        <a href="/admin/resources" class="nav-item"><i class="fas fa-boxes-stacked"></i><span>Resources</span></a>
+        <a href="/admin/attendance" class="nav-item active"><i class="fas fa-calendar-check"></i><span>Attendance</span></a>
+        <a href="/admin/analytics" class="nav-item"><i class="fas fa-chart-pie"></i><span>Analytics</span></a>
+        <a href="/admin/reports" class="nav-item"><i class="fas fa-file-alt"></i><span>Reports</span></a>
+        <a href="/itadmin" class="nav-item"><i class="fas fa-user-shield"></i><span>IT Admins</span></a>
       </nav>
     </aside>
 
-    <div class="erp-main">
-      <header class="erp-topbar">
-        <div class="title">Attendance Summary</div>
-        <div class="nav-actions">
-          <a class="nav-link" href="/admin/dashboard"><i class="fas fa-home"></i> Dashboard</a>
-          <a class="nav-link" href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    <!-- Main Content -->
+    <div class="main-content">
+      <header class="topbar">
+        <button class="menu-toggle" id="menuToggle">
+          <i class="fas fa-bars"></i>
+        </button>
+        <h1 class="page-title">Attendance Analytics</h1>
+        <div class="topbar-actions">
+          <a href="/admin/dashboard" class="btn btn-ghost"><i class="fas fa-home"></i></a>
+          <a href="/logout" class="btn btn-ghost"><i class="fas fa-sign-out-alt"></i></a>
         </div>
       </header>
 
-      <section class="erp-content">
-        <div class="page-header">
-          <div>
-            <h2><i class="fas fa-calendar-week"></i> Weekly Absentee Overview</h2>
-            <p class="subhead">Students and teachers absences aggregated by calendar week across all schools.</p>
-          </div>
-        </div>
-
-        <% if (success_msg) { %>
-          <div class="alert alert-success"><%= success_msg %></div>
+      <main class="content">
+        <% if (success_msg && String(success_msg).trim() !== "") { %>
+          <div class="alert alert-success"><i class="fas fa-check-circle"></i> <%= success_msg %></div>
         <% } %>
-        <% if (error_msg) { %>
-          <div class="alert alert-danger"><%= error_msg %></div>
+        <% if (error_msg && String(error_msg).trim() !== "") { %>
+          <div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> <%= error_msg %></div>
         <% } %>
 
-        <div class="card-grid">
-          <div class="card">
-            <div class="metric">
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
               <i class="fas fa-calendar-week"></i>
-              <div>
-                <div class="label">Weeks tracked</div>
-                <div class="value"><%= totals.weeks || 0 %></div>
-              </div>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value"><%= totals.weeks || 0 %></span>
+              <span class="stat-label">Weeks Tracked</span>
             </div>
           </div>
-          <div class="card">
-            <div class="metric">
+          <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%);">
               <i class="fas fa-user-graduate"></i>
-              <div>
-                <div class="label">Total absent students (all weeks)</div>
-                <div class="value"><%= totals.absentStudents || 0 %></div>
-              </div>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value"><%= totals.absentStudents || 0 %></span>
+              <span class="stat-label">Absent Students (Total)</span>
             </div>
           </div>
-          <div class="card">
-            <div class="metric">
+          <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);">
               <i class="fas fa-chalkboard-teacher"></i>
-              <div>
-                <div class="label">Total absent teachers (all weeks)</div>
-                <div class="value"><%= totals.absentTeachers || 0 %></div>
-              </div>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value"><%= totals.absentTeachers || 0 %></span>
+              <span class="stat-label">Absent Teachers (Total)</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+              <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value"><%= weeks && weeks.length > 0 ? Math.round(weeks.reduce((sum, w) => sum + (w.absent_students || 0), 0) / weeks.length) : 0 %></span>
+              <span class="stat-label">Avg Weekly Absences</span>
             </div>
           </div>
         </div>
 
-        <section class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Week</th>
-                <th>Absent Students</th>
-                <th>Absent Teachers</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% if (!weeks || weeks.length === 0) { %>
+        <!-- Attendance Charts -->
+        <div class="charts-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+          <!-- Attendance Trend Chart -->
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="fas fa-chart-line"></i> Weekly Attendance Trend</h3>
+            </div>
+            <div style="padding: 1.5rem;">
+              <canvas id="attendanceTrendChart" height="250"></canvas>
+            </div>
+          </div>
+
+          <!-- Attendance Distribution Chart -->
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="fas fa-chart-pie"></i> Absence Distribution</h3>
+            </div>
+            <div style="padding: 1.5rem;">
+              <canvas id="attendanceDistributionChart" height="250"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Attendance Comparison Chart -->
+        <div class="card" style="margin-top: 1.5rem;">
+          <div class="card-header">
+            <h3><i class="fas fa-chart-bar"></i> Student vs Teacher Absence Comparison</h3>
+          </div>
+          <div style="padding: 1.5rem;">
+            <canvas id="attendanceComparisonChart" height="150"></canvas>
+          </div>
+        </div>
+
+        <!-- Attendance Table -->
+        <div class="card" style="margin-top: 1.5rem;">
+          <div class="card-header">
+            <h3><i class="fas fa-calendar-week"></i> Weekly Absentee Overview</h3>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
                 <tr>
-                  <td colspan="4">No attendance data available yet.</td>
+                  <th>#</th>
+                  <th>Week</th>
+                  <th>Absent Students</th>
+                  <th>Absent Teachers</th>
+                  <th>Trend</th>
                 </tr>
-              <% } %>
-              <% weeks.forEach((week, idx) => { %>
-                <tr>
-                  <td><%= idx + 1 %></td>
-                  <td><%= week.week_label || ('Week ' + week.year_week) %></td>
-                  <td><%= week.absent_students || 0 %></td>
-                  <td><%= week.absent_teachers || 0 %></td>
-                </tr>
-              <% }) %>
-            </tbody>
-          </table>
-        </section>
-      </section>
+              </thead>
+              <tbody>
+                <% if (!weeks || weeks.length === 0) { %>
+                  <tr>
+                    <td colspan="5" style="text-align: center; padding: 2rem;">
+                      <i class="fas fa-calendar-check" style="font-size: 2rem; opacity: 0.3;"></i>
+                      <p style="margin-top: 0.5rem; opacity: 0.6;">No attendance data available yet</p>
+                    </td>
+                  </tr>
+                <% } else { %>
+                  <% weeks.forEach((week, idx) => { 
+                    const prevWeek = weeks[idx - 1];
+                    const studentTrend = prevWeek ? (week.absent_students || 0) - (prevWeek.absent_students || 0) : 0;
+                  %>
+                    <tr>
+                      <td><%= idx + 1 %></td>
+                      <td><strong><%= week.week_label || ('Week ' + week.year_week) %></strong></td>
+                      <td>
+                        <span class="badge badge-<%= (week.absent_students || 0) > 10 ? 'danger' : 'warning' %>">
+                          <i class="fas fa-user-graduate"></i> <%= week.absent_students || 0 %>
+                        </span>
+                      </td>
+                      <td>
+                        <span class="badge badge-<%= (week.absent_teachers || 0) > 5 ? 'danger' : 'warning' %>">
+                          <i class="fas fa-chalkboard-teacher"></i> <%= week.absent_teachers || 0 %>
+                        </span>
+                      </td>
+                      <td>
+                        <% if (idx > 0) { %>
+                          <% if (studentTrend > 0) { %>
+                            <span style="color: var(--error);"><i class="fas fa-arrow-up"></i> +<%= studentTrend %></span>
+                          <% } else if (studentTrend < 0) { %>
+                            <span style="color: var(--success);"><i class="fas fa-arrow-down"></i> <%= studentTrend %></span>
+                          <% } else { %>
+                            <span style="color: var(--text-muted);"><i class="fas fa-minus"></i> 0</span>
+                          <% } %>
+                        <% } else { %>
+                          <span style="color: var(--text-muted);">-</span>
+                        <% } %>
+                      </td>
+                    </tr>
+                  <% }) %>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
 
       <footer class="footer">
-        2025 Primary School Performance System | powered by memory nikisi
+        <p>&copy; 2026 Primary School Performance System</p>
       </footer>
     </div>
   </div>
+
+  <script src="/js/main.js"></script>
+  <script>
+    // Initialize theme from localStorage
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    const themeIcon = document.querySelector('#themeToggle i');
+    if (themeIcon) {
+      themeIcon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
+
+    // Prepare data for charts
+    const weeksData = <%- JSON.stringify(weeks || []) %>;
+    const labels = weeksData.map((w, i) => w.week_label || ('Week ' + (i + 1)));
+    const studentAbsences = weeksData.map(w => w.absent_students || 0);
+    const teacherAbsences = weeksData.map(w => w.absent_teachers || 0);
+
+    // Get CSS variables for colors
+    const computedStyle = getComputedStyle(document.documentElement);
+    const primaryColor = computedStyle.getPropertyValue('--primary').trim() || '#2563eb';
+    const errorColor = computedStyle.getPropertyValue('--error').trim() || '#ef4444';
+    const warningColor = computedStyle.getPropertyValue('--warning').trim() || '#f59e0b';
+    const successColor = computedStyle.getPropertyValue('--success').trim() || '#10b981';
+
+    // Chart.js default options
+    Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif';
+    Chart.defaults.color = computedStyle.getPropertyValue('--text-secondary').trim() || '#475569';
+
+    // 1. Attendance Trend Line Chart
+    const trendCtx = document.getElementById('attendanceTrendChart')?.getContext('2d');
+    if (trendCtx && weeksData.length > 0) {
+      new Chart(trendCtx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Student Absences',
+              data: studentAbsences,
+              borderColor: errorColor,
+              backgroundColor: errorColor + '20',
+              fill: true,
+              tension: 0.4,
+              pointRadius: 4,
+              pointHoverRadius: 6
+            },
+            {
+              label: 'Teacher Absences',
+              data: teacherAbsences,
+              borderColor: warningColor,
+              backgroundColor: warningColor + '20',
+              fill: true,
+              tension: 0.4,
+              pointRadius: 4,
+              pointHoverRadius: 6
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'top' },
+            tooltip: {
+              mode: 'index',
+              intersect: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: { color: 'rgba(0,0,0,0.05)' }
+            },
+            x: {
+              grid: { display: false }
+            }
+          }
+        }
+      });
+    }
+
+    // 2. Attendance Distribution Pie Chart
+    const distCtx = document.getElementById('attendanceDistributionChart')?.getContext('2d');
+    if (distCtx) {
+      const totalStudentAbsences = studentAbsences.reduce((a, b) => a + b, 0);
+      const totalTeacherAbsences = teacherAbsences.reduce((a, b) => a + b, 0);
+      
+      new Chart(distCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Student Absences', 'Teacher Absences'],
+          datasets: [{
+            data: [totalStudentAbsences, totalTeacherAbsences],
+            backgroundColor: [errorColor + 'cc', warningColor + 'cc'],
+            borderColor: ['#fff', '#fff'],
+            borderWidth: 2,
+            hoverOffset: 10
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const percentage = total > 0 ? Math.round((context.raw / total) * 100) : 0;
+                  return context.label + ': ' + context.raw + ' (' + percentage + '%)';
+                }
+              }
+            }
+          },
+          cutout: '60%'
+        }
+      });
+    }
+
+    // 3. Comparison Bar Chart
+    const compCtx = document.getElementById('attendanceComparisonChart')?.getContext('2d');
+    if (compCtx && weeksData.length > 0) {
+      new Chart(compCtx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Students',
+              data: studentAbsences,
+              backgroundColor: errorColor + '99',
+              borderColor: errorColor,
+              borderWidth: 1,
+              borderRadius: 4
+            },
+            {
+              label: 'Teachers',
+              data: teacherAbsences,
+              backgroundColor: warningColor + '99',
+              borderColor: warningColor,
+              borderWidth: 1,
+              borderRadius: 4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'top' }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: { color: 'rgba(0,0,0,0.05)' }
+            },
+            x: {
+              grid: { display: false }
+            }
+          }
+        }
+      });
+    }
+  </script>
 </body>
 </html>

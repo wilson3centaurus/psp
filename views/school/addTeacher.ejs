@@ -3,62 +3,86 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Add Teacher</title>
+  <title>Add Teacher | PSP</title>
   <link rel="stylesheet" href="/css/style.css">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/logo.png">
 </head>
-<body>
-
-  <!-- Header -->
-  <header class="topbar">
-    <div class="nav-left">
-      <img src="/assets/logo.png" alt="Logo" class="logo">
+<body class="form-page">
+  <div class="form-page-container">
+    <div class="form-page-header">
+      <a href="/teacher" class="back-btn"><i class="fas fa-arrow-left"></i></a>
+      <h1><i class="fas fa-user-plus"></i> Add New Teacher</h1>
+      <button class="theme-toggle" aria-label="Toggle theme">
+        <i class="fas fa-moon"></i>
+        <i class="fas fa-sun"></i>
+      </button>
     </div>
-    <div class="nav-right">
-      <a href="/school/dashboard" class="nav-link"><i class="fas fa-home"></i> Dashboard</a>
-    </div>
-  </header>
 
-  <!-- Add Teacher Form -->
-  <main>
-    <div class="form-box">
-      <h2><i class="fas fa-user-plus"></i> Add New Teacher</h2>
+    <div class="card form-card">
       <form action="/teacher/add" method="POST">
+        <div class="form-group">
+          <label for="name"><i class="fas fa-user"></i> Full Name</label>
+          <input type="text" id="name" name="name" class="form-input" placeholder="Enter teacher's full name" required>
+        </div>
 
-        <label for="name">Full Name</label>
-        <input type="text" id="name" name="name" required>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="subject"><i class="fas fa-book"></i> Subject</label>
+            <select id="subject" name="subject" class="form-input" required>
+              <option value="">Select Subject</option>
+              <option value="English">English</option>
+              <option value="Mathematics">Mathematics</option>
+              <option value="Science">Science</option>
+              <option value="Social Studies">Social Studies</option>
+              <option value="Shona">Shona</option>
+              <option value="Ndebele">Ndebele</option>
+              <option value="Physical Education">Physical Education</option>
+              <option value="Agriculture">Agriculture</option>
+              <option value="Art">Art</option>
+              <option value="Music">Music</option>
+              <option value="Religious Studies">Religious Studies</option>
+              <option value="ICT">ICT</option>
+              <option value="Life Skills">Life Skills</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="gender"><i class="fas fa-venus-mars"></i> Gender</label>
+            <select id="gender" name="gender" class="form-input" required>
+              <option value="">Select Gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
 
-        <label for="subject">Subject</label>
-        <input type="text" id="subject" name="subject" required>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="phone"><i class="fas fa-phone"></i> Phone</label>
+            <input type="text" id="phone" name="phone" class="form-input" placeholder="Phone number">
+          </div>
+          <div class="form-group">
+            <label for="email"><i class="fas fa-envelope"></i> Email</label>
+            <input type="email" id="email" name="email" class="form-input" placeholder="Email address">
+          </div>
+        </div>
 
-        <label for="gender">Gender</label>
-        <select id="gender" name="gender" required>
-          <option value="">Select Gender</option>
-          <option value="Male">Male</option>
-          <option value="Female">Female</option>
-          <option value="Other">Other</option>
-        </select>
+        <div class="form-group">
+          <label for="teacher_id"><i class="fas fa-id-badge"></i> EC Number</label>
+          <input type="text" id="teacher_id" name="teacher_id" class="form-input" placeholder="e.g. EC12345" required>
+          <small class="form-hint"><i class="fas fa-info-circle"></i> Employee Code Number assigned by the ministry</small>
+        </div>
 
-        <label for="phone">Phone</label>
-        <input type="text" id="phone" name="phone">
-
-        <label for="email">Email</label>
-        <input type="email" id="email" name="email">
-
-        <label for="teacher_id">Teacher ID</label>
-        <input type="text" id="teacher_id" name="teacher_id" required placeholder="e.g. TCH001">
-
-        <button type="submit"><i class="fas fa-save"></i> Save Teacher</button>
+        <div class="form-actions">
+          <a href="/teacher" class="btn outline"><i class="fas fa-times"></i> Cancel</a>
+          <button type="submit" class="btn primary"><i class="fas fa-save"></i> Save Teacher</button>
+        </div>
       </form>
-
-      <a href="/teacher" class="back-link">← Back to Teachers</a>
     </div>
-  </main>
+  </div>
 
-  <!-- Footer -->
-  <footer class="footer">
-2025 Primary School Performance System | powered by memory nikisi
-  </footer>
-
+  <script src="/js/main.js"></script>
 </body>
 </html>

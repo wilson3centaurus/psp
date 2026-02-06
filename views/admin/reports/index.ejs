@@ -1,81 +1,172 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <title>Reports | Admin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="/css/style.css">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/logo.png">
 </head>
 <body>
-  <div class="erp-shell">
-    <aside class="erp-sidebar">
-      <div class="sidebar-brand">
-        <img src="/assets/logo.png" alt="Logo" class="logo">
-        <div class="brand-text">Primary School Performance</div>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <i class="fas fa-graduation-cap"></i>
+          <span>PSP Admin</span>
+        </div>
+        <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+          <i class="fas fa-moon"></i>
+        </button>
       </div>
       <nav class="sidebar-nav">
-        <a class="sidebar-link" href="/admin/dashboard"><i class="fas fa-gauge"></i> Dashboard</a>
-        <a class="sidebar-link" href="/admin/schools"><i class="fas fa-school"></i> Schools</a>
-        <a class="sidebar-link" href="/admin/teachers"><i class="fas fa-users"></i> Teachers</a>
-        <a class="sidebar-link" href="/admin/students"><i class="fas fa-child"></i> Students</a>
-        <a class="sidebar-link" href="/admin/resources"><i class="fas fa-boxes-stacked"></i> Resources</a>
-        <a class="sidebar-link" href="/admin/attendance"><i class="fas fa-calendar-check"></i> Attendance</a>
-        <a class="sidebar-link" href="/admin/analytics"><i class="fas fa-chart-pie"></i> Analytics</a>
-        <a class="sidebar-link active" href="/admin/reports"><i class="fas fa-file-alt"></i> Reports</a>
-        <a class="sidebar-link" href="/itadmin"><i class="fas fa-user-cog"></i> IT Admins</a>
+        <a href="/admin/dashboard" class="nav-item"><i class="fas fa-gauge"></i><span>Dashboard</span></a>
+        <a href="/admin/schools" class="nav-item"><i class="fas fa-school"></i><span>Schools</span></a>
+        <a href="/admin/teachers" class="nav-item"><i class="fas fa-chalkboard-teacher"></i><span>Teachers</span></a>
+        <a href="/admin/students" class="nav-item"><i class="fas fa-user-graduate"></i><span>Students</span></a>
+        <a href="/admin/resources" class="nav-item"><i class="fas fa-boxes-stacked"></i><span>Resources</span></a>
+        <a href="/admin/attendance" class="nav-item"><i class="fas fa-calendar-check"></i><span>Attendance</span></a>
+        <a href="/admin/analytics" class="nav-item"><i class="fas fa-chart-pie"></i><span>Analytics</span></a>
+        <a href="/admin/reports" class="nav-item active"><i class="fas fa-file-alt"></i><span>Reports</span></a>
+        <a href="/itadmin" class="nav-item"><i class="fas fa-user-shield"></i><span>IT Admins</span></a>
       </nav>
     </aside>
 
-    <div class="erp-main">
-      <header class="erp-topbar">
-        <div class="title">Reports</div>
-        <div class="nav-actions">
-          <a class="nav-link" href="/admin/dashboard"><i class="fas fa-home"></i> Dashboard</a>
-          <a class="nav-link" href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    <!-- Main Content -->
+    <div class="main-content">
+      <header class="topbar">
+        <button class="menu-toggle" id="menuToggle">
+          <i class="fas fa-bars"></i>
+        </button>
+        <h1 class="page-title">Reports</h1>
+        <div class="topbar-actions">
+          <a href="/admin/dashboard" class="btn btn-ghost"><i class="fas fa-home"></i></a>
+          <a href="/logout" class="btn btn-ghost"><i class="fas fa-sign-out-alt"></i></a>
         </div>
       </header>
 
-      <section class="erp-content">
-        <div class="page-header">
-          <div>
-            <h2><i class="fas fa-file-pdf"></i> Generate School Report</h2>
-            <p class="subhead">Select a school to generate a PDF with enrollment, resources, attendance, and recommendations.</p>
+      <main class="content">
+        <% if (success_msg && String(success_msg).trim() !== "") { %>
+          <div class="alert alert-success"><i class="fas fa-check-circle"></i> <%= success_msg %></div>
+        <% } %>
+        <% if (error_msg && String(error_msg).trim() !== "") { %>
+          <div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> <%= error_msg %></div>
+        <% } %>
+
+        <div class="card" style="max-width: 700px;">
+          <div class="card-header">
+            <h3><i class="fas fa-file-pdf"></i> Generate School Report</h3>
+          </div>
+          <div style="padding: 1.5rem;">
+            <p style="margin-bottom: 1.5rem; opacity: 0.8;">
+              Select a school to generate a comprehensive PDF report with enrollment, resources, attendance, and AI-powered recommendations.
+            </p>
+            
+            <form id="reportForm" method="GET">
+              <div class="form-group">
+                <label for="schoolSelect"><i class="fas fa-school"></i> Select School</label>
+                <select id="schoolSelect" name="schoolId" class="form-control" required>
+                  <option value="">-- Choose a school --</option>
+                  <% schools.forEach(school => { %>
+                    <option value="<%= school.id %>"><%= school.username %></option>
+                  <% }) %>
+                </select>
+              </div>
+
+              <button class="btn btn-primary" type="submit" style="width: 100%; margin-top: 1rem;">
+                <i class="fas fa-file-export"></i> Generate PDF Report
+              </button>
+            </form>
+            
+            <p style="margin-top: 1rem; font-size: 0.875rem; opacity: 0.6; text-align: center;">
+              <i class="fas fa-info-circle"></i> Report will download or open in a new tab
+            </p>
           </div>
         </div>
 
-        <% if (success_msg) { %>
-          <div class="alert alert-success"><%= success_msg %></div>
-        <% } %>
-        <% if (error_msg) { %>
-          <div class="alert alert-danger"><%= error_msg %></div>
-        <% } %>
-
-        <div class="card" style="max-width: 640px;">
-          <form id="reportForm" method="GET">
-            <label for="schoolSelect">School</label>
-            <select id="schoolSelect" name="schoolId" required>
-              <option value="">-- Select a school --</option>
-              <% schools.forEach(school => { %>
-                <option value="<%= school.id %>"><%= school.username %></option>
-              <% }) %>
-            </select>
-
-            <button class="btn btn-primary" type="submit" style="width: 100%; margin-top: 0.9rem;">
-              <i class="fas fa-file-export"></i> Generate Report
-            </button>
-            <div class="subhead" style="margin-top: 0.6rem;">A PDF will download or open in a new tab when the report is generated.</div>
-          </form>
+        <!-- AI Recommendations Info Card -->
+        <div class="ai-recommendations" style="max-width: 700px; margin-top: 1.5rem;">
+          <div class="ai-recommendations-header">
+            <div class="ai-icon">
+              <i class="fas fa-robot"></i>
+            </div>
+            <div>
+              <h3>AI-Powered Recommendations</h3>
+              <span class="ai-badge"><i class="fas fa-sparkles"></i> Smart Analysis</span>
+            </div>
+          </div>
+          <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+            Our reports now include intelligent recommendations based on comprehensive data analysis. Each report evaluates:
+          </p>
+          <div class="recommendation-list">
+            <div class="recommendation-item">
+              <div class="recommendation-icon">
+                <i class="fas fa-book"></i>
+              </div>
+              <div class="recommendation-content">
+                <div class="recommendation-title">Resource Allocation</div>
+                <div class="recommendation-desc">Analyzes book-to-student ratios and identifies subjects needing more materials</div>
+              </div>
+            </div>
+            <div class="recommendation-item">
+              <div class="recommendation-icon warning">
+                <i class="fas fa-users"></i>
+              </div>
+              <div class="recommendation-content">
+                <div class="recommendation-title">Staffing Analysis</div>
+                <div class="recommendation-desc">Evaluates teacher-to-student ratios and recommends optimal staffing levels</div>
+              </div>
+            </div>
+            <div class="recommendation-item">
+              <div class="recommendation-icon">
+                <i class="fas fa-calendar-check"></i>
+              </div>
+              <div class="recommendation-content">
+                <div class="recommendation-title">Attendance Patterns</div>
+                <div class="recommendation-desc">Identifies attendance trends and suggests engagement strategies</div>
+              </div>
+            </div>
+            <div class="recommendation-item">
+              <div class="recommendation-icon critical">
+                <i class="fas fa-chart-line"></i>
+              </div>
+              <div class="recommendation-content">
+                <div class="recommendation-title">Performance Prediction</div>
+                <div class="recommendation-desc">Uses historical data to predict and improve school performance</div>
+              </div>
+            </div>
+            <div class="recommendation-item">
+              <div class="recommendation-icon">
+                <i class="fas fa-lightbulb"></i>
+              </div>
+              <div class="recommendation-content">
+                <div class="recommendation-title">Actionable Insights</div>
+                <div class="recommendation-desc">Provides specific, prioritized recommendations for improvement</div>
+              </div>
+            </div>
+          </div>
         </div>
-      </section>
+      </main>
 
       <footer class="footer">
-        2025 Primary School Performance System | powered by memory nikisi
+        <p>&copy; 2026 Primary School Performance System</p>
       </footer>
     </div>
   </div>
 
+  <script src="/js/main.js"></script>
   <script>
+    // Initialize theme from localStorage
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    const themeIcon = document.querySelector('#themeToggle i');
+    if (themeIcon) {
+      themeIcon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
+
+    // Report form handler
     (function() {
       const form = document.getElementById('reportForm');
       const select = document.getElementById('schoolSelect');

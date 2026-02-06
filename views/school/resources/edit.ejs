@@ -2,76 +2,166 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Edit Resource | School</title>
+  <title>Edit Resource | PSP</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="/css/style.css">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/logo.png">
 </head>
-<body>
-  <div class="erp-shell">
-    <aside class="erp-sidebar">
-      <div class="sidebar-brand">
-        <img src="/assets/logo.png" alt="Logo" class="logo">
-        <div class="brand-text"><%= user.username %> (School)</div>
-      </div>
-      <nav class="sidebar-nav">
-        <a class="sidebar-link" href="/school/dashboard"><i class="fas fa-gauge"></i> Dashboard</a>
-        <a class="sidebar-link" href="/student"><i class="fas fa-user-graduate"></i> Students</a>
-        <a class="sidebar-link" href="/teacher"><i class="fas fa-chalkboard-teacher"></i> Teachers</a>
-        <a class="sidebar-link" href="/student-attendance"><i class="fas fa-user-check"></i> Student Attendance</a>
-        <a class="sidebar-link" href="/teacher-attendance"><i class="fas fa-user-clock"></i> Teacher Attendance</a>
-        <a class="sidebar-link active" href="/resources"><i class="fas fa-boxes-stacked"></i> Resources</a>
-      </nav>
-    </aside>
+<body class="form-page">
+  <div class="form-page-container">
+    <div class="form-page-header">
+      <a href="/resources" class="back-btn"><i class="fas fa-arrow-left"></i></a>
+      <h1><i class="fas fa-edit"></i> Edit Resource</h1>
+      <button class="theme-toggle" aria-label="Toggle theme">
+        <i class="fas fa-moon"></i>
+        <i class="fas fa-sun"></i>
+      </button>
+    </div>
 
-    <div class="erp-main">
-      <header class="erp-topbar">
-        <div class="title">Edit Resource</div>
-        <div class="nav-actions">
-          <a class="nav-link" href="/resources"><i class="fas fa-arrow-left"></i> Back</a>
-          <a class="nav-link" href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
-        </div>
-      </header>
+    <div class="card form-card">
+      <form action="/resources/edit/<%= resource.id %>" method="POST">
+        <!-- Subject Information -->
+        <div class="form-section">
+          <h3 class="form-section-title"><i class="fas fa-book-open"></i> Subject Information</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="subject_name"><i class="fas fa-book"></i> Subject</label>
+              <select name="subject_name" id="subject_name" class="form-input" required>
+                <option value="">Select Subject</option>
+                <option value="English" <%= resource.subject_name === 'English' ? 'selected' : '' %>>English</option>
+                <option value="Mathematics" <%= resource.subject_name === 'Mathematics' ? 'selected' : '' %>>Mathematics</option>
+                <option value="Science" <%= resource.subject_name === 'Science' ? 'selected' : '' %>>Science</option>
+                <option value="Social Studies" <%= resource.subject_name === 'Social Studies' ? 'selected' : '' %>>Social Studies</option>
+                <option value="Shona" <%= resource.subject_name === 'Shona' ? 'selected' : '' %>>Shona</option>
+                <option value="Ndebele" <%= resource.subject_name === 'Ndebele' ? 'selected' : '' %>>Ndebele</option>
+                <option value="Physical Education" <%= resource.subject_name === 'Physical Education' ? 'selected' : '' %>>Physical Education</option>
+                <option value="Agriculture" <%= resource.subject_name === 'Agriculture' ? 'selected' : '' %>>Agriculture</option>
+                <option value="Art" <%= resource.subject_name === 'Art' ? 'selected' : '' %>>Art</option>
+                <option value="Music" <%= resource.subject_name === 'Music' ? 'selected' : '' %>>Music</option>
+                <option value="Religious Studies" <%= resource.subject_name === 'Religious Studies' ? 'selected' : '' %>>Religious Studies</option>
+                <option value="ICT" <%= resource.subject_name === 'ICT' ? 'selected' : '' %>>ICT</option>
+                <option value="Life Skills" <%= resource.subject_name === 'Life Skills' ? 'selected' : '' %>>Life Skills</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="subject_id"><i class="fas fa-id-badge"></i> Subject ID</label>
+              <input type="text" name="subject_id" id="subject_id" class="form-input" value="<%= resource.subject_id %>" required>
+            </div>
+          </div>
 
-      <section class="erp-content">
-        <div class="page-header">
-          <div>
-            <h2><i class="fas fa-edit"></i> Update Resource</h2>
-            <p class="subhead">Edit subject resource counts for this school.</p>
+          <div class="form-group">
+            <label for="grade"><i class="fas fa-graduation-cap"></i> Grade</label>
+            <select name="grade" id="grade" class="form-input" required>
+              <option value="">Select Grade</option>
+              <option value="Grade 1" <%= resource.grade === 'Grade 1' ? 'selected' : '' %>>Grade 1</option>
+              <option value="Grade 2" <%= resource.grade === 'Grade 2' ? 'selected' : '' %>>Grade 2</option>
+              <option value="Grade 3" <%= resource.grade === 'Grade 3' ? 'selected' : '' %>>Grade 3</option>
+              <option value="Grade 4" <%= resource.grade === 'Grade 4' ? 'selected' : '' %>>Grade 4</option>
+              <option value="Grade 5" <%= resource.grade === 'Grade 5' ? 'selected' : '' %>>Grade 5</option>
+              <option value="Grade 6" <%= resource.grade === 'Grade 6' ? 'selected' : '' %>>Grade 6</option>
+              <option value="Grade 7" <%= resource.grade === 'Grade 7' ? 'selected' : '' %>>Grade 7</option>
+            </select>
           </div>
         </div>
 
-        <div class="card" style="max-width: 720px;">
-          <form action="/resources/edit/<%= resource.id %>" method="POST">
-            <label for="subject_id"><i class="fas fa-id-badge"></i> Subject ID</label>
-            <input type="text" name="subject_id" value="<%= resource.subject_id %>" required>
-
-            <label for="subject_name"><i class="fas fa-book-open"></i> Subject Name</label>
-            <input type="text" name="subject_name" value="<%= resource.subject_name %>" required>
-
-            <label for="grade"><i class="fas fa-graduation-cap"></i> Grade</label>
-            <input type="text" name="grade" value="<%= resource.grade %>" required>
-
-            <label for="num_students"><i class="fas fa-users"></i> Number of Students</label>
-            <input type="number" name="num_students" min="0" value="<%= resource.num_students %>" required>
-
-            <label for="num_books"><i class="fas fa-book"></i> Number of Books</label>
-            <input type="number" name="num_books" min="0" value="<%= resource.num_books %>" required>
-
-            <label for="num_computers"><i class="fas fa-desktop"></i> Number of Computers</label>
-            <input type="number" name="num_computers" min="0" value="<%= resource.num_computers %>" required>
-
-            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.75rem;">
-              <i class="fas fa-save"></i> Update Resource
-            </button>
-          </form>
+        <!-- Student Count -->
+        <div class="form-section">
+          <h3 class="form-section-title"><i class="fas fa-users"></i> Class Information</h3>
+          <div class="form-group">
+            <label for="num_students"><i class="fas fa-user-graduate"></i> Number of Students</label>
+            <input type="number" name="num_students" id="num_students" class="form-input" min="0" value="<%= resource.num_students %>" required>
+            <small class="form-hint"><i class="fas fa-info-circle"></i> Total students enrolled in this subject/grade</small>
+          </div>
         </div>
-      </section>
 
-      <footer class="footer">
-        2025 Primary School Performance System | powered by memory nikisi
-      </footer>
+        <!-- Learning Materials -->
+        <div class="form-section">
+          <h3 class="form-section-title"><i class="fas fa-book"></i> Learning Materials</h3>
+          <div class="form-group">
+            <label for="num_books"><i class="fas fa-book-open"></i> Total Books</label>
+            <input type="number" name="num_books" id="num_books" class="form-input" min="0" value="<%= resource.num_books %>" required>
+          </div>
+        </div>
+
+        <!-- Technology Resources -->
+        <div class="form-section">
+          <h3 class="form-section-title"><i class="fas fa-laptop"></i> Technology Resources</h3>
+          <div class="form-group">
+            <label for="num_computers"><i class="fas fa-desktop"></i> Total Computers/Devices</label>
+            <input type="number" name="num_computers" id="num_computers" class="form-input" min="0" value="<%= resource.num_computers %>" required>
+          </div>
+        </div>
+
+        <!-- Resource Ratio Indicator -->
+        <div class="form-section">
+          <h3 class="form-section-title"><i class="fas fa-chart-bar"></i> Resource Ratios</h3>
+          <div class="ratio-indicators">
+            <div class="ratio-card" id="book-ratio-card">
+              <div class="ratio-icon"><i class="fas fa-book"></i></div>
+              <div class="ratio-info">
+                <span class="ratio-label">Books per Student</span>
+                <span class="ratio-value" id="book-ratio">0:0</span>
+              </div>
+            </div>
+            <div class="ratio-card" id="computer-ratio-card">
+              <div class="ratio-icon"><i class="fas fa-laptop"></i></div>
+              <div class="ratio-info">
+                <span class="ratio-label">Students per Computer</span>
+                <span class="ratio-value" id="computer-ratio">0:0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <a href="/resources" class="btn outline"><i class="fas fa-times"></i> Cancel</a>
+          <button type="submit" class="btn primary"><i class="fas fa-save"></i> Update Resource</button>
+        </div>
+      </form>
     </div>
   </div>
+
+  <script src="/js/main.js"></script>
+  <script>
+    // Update ratio indicators
+    function updateRatios() {
+      const students = parseInt(document.getElementById('num_students').value) || 0;
+      const books = parseInt(document.getElementById('num_books').value) || 0;
+      const computers = parseInt(document.getElementById('num_computers').value) || 0;
+
+      // Book ratio
+      const bookRatioEl = document.getElementById('book-ratio');
+      const bookRatioCard = document.getElementById('book-ratio-card');
+      if (students > 0 && books > 0) {
+        const ratio = (books / students).toFixed(1);
+        bookRatioEl.textContent = ratio + ':1';
+        bookRatioCard.className = 'ratio-card ' + (ratio >= 1 ? 'good' : ratio >= 0.5 ? 'warning' : 'bad');
+      } else {
+        bookRatioEl.textContent = '0:0';
+        bookRatioCard.className = 'ratio-card';
+      }
+
+      // Computer ratio
+      const compRatioEl = document.getElementById('computer-ratio');
+      const compRatioCard = document.getElementById('computer-ratio-card');
+      if (students > 0 && computers > 0) {
+        const ratio = Math.ceil(students / computers);
+        compRatioEl.textContent = ratio + ':1';
+        compRatioCard.className = 'ratio-card ' + (ratio <= 5 ? 'good' : ratio <= 10 ? 'warning' : 'bad');
+      } else {
+        compRatioEl.textContent = '0:0';
+        compRatioCard.className = 'ratio-card';
+      }
+    }
+
+    // Add event listeners for ratio updates
+    document.getElementById('num_students').addEventListener('input', updateRatios);
+    document.getElementById('num_books').addEventListener('input', updateRatios);
+    document.getElementById('num_computers').addEventListener('input', updateRatios);
+    
+    // Initial calculation
+    updateRatios();
+  </script>
 </body>
 </html>

@@ -1,129 +1,165 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <title>Admin Dashboard | PSP</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="/css/style.css">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/logo.png">
 </head>
 <body>
-  <div class="erp-shell">
-    <aside class="erp-sidebar">
-      <div class="sidebar-brand">
-        <img src="/assets/logo.png" alt="Logo" class="logo">
-        <div class="brand-text">Primary School Performance</div>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <i class="fas fa-graduation-cap"></i>
+          <span>PSP Admin</span>
+        </div>
+        <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+          <i class="fas fa-moon"></i>
+        </button>
       </div>
       <nav class="sidebar-nav">
-        <a class="sidebar-link active" href="/admin/dashboard"><i class="fas fa-gauge"></i> Dashboard</a>
-        <a class="sidebar-link" href="/admin/schools"><i class="fas fa-school"></i> Schools</a>
-        <a class="sidebar-link" href="/admin/teachers"><i class="fas fa-users"></i> Teachers</a>
-        <a class="sidebar-link" href="/admin/students"><i class="fas fa-child"></i> Students</a>
-        <a class="sidebar-link" href="/admin/resources"><i class="fas fa-boxes-stacked"></i> Resources</a>
-        <a class="sidebar-link" href="/admin/attendance"><i class="fas fa-calendar-check"></i> Attendance</a>
-        <a class="sidebar-link" href="/admin/analytics"><i class="fas fa-chart-pie"></i> Analytics</a>
-        <a class="sidebar-link" href="/admin/reports"><i class="fas fa-file-alt"></i> Reports</a>
-        <a class="sidebar-link" href="/itadmin"><i class="fas fa-user-cog"></i> IT Admins</a>
+        <a href="/admin/dashboard" class="nav-item active"><i class="fas fa-gauge"></i><span>Dashboard</span></a>
+        <a href="/admin/schools" class="nav-item"><i class="fas fa-school"></i><span>Schools</span></a>
+        <a href="/admin/teachers" class="nav-item"><i class="fas fa-chalkboard-teacher"></i><span>Teachers</span></a>
+        <a href="/admin/students" class="nav-item"><i class="fas fa-user-graduate"></i><span>Students</span></a>
+        <a href="/admin/resources" class="nav-item"><i class="fas fa-boxes-stacked"></i><span>Resources</span></a>
+        <a href="/admin/attendance" class="nav-item"><i class="fas fa-calendar-check"></i><span>Attendance</span></a>
+        <a href="/admin/analytics" class="nav-item"><i class="fas fa-chart-pie"></i><span>Analytics</span></a>
+        <a href="/admin/reports" class="nav-item"><i class="fas fa-file-alt"></i><span>Reports</span></a>
+        <a href="/itadmin" class="nav-item"><i class="fas fa-user-shield"></i><span>IT Admins</span></a>
       </nav>
     </aside>
 
-    <div class="erp-main">
-      <header class="erp-topbar">
-        <div class="title">Admin Dashboard</div>
-        <div class="nav-actions">
-          <a class="nav-link" href="/admin/dashboard"><i class="fas fa-home"></i> Home</a>
-          <a class="nav-link" href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    <!-- Main Content -->
+    <div class="main-content">
+      <header class="topbar">
+        <button class="menu-toggle" id="menuToggle">
+          <i class="fas fa-bars"></i>
+        </button>
+        <h1 class="page-title">Control Center</h1>
+        <div class="topbar-actions">
+          <a href="/logout" class="btn btn-ghost"><i class="fas fa-sign-out-alt"></i></a>
         </div>
       </header>
 
-      <section class="erp-content">
-        <div class="page-header">
-          <div>
-            <h2><i class="fas fa-gauge"></i> Control Center</h2>
-            <p class="subhead">Quick links to manage schools, teachers, students, resources, attendance, and reports.</p>
+      <main class="content">
+        <p style="margin-bottom: 1.5rem; opacity: 0.8;">
+          <i class="fas fa-lightbulb"></i> Quick links to manage schools, teachers, students, resources, attendance, and reports.
+        </p>
+
+        <!-- Quick Access Grid -->
+        <div class="stats-grid">
+          <a href="/admin/schools" class="stat-card" style="text-decoration: none;">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+              <i class="fas fa-school"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">Schools</span>
+              <span class="stat-label">Manage all schools</span>
+            </div>
+          </a>
+
+          <a href="/admin/teachers" class="stat-card" style="text-decoration: none;">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+              <i class="fas fa-chalkboard-teacher"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">Teachers</span>
+              <span class="stat-label">View all teachers</span>
+            </div>
+          </a>
+
+          <a href="/admin/students" class="stat-card" style="text-decoration: none;">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+              <i class="fas fa-user-graduate"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">Students</span>
+              <span class="stat-label">View all students</span>
+            </div>
+          </a>
+
+          <a href="/admin/resources" class="stat-card" style="text-decoration: none;">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+              <i class="fas fa-boxes-stacked"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">Resources</span>
+              <span class="stat-label">Resource summary</span>
+            </div>
+          </a>
+
+          <a href="/admin/attendance" class="stat-card" style="text-decoration: none;">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+              <i class="fas fa-calendar-check"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">Attendance</span>
+              <span class="stat-label">Weekly overview</span>
+            </div>
+          </a>
+
+          <a href="/admin/analytics" class="stat-card" style="text-decoration: none;">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%);">
+              <i class="fas fa-chart-pie"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">Analytics</span>
+              <span class="stat-label">Insights & ratios</span>
+            </div>
+          </a>
+
+          <a href="/admin/reports" class="stat-card" style="text-decoration: none;">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);">
+              <i class="fas fa-file-pdf"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">Reports</span>
+              <span class="stat-label">Generate PDFs</span>
+            </div>
+          </a>
+
+          <a href="/itadmin" class="stat-card" style="text-decoration: none;">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);">
+              <i class="fas fa-user-shield"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">IT Admins</span>
+              <span class="stat-label">Manage admins</span>
+            </div>
+          </a>
+        </div>
+
+        <!-- Tips Card -->
+        <div class="card" style="margin-top: 1.5rem;">
+          <div class="card-header">
+            <h3><i class="fas fa-lightbulb"></i> Quick Tips</h3>
+          </div>
+          <div style="padding: 1rem;">
+            <p>Use the sidebar to navigate between sections. Toggle dark mode using the <i class="fas fa-moon"></i> button in the sidebar. The theme preference is saved automatically.</p>
           </div>
         </div>
-
-        <div class="card-grid">
-          <a class="card" href="/admin/schools">
-            <div class="metric">
-              <i class="fas fa-school"></i>
-              <div>
-                <div class="label">Schools</div>
-                <div class="value">Manage</div>
-              </div>
-            </div>
-          </a>
-          <a class="card" href="/admin/teachers">
-            <div class="metric">
-              <i class="fas fa-users"></i>
-              <div>
-                <div class="label">Teachers</div>
-                <div class="value">Overview</div>
-              </div>
-            </div>
-          </a>
-          <a class="card" href="/admin/students">
-            <div class="metric">
-              <i class="fas fa-child"></i>
-              <div>
-                <div class="label">Students</div>
-                <div class="value">Overview</div>
-              </div>
-            </div>
-          </a>
-          <a class="card" href="/admin/resources">
-            <div class="metric">
-              <i class="fas fa-boxes-stacked"></i>
-              <div>
-                <div class="label">Resources</div>
-                <div class="value">Summary</div>
-              </div>
-            </div>
-          </a>
-          <a class="card" href="/admin/attendance">
-            <div class="metric">
-              <i class="fas fa-calendar-check"></i>
-              <div>
-                <div class="label">Attendance</div>
-                <div class="value">Weekly</div>
-              </div>
-            </div>
-          </a>
-          <a class="card" href="/admin/analytics">
-            <div class="metric">
-              <i class="fas fa-chart-line"></i>
-              <div>
-                <div class="label">Analytics</div>
-                <div class="value">Ratios</div>
-              </div>
-            </div>
-          </a>
-          <a class="card" href="/admin/reports">
-            <div class="metric">
-              <i class="fas fa-file-pdf"></i>
-              <div>
-                <div class="label">Reports</div>
-                <div class="value">Generate</div>
-              </div>
-            </div>
-          </a>
-          <a class="card" href="/itadmin">
-            <div class="metric">
-              <i class="fas fa-user-cog"></i>
-              <div>
-                <div class="label">IT Admins</div>
-                <div class="value">Manage</div>
-              </div>
-            </div>
-          </a>
-        </div>
-      </section>
+      </main>
 
       <footer class="footer">
-        2025 Primary School Performance System | powered by memory nikisi
+        <p>&copy; 2025 Primary School Performance System</p>
       </footer>
     </div>
   </div>
+
+  <script src="/js/main.js"></script>
+  <script>
+    // Initialize theme from localStorage
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    const themeIcon = document.querySelector('#themeToggle i');
+    if (themeIcon) {
+      themeIcon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
+  </script>
 </body>
 </html>
