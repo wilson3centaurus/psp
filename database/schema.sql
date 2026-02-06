@@ -17,6 +17,11 @@ CREATE TABLE users (
   username VARCHAR(100) NOT NULL UNIQUE,
   password VARCHAR(255) NOT NULL,
   role ENUM('admin', 'school', 'itadmin') NOT NULL DEFAULT 'school',
+  display_name VARCHAR(255) DEFAULT NULL,
+  logo VARCHAR(255) DEFAULT NULL,
+  email VARCHAR(100) DEFAULT NULL,
+  phone VARCHAR(50) DEFAULT NULL,
+  address TEXT DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

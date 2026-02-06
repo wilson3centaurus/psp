@@ -66,14 +66,16 @@
               <thead>
                 <tr>
                   <th>#</th>
+                  <th>Logo</th>
                   <th>School Name</th>
+                  <th>Contact</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 <% if (!schools || schools.length === 0) { %>
                   <tr>
-                    <td colspan="3" style="text-align: center; padding: 2rem;">
+                    <td colspan="5" style="text-align: center; padding: 2rem;">
                       <i class="fas fa-school" style="font-size: 2rem; opacity: 0.3;"></i>
                       <p style="margin-top: 0.5rem; opacity: 0.6;">No schools registered yet</p>
                     </td>
@@ -82,15 +84,40 @@
                   <% schools.forEach((school, i) => { %>
                     <tr>
                       <td><%= i + 1 %></td>
-                      <td><strong><%= school.username %></strong></td>
+                      <td>
+                        <% if (school.logo) { %>
+                          <img src="/uploads/<%= school.logo %>" alt="Logo" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover;">
+                        <% } else { %>
+                          <div style="width: 40px; height: 40px; border-radius: 8px; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-school" style="color: var(--text-muted);"></i>
+                          </div>
+                        <% } %>
+                      </td>
+                      <td>
+                        <strong><%= school.display_name || school.username %></strong>
+                        <% if (school.display_name) { %>
+                          <br><small style="color: var(--text-muted);">@<%= school.username %></small>
+                        <% } %>
+                      </td>
+                      <td>
+                        <% if (school.email || school.phone) { %>
+                          <% if (school.email) { %><small><i class="fas fa-envelope"></i> <%= school.email %></small><br><% } %>
+                          <% if (school.phone) { %><small><i class="fas fa-phone"></i> <%= school.phone %></small><% } %>
+                        <% } else { %>
+                          <span style="color: var(--text-muted);">--</span>
+                        <% } %>
+                      </td>
                       <td>
                         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                          <a href="/admin/schools/edit/<%= school.id %>" class="btn btn-primary btn-sm">
+                            <i class="fas fa-edit"></i> Edit
+                          </a>
                           <a href="/admin/schools/dashboard/<%= school.id %>" class="btn btn-outline btn-sm">
                             <i class="fas fa-arrow-right"></i> View
                           </a>
                           <form action="/admin/schools/delete/<%= school.id %>" method="POST" onsubmit="return confirm('Delete this school and all its data?')" style="display: inline;">
                             <button class="btn btn-danger btn-sm" type="submit">
-                              <i class="fas fa-trash"></i> Delete
+                              <i class="fas fa-trash"></i>
                             </button>
                           </form>
                         </div>
@@ -105,7 +132,7 @@
       </main>
 
       <footer class="footer">
-        <p>&copy; 2025 Primary School Performance System</p>
+        <p>&copy; 2026 Primary School Performance System</p>
       </footer>
     </div>
   </div>

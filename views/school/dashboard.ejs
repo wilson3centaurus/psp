@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="/css/style.css">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-  <link rel="icon" type="image/png" href="/assets/logo.png">
+  <link rel="icon" type="image/png" href="<%= typeof schoolLogo !== 'undefined' && schoolLogo ? '/uploads/' + schoolLogo : '/assets/logo.png' %>">
 </head>
 <body>
   <div class="app-shell">
@@ -17,9 +17,9 @@
     <aside class="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-brand">
-          <img src="/assets/logo.png" alt="Logo" class="sidebar-logo">
+          <img src="<%= typeof schoolLogo !== 'undefined' && schoolLogo ? '/uploads/' + schoolLogo : '/assets/logo.png' %>" alt="Logo" class="sidebar-logo">
           <div>
-            <div class="sidebar-brand-text"><%= user.username %></div>
+            <div class="sidebar-brand-text"><%= typeof schoolDisplayName !== 'undefined' && schoolDisplayName ? schoolDisplayName : user.username %></div>
             <div class="sidebar-brand-label">School Portal</div>
           </div>
         </div>
@@ -126,16 +126,16 @@
           </a>
         </div>
 
-        <div class="card">
+        <!--<div class="card">
           <div class="card-header">
             <h3 class="card-title"><i class="fas fa-lightbulb"></i> Quick Tips</h3>
           </div>
           <p>Use <kbd>Ctrl</kbd> + <kbd>K</kbd> to quickly search. Toggle dark mode using the button in the top right corner.</p>
-        </div>
+        </div>-->
       </section>
 
       <footer class="footer">
-        © 2026 Primary School Performance System
+        © 2026 Primary School Performance System | Made with <i class="fas fa-heart"></i> by Memory Nikisi
       </footer>
     </main>
   </div>
