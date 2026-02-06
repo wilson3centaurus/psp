@@ -34,6 +34,13 @@ app.use((req, res, next) => {
   next();
 });
 
+// Inject school info (logo, display_name) for school users
+const injectSchoolInfo = require('./middlewares/injectSchoolInfo');
+app.use(injectSchoolInfo);
+
+// Serve uploaded files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Logging every request
 app.use((req, res, next) => {
   const now = new Date().toISOString();

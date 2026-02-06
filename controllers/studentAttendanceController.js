@@ -3,34 +3,96 @@ const fs = require('fs');
 const csv = require('csv-parser');
 
 /* ===========================
-   1. LIST ATTENDANCE SESSIONS
+   1. LIST ATTENDANCE SESSIONS (with Mark Attendance integrated)
 =========================== */
 exports.listSessions = (req, res) => {
   const schoolId = req.session.user.id;
   const searchDate = req.query.date || "";
+  const selectedGrade = req.query.grade || "";
+  const selectedClass = req.query.class || "";
+  const selectedMarkDate = req.query.markDate || "";
 
-  let sql = `
-    SELECT DISTINCT DATE_FORMAT(date, '%Y-%m-%d') AS date
-    FROM student_attendance
-    WHERE school_id = ?
-  `;
-  const params = [schoolId];
-
-  if (searchDate) {
-    sql += " AND DATE(date) = ?";
-    params.push(searchDate);
-  }
-
-  sql += " ORDER BY date DESC";
-
-  db.query(sql, params, (err, rows) => {
+  // Get school info for logo
+  const schoolQuery = `SELECT display_name, logo FROM users WHERE id = ?`;
+  
+  db.query(schoolQuery, [schoolId], (err, schoolInfo) => {
     if (err) throw err;
+    
+    const schoolDisplayName = schoolInfo[0]?.display_name || null;
+    const schoolLogo = schoolInfo[0]?.logo || null;
 
-    res.render('school/studentAttendance/sessions', {
-      sessions: rows,
-      searchDate,
-      success_msg: req.flash('success_msg'),
-      error_msg: req.flash('error_msg')
+    // Get all classes with student counts
+    const allClassesQuery = `
+      SELECT grade, student_class, COUNT(*) as count 
+      FROM students 
+      WHERE school_id = ? 
+      GROUP BY grade, student_class 
+      ORDER BY grade ASC, student_class ASC
+    `;
+
+    db.query(allClassesQuery, [schoolId], (err2, allClasses) => {
+      if (err2) throw err2;
+
+      // Get sessions
+      let sessionsSql = `
+        SELECT DISTINCT DATE_FORMAT(date, '%Y-%m-%d') AS date
+        FROM student_attendance
+        WHERE school_id = ?
+      `;
+      const sessionsParams = [schoolId];
+
+      if (searchDate) {
+        sessionsSql += " AND DATE(date) = ?";
+        sessionsParams.push(searchDate);
+      }
+
+      sessionsSql += " ORDER BY date DESC";
+
+      db.query(sessionsSql, sessionsParams, (err3, sessions) => {
+        if (err3) throw err3;
+
+        // If no class selected, just show the page without students
+        if (!selectedGrade || !selectedClass) {
+          return res.render('school/studentAttendance/sessions', {
+            sessions,
+            searchDate,
+            allClasses,
+            students: [],
+            selectedGrade: "",
+            selectedClass: "",
+            selectedDate: selectedMarkDate,
+            schoolDisplayName,
+            schoolLogo,
+            success_msg: req.flash('success_msg'),
+            error_msg: req.flash('error_msg')
+          });
+        }
+
+        // Get students for selected class
+        const studentQuery = `
+          SELECT * FROM students
+          WHERE school_id = ? AND grade = ? AND student_class = ?
+          ORDER BY name ASC
+        `;
+
+        db.query(studentQuery, [schoolId, selectedGrade, selectedClass], (err4, studentRows) => {
+          if (err4) throw err4;
+
+          res.render('school/studentAttendance/sessions', {
+            sessions,
+            searchDate,
+            allClasses,
+            students: studentRows,
+            selectedGrade,
+            selectedClass,
+            selectedDate: selectedMarkDate,
+            schoolDisplayName,
+            schoolLogo,
+            success_msg: req.flash('success_msg'),
+            error_msg: req.flash('error_msg')
+          });
+        });
+      });
     });
   });
 };
@@ -46,46 +108,36 @@ exports.markAttendancePage = (req, res) => {
   const selectedClass = req.query.class || "";
   const selectedDate = req.query.date || "";
 
-  const gradeQuery = `
-    SELECT DISTINCT grade FROM students 
-    WHERE school_id = ? ORDER BY grade ASC
-  `;
-
-  db.query(gradeQuery, [schoolId], (err, gradeRows) => {
+  // Get school info for logo
+  const schoolQuery = `SELECT display_name, logo FROM users WHERE id = ?`;
+  
+  db.query(schoolQuery, [schoolId], (err, schoolInfo) => {
     if (err) throw err;
-    const grades = gradeRows.map(r => r.grade);
+    
+    const schoolDisplayName = schoolInfo[0]?.display_name || null;
+    const schoolLogo = schoolInfo[0]?.logo || null;
 
-    if (!selectedGrade) {
-      return res.render("school/studentAttendance/mark", {
-        grades,
-        classes: [],
-        students: [],
-        selectedGrade: "",
-        selectedClass: "",
-        selectedDate: "",
-        success_msg: req.flash("success_msg"),
-        error_msg: req.flash("error_msg")
-      });
-    }
-
-    const classQuery = `
-      SELECT DISTINCT student_class FROM students
-      WHERE school_id = ? AND grade = ?
-      ORDER BY student_class ASC
+    // Get all classes with student counts
+    const allClassesQuery = `
+      SELECT grade, student_class, COUNT(*) as count 
+      FROM students 
+      WHERE school_id = ? 
+      GROUP BY grade, student_class 
+      ORDER BY grade ASC, student_class ASC
     `;
 
-    db.query(classQuery, [schoolId, selectedGrade], (err2, classRows) => {
-      if (err2) throw err2;
-      const classes = classRows.map(r => r.student_class);
+    db.query(allClassesQuery, [schoolId], (err, allClasses) => {
+      if (err) throw err;
 
-      if (!selectedClass) {
+      if (!selectedGrade || !selectedClass) {
         return res.render("school/studentAttendance/mark", {
-          grades,
-          classes,
+          allClasses,
           students: [],
-          selectedGrade,
+          selectedGrade: "",
           selectedClass: "",
           selectedDate: "",
+          schoolDisplayName,
+          schoolLogo,
           success_msg: req.flash("success_msg"),
           error_msg: req.flash("error_msg")
         });
@@ -101,12 +153,13 @@ exports.markAttendancePage = (req, res) => {
         if (err3) throw err3;
 
         res.render("school/studentAttendance/mark", {
-          grades,
-          classes,
+          allClasses,
           students: studentRows,
           selectedGrade,
           selectedClass,
           selectedDate,
+          schoolDisplayName,
+          schoolLogo,
           success_msg: req.flash("success_msg"),
           error_msg: req.flash("error_msg")
         });
@@ -137,17 +190,17 @@ exports.submitAttendance = (req, res) => {
     if (err) throw err;
 
     const attendanceData = students.map(s => {
-      const status = req.body[`status_${s.id}`];
+      const status = req.body[`status_${s.id}`] || 'Present';
       const reason = req.body[`reason_${s.id}`] || '';
       const excused = req.body[`excused_${s.id}`] ? 1 : 0;
-      const lateMinutes = Number(req.body[`late_${s.id}`]) || 0;
+      const lateMinutes = status === 'Late' ? 1 : (Number(req.body[`late_${s.id}`]) || 0);
       const earlyMinutes = Number(req.body[`early_${s.id}`]) || 0;
 
       return [
         s.id,
         schoolId,
         date,
-        status === 'Present' ? 'Present' : 'Absent',
+        status,
         reason,
         excused,
         lateMinutes,

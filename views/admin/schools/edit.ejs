@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <title>Edit School | PSP Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/style.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/logo.png">
+  <style>
+    .logo-preview {
+      width: 150px;
+      height: 150px;
+      border-radius: var(--radius-lg);
+      border: 3px dashed var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-secondary);
+      overflow: hidden;
+      margin-bottom: 1rem;
+      position: relative;
+    }
+    .logo-preview img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    .logo-preview .placeholder {
+      text-align: center;
+      color: var(--text-muted);
+    }
+    .logo-preview .placeholder i {
+      font-size: 3rem;
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+    .file-input-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+    .file-input-wrapper input[type="file"] {
+      position: absolute;
+      left: 0;
+      top: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .file-input-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text-primary);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .file-input-btn:hover {
+      border-color: var(--primary);
+      background: rgba(var(--primary-rgb), 0.05);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <i class="fas fa-graduation-cap"></i>
+          <span>PSP Admin</span>
+        </div>
+        <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+          <i class="fas fa-moon"></i>
+        </button>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="/admin/dashboard" class="nav-item"><i class="fas fa-gauge"></i><span>Dashboard</span></a>
+        <a href="/admin/schools" class="nav-item active"><i class="fas fa-school"></i><span>Schools</span></a>
+        <a href="/admin/teachers" class="nav-item"><i class="fas fa-chalkboard-teacher"></i><span>Teachers</span></a>
+        <a href="/admin/students" class="nav-item"><i class="fas fa-user-graduate"></i><span>Students</span></a>
+        <a href="/admin/resources" class="nav-item"><i class="fas fa-boxes-stacked"></i><span>Resources</span></a>
+        <a href="/admin/attendance" class="nav-item"><i class="fas fa-calendar-check"></i><span>Attendance</span></a>
+        <a href="/admin/analytics" class="nav-item"><i class="fas fa-chart-pie"></i><span>Analytics</span></a>
+        <a href="/admin/reports" class="nav-item"><i class="fas fa-file-alt"></i><span>Reports</span></a>
+        <a href="/itadmin" class="nav-item"><i class="fas fa-user-shield"></i><span>IT Admins</span></a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <header class="topbar">
+        <button class="menu-toggle" id="menuToggle">
+          <i class="fas fa-bars"></i>
+        </button>
+        <h1 class="page-title">Edit School</h1>
+        <div class="topbar-actions">
+          <a href="/admin/schools" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Back</a>
+          <a href="/logout" class="btn btn-ghost"><i class="fas fa-sign-out-alt"></i></a>
+        </div>
+      </header>
+
+      <main class="content">
+        <% if (success_msg && String(success_msg).trim() !== "") { %>
+          <div class="alert alert-success"><i class="fas fa-check-circle"></i> <%= success_msg %></div>
+        <% } %>
+        <% if (error_msg && String(error_msg).trim() !== "") { %>
+          <div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> <%= error_msg %></div>
+        <% } %>
+
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-edit"></i> Edit School Information</h3>
+          </div>
+          
+          <form action="/admin/schools/edit/<%= school.id %>" method="POST" enctype="multipart/form-data">
+            <div style="display: grid; grid-template-columns: auto 1fr; gap: 2rem; align-items: start;">
+              <!-- Logo Section -->
+              <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">School Logo</label>
+                <div class="logo-preview" id="logoPreview">
+                  <% if (school.logo) { %>
+                    <img src="/uploads/<%= school.logo %>" alt="School Logo" id="previewImg">
+                  <% } else { %>
+                    <div class="placeholder" id="placeholder">
+                      <i class="fas fa-image"></i>
+                      <span>No logo</span>
+                    </div>
+                  <% } %>
+                </div>
+                <div class="file-input-wrapper">
+                  <div class="file-input-btn">
+                    <i class="fas fa-upload"></i> Upload Logo
+                  </div>
+                  <input type="file" name="logo" accept="image/*" onchange="previewLogo(this)">
+                </div>
+                <small style="display: block; margin-top: 0.5rem; color: var(--text-muted);">
+                  Recommended: 200x200px, PNG or JPG
+                </small>
+              </div>
+
+              <!-- Info Section -->
+              <div>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                  <label><i class="fas fa-user"></i> Username (Login ID)</label>
+                  <input type="text" class="form-input" value="<%= school.username %>" disabled style="opacity: 0.7;">
+                  <small style="color: var(--text-muted);">Username cannot be changed</small>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 1rem;">
+                  <label><i class="fas fa-school"></i> Display Name</label>
+                  <input type="text" name="display_name" class="form-input" value="<%= school.display_name || '' %>" placeholder="e.g., Greenfield Primary School">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 1rem;">
+                  <label><i class="fas fa-envelope"></i> Email Address</label>
+                  <input type="email" name="email" class="form-input" value="<%= school.email || '' %>" placeholder="school@example.com">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 1rem;">
+                  <label><i class="fas fa-phone"></i> Phone Number</label>
+                  <input type="tel" name="phone" class="form-input" value="<%= school.phone || '' %>" placeholder="+263 77 123 4567">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 1rem;">
+                  <label><i class="fas fa-map-marker-alt"></i> Address</label>
+                  <textarea name="address" class="form-input" rows="3" placeholder="123 School Street, City, Country"><%= school.address || '' %></textarea>
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Save Changes
+                  </button>
+                  <a href="/admin/schools" class="btn btn-outline">Cancel</a>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </main>
+
+      <footer class="footer">
+        © 2026 Primary School Performance System
+      </footer>
+    </div>
+  </div>
+
+  <script src="/js/main.js"></script>
+  <script>
+    function previewLogo(input) {
+      const preview = document.getElementById('logoPreview');
+      const placeholder = document.getElementById('placeholder');
+      
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          let img = document.getElementById('previewImg');
+          if (!img) {
+            if (placeholder) placeholder.remove();
+            img = document.createElement('img');
+            img.id = 'previewImg';
+            preview.appendChild(img);
+          }
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+  </script>
+</body>
+</html>

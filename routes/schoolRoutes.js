@@ -11,7 +11,11 @@ router.get('/', isAuthenticated, isSchool, (req, res) => {
 
 // School dashboard
 router.get('/dashboard', isAuthenticated, isSchool, (req, res) => {
-  res.render('school/dashboard', { user: req.session.user });
+  res.render('school/dashboard', { 
+    user: req.session.user,
+    schoolDisplayName: res.locals.schoolDisplayName,
+    schoolLogo: res.locals.schoolLogo
+  });
 });
 
 module.exports = router;

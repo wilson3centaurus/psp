@@ -3,34 +3,61 @@ const fs = require('fs');
 const csv = require('csv-parser');
 
 /* ===========================
-   1. LIST TEACHER SESSIONS
+   1. LIST TEACHER SESSIONS (with Mark Attendance integrated)
 =========================== */
 exports.listSessions = (req, res) => {
   const schoolId = req.session.user.id;
   const searchDate = req.query.searchDate || "";
+  const selectedMarkDate = req.query.markDate || "";
 
-  let sql = `
-    SELECT DISTINCT DATE_FORMAT(date, '%Y-%m-%d') AS date
-    FROM teacher_attendance
-    WHERE school_id = ?
-  `;
-  const params = [schoolId];
-
-  if (searchDate) {
-    sql += ` AND date = ?`;
-    params.push(searchDate);
-  }
-
-  sql += ` ORDER BY date DESC`;
-
-  db.query(sql, params, (err, rows) => {
+  // Get school info for logo
+  const schoolQuery = `SELECT display_name, logo FROM users WHERE id = ?`;
+  
+  db.query(schoolQuery, [schoolId], (err, schoolInfo) => {
     if (err) throw err;
+    
+    const schoolDisplayName = schoolInfo[0]?.display_name || null;
+    const schoolLogo = schoolInfo[0]?.logo || null;
 
-    res.render("school/teacherAttendance/sessions", {
-      sessions: rows,
-      searchDate,
-      success_msg: req.flash("success_msg"),
-      error_msg: req.flash("error_msg")
+    // Get all teachers
+    const teachersQuery = `
+      SELECT * FROM teachers
+      WHERE school_id = ?
+      ORDER BY name ASC
+    `;
+
+    db.query(teachersQuery, [schoolId], (err2, teachers) => {
+      if (err2) throw err2;
+
+      // Get sessions
+      let sessionsSql = `
+        SELECT DISTINCT DATE_FORMAT(date, '%Y-%m-%d') AS date
+        FROM teacher_attendance
+        WHERE school_id = ?
+      `;
+      const sessionsParams = [schoolId];
+
+      if (searchDate) {
+        sessionsSql += ` AND date = ?`;
+        sessionsParams.push(searchDate);
+      }
+
+      sessionsSql += ` ORDER BY date DESC`;
+
+      db.query(sessionsSql, sessionsParams, (err3, sessions) => {
+        if (err3) throw err3;
+
+        res.render("school/teacherAttendance/sessions", {
+          sessions,
+          searchDate,
+          teachers,
+          selectedDate: selectedMarkDate,
+          schoolDisplayName,
+          schoolLogo,
+          success_msg: req.flash("success_msg"),
+          error_msg: req.flash("error_msg")
+        });
+      });
     });
   });
 };
@@ -79,31 +106,44 @@ exports.submitAttendance = (req, res) => {
     return res.redirect("/teacher-attendance");
   }
 
-  const attendanceRows = submittedKeys.map(key => {
-    const teacherId = key.split("_")[1];
-    const status = req.body[key];
-    const reason = req.body[`reason_${teacherId}`] || '';
-    const excused = req.body[`excused_${teacherId}`] ? 1 : 0;
-    const lateMinutes = Number(req.body[`late_${teacherId}`]) || 0;
-    const earlyMinutes = Number(req.body[`early_${teacherId}`]) || 0;
+  // Overwrite existing records for this date to allow updates to late/early minutes
+  db.query(
+    'DELETE FROM teacher_attendance WHERE school_id = ? AND date = ?',
+    [schoolId, date],
+    (delErr) => {
+      if (delErr) {
+        console.error("Cleanup error:", delErr);
+        req.flash("error_msg", "Could not save attendance. Try again.");
+        return res.redirect("/teacher-attendance");
+      }
 
-    return [teacherId, schoolId, date, status, reason, excused, lateMinutes, earlyMinutes];
-  });
+      const attendanceRows = submittedKeys.map(key => {
+        const teacherId = key.split("_")[1];
+        const status = req.body[key];
+        const reason = req.body[`reason_${teacherId}`] || '';
+        const excused = req.body[`excused_${teacherId}`] ? 1 : 0;
+        const lateMinutes = Number(req.body[`late_${teacherId}`]) || 0;
+        const earlyMinutes = Number(req.body[`early_${teacherId}`]) || 0;
 
-  const sql = `
-    INSERT INTO teacher_attendance (teacher_id, school_id, date, status, reason, excused, late_minutes, early_minutes)
-    VALUES ?
-  `;
+        return [teacherId, schoolId, date, status, reason, excused, lateMinutes, earlyMinutes];
+      });
 
-  db.query(sql, [attendanceRows], err => {
-    if (err) {
-      console.error("Manual insert error:", err);
-      req.flash("error_msg", "Failed to save attendance.");
-    } else {
-      req.flash("success_msg", "Attendance recorded.");
+      const sql = `
+        INSERT INTO teacher_attendance (teacher_id, school_id, date, status, reason, excused, late_minutes, early_minutes)
+        VALUES ?
+      `;
+
+      db.query(sql, [attendanceRows], err => {
+        if (err) {
+          console.error("Manual insert error:", err);
+          req.flash("error_msg", "Failed to save attendance.");
+        } else {
+          req.flash("success_msg", "Attendance recorded.");
+        }
+        res.redirect("/teacher-attendance");
+      });
     }
-    res.redirect("/teacher-attendance");
-  });
+  );
 };
 
 /* ===========================

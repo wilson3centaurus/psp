@@ -200,11 +200,11 @@ exports.searchTeachers = (req, res) => {
     FROM teachers
     WHERE school_id = ?
       AND (
-        name LIKE ? OR
-        subject LIKE ? OR
-        teacher_id LIKE ? OR
-        email LIKE ? OR
-        phone LIKE ?
+        LOWER(name) LIKE LOWER(?) OR
+        LOWER(subject) LIKE LOWER(?) OR
+        LOWER(teacher_id) LIKE LOWER(?) OR
+        LOWER(email) LIKE LOWER(?) OR
+        LOWER(phone) LIKE LOWER(?)
       )
     ORDER BY name ASC
   `;

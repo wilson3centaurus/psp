@@ -2,97 +2,144 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>School Dashboard | PSP</title>
+  <title>Dashboard | PSP</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="/css/style.css">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link rel="icon" type="image/png" href="<%= typeof schoolLogo !== 'undefined' && schoolLogo ? '/uploads/' + schoolLogo : '/assets/logo.png' %>">
 </head>
 <body>
-  <div class="erp-shell">
-    <aside class="erp-sidebar">
-      <div class="sidebar-brand">
-        <img src="/assets/logo.png" alt="Logo" class="logo">
-        <div class="brand-text"><%= user.username %> (School)</div>
+  <div class="app-shell">
+    <!-- Sidebar Overlay (Mobile) -->
+    <div class="sidebar-overlay"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <img src="<%= typeof schoolLogo !== 'undefined' && schoolLogo ? '/uploads/' + schoolLogo : '/assets/logo.png' %>" alt="Logo" class="sidebar-logo">
+          <div>
+            <div class="sidebar-brand-text"><%= typeof schoolDisplayName !== 'undefined' && schoolDisplayName ? schoolDisplayName : user.username %></div>
+            <div class="sidebar-brand-label">School Portal</div>
+          </div>
+        </div>
       </div>
       <nav class="sidebar-nav">
-        <a class="sidebar-link active" href="/school/dashboard"><i class="fas fa-gauge"></i> Dashboard</a>
-        <a class="sidebar-link" href="/student"><i class="fas fa-user-graduate"></i> Students</a>
-        <a class="sidebar-link" href="/teacher"><i class="fas fa-chalkboard-teacher"></i> Teachers</a>
-        <a class="sidebar-link" href="/student-attendance"><i class="fas fa-user-check"></i> Student Attendance</a>
-        <a class="sidebar-link" href="/teacher-attendance"><i class="fas fa-user-clock"></i> Teacher Attendance</a>
-        <a class="sidebar-link" href="/resources"><i class="fas fa-boxes-stacked"></i> Resources</a>
+        <div class="nav-section">
+          <div class="nav-section-title">Main</div>
+          <a class="nav-link active" href="/school/dashboard"><i class="fas fa-gauge-high"></i> Dashboard</a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Management</div>
+          <a class="nav-link" href="/student"><i class="fas fa-user-graduate"></i> Students</a>
+          <a class="nav-link" href="/teacher"><i class="fas fa-chalkboard-user"></i> Teachers</a>
+          <a class="nav-link" href="/resources"><i class="fas fa-boxes-stacked"></i> Resources</a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Attendance</div>
+          <a class="nav-link" href="/student-attendance"><i class="fas fa-clipboard-user"></i> Student Attendance</a>
+          <a class="nav-link" href="/teacher-attendance"><i class="fas fa-user-clock"></i> Teacher Attendance</a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Account</div>
+          <a class="nav-link logout" href="/logout"><i class="fas fa-right-from-bracket"></i> Logout</a>
+        </div>
       </nav>
     </aside>
 
-    <div class="erp-main">
-      <header class="erp-topbar">
-        <div class="title">School Dashboard</div>
-        <div class="nav-actions">
-          <a class="nav-link" href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="mobile-menu-btn" aria-label="Toggle menu">
+            <i class="fas fa-bars"></i>
+          </button>
+          <span class="page-title">Dashboard</span>
+        </div>
+        <div class="topbar-right">
+          <button class="theme-toggle" aria-label="Toggle theme">
+            <i class="fas fa-moon"></i>
+            <i class="fas fa-sun"></i>
+          </button>
+          <a href="/logout" class="topbar-btn danger">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Logout</span>
+          </a>
         </div>
       </header>
 
-      <section class="erp-content">
+      <section class="content">
         <div class="page-header">
-          <div>
-            <h2><i class="fas fa-gauge"></i> Welcome, <%= user.username %></h2>
-            <p class="subhead">Manage your students, teachers, attendance, and resources.</p>
-          </div>
+          <h1><i class="fas fa-gauge-high"></i> Welcome, <%= user.username %></h1>
+          <p class="subtitle">Manage your students, teachers, attendance, and resources from one place.</p>
         </div>
 
-        <div class="card-grid">
-          <a class="card" href="/student">
-            <div class="metric">
+        <div class="stats-grid">
+          <a href="/student" class="stat-card">
+            <div class="stat-icon">
               <i class="fas fa-user-graduate"></i>
-              <div>
-                <div class="label">Students</div>
-                <div class="value">Manage</div>
-              </div>
+            </div>
+            <div class="stat-content">
+              <div class="stat-label">Students</div>
+              <div class="stat-value">Manage</div>
             </div>
           </a>
-          <a class="card" href="/teacher">
-            <div class="metric">
-              <i class="fas fa-chalkboard-teacher"></i>
-              <div>
-                <div class="label">Teachers</div>
-                <div class="value">Manage</div>
-              </div>
+
+          <a href="/teacher" class="stat-card success">
+            <div class="stat-icon">
+              <i class="fas fa-chalkboard-user"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-label">Teachers</div>
+              <div class="stat-value">Manage</div>
             </div>
           </a>
-          <a class="card" href="/student-attendance">
-            <div class="metric">
-              <i class="fas fa-user-check"></i>
-              <div>
-                <div class="label">Student Attendance</div>
-                <div class="value">Record</div>
-              </div>
+
+          <a href="/student-attendance" class="stat-card warning">
+            <div class="stat-icon">
+              <i class="fas fa-clipboard-user"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-label">Student Attendance</div>
+              <div class="stat-value">Record</div>
             </div>
           </a>
-          <a class="card" href="/teacher-attendance">
-            <div class="metric">
+
+          <a href="/teacher-attendance" class="stat-card">
+            <div class="stat-icon">
               <i class="fas fa-user-clock"></i>
-              <div>
-                <div class="label">Teacher Attendance</div>
-                <div class="value">Record</div>
-              </div>
+            </div>
+            <div class="stat-content">
+              <div class="stat-label">Teacher Attendance</div>
+              <div class="stat-value">Record</div>
             </div>
           </a>
-          <a class="card" href="/resources">
-            <div class="metric">
+
+          <a href="/resources" class="stat-card success">
+            <div class="stat-icon">
               <i class="fas fa-boxes-stacked"></i>
-              <div>
-                <div class="label">Resources</div>
-                <div class="value">Inventory</div>
-              </div>
+            </div>
+            <div class="stat-content">
+              <div class="stat-label">Resources</div>
+              <div class="stat-value">Inventory</div>
             </div>
           </a>
         </div>
+
+        <!--<div class="card">
+          <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-lightbulb"></i> Quick Tips</h3>
+          </div>
+          <p>Use <kbd>Ctrl</kbd> + <kbd>K</kbd> to quickly search. Toggle dark mode using the button in the top right corner.</p>
+        </div>-->
       </section>
 
       <footer class="footer">
-        2025 Primary School Performance System | powered by memory nikisi
+        © 2026 Primary School Performance System | Made with <i class="fas fa-heart"></i> by Memory Nikisi
       </footer>
-    </div>
+    </main>
   </div>
+
+  <script src="/js/main.js"></script>
 </body>
 </html>

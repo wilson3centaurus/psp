@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <title>Analytics | Admin</title>
@@ -8,105 +8,136 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-  <div class="erp-shell">
-    <aside class="erp-sidebar">
-      <div class="sidebar-brand">
-        <img src="/assets/logo.png" alt="Logo" class="logo">
-        <div class="brand-text">Primary School Performance</div>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <i class="fas fa-graduation-cap"></i>
+          <span>PSP Admin</span>
+        </div>
+        <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+          <i class="fas fa-moon"></i>
+        </button>
       </div>
       <nav class="sidebar-nav">
-        <a class="sidebar-link" href="/admin/dashboard"><i class="fas fa-gauge"></i> Dashboard</a>
-        <a class="sidebar-link" href="/admin/schools"><i class="fas fa-school"></i> Schools</a>
-        <a class="sidebar-link" href="/admin/teachers"><i class="fas fa-users"></i> Teachers</a>
-        <a class="sidebar-link" href="/admin/students"><i class="fas fa-child"></i> Students</a>
-        <a class="sidebar-link" href="/admin/resources"><i class="fas fa-boxes-stacked"></i> Resources</a>
-        <a class="sidebar-link" href="/admin/attendance"><i class="fas fa-calendar-check"></i> Attendance</a>
-        <a class="sidebar-link active" href="/admin/analytics"><i class="fas fa-chart-pie"></i> Analytics</a>
-        <a class="sidebar-link" href="/admin/reports"><i class="fas fa-file-alt"></i> Reports</a>
-        <a class="sidebar-link" href="/itadmin"><i class="fas fa-user-cog"></i> IT Admins</a>
+        <a href="/admin/dashboard" class="nav-item"><i class="fas fa-gauge"></i><span>Dashboard</span></a>
+        <a href="/admin/schools" class="nav-item"><i class="fas fa-school"></i><span>Schools</span></a>
+        <a href="/admin/teachers" class="nav-item"><i class="fas fa-chalkboard-teacher"></i><span>Teachers</span></a>
+        <a href="/admin/students" class="nav-item"><i class="fas fa-user-graduate"></i><span>Students</span></a>
+        <a href="/admin/resources" class="nav-item"><i class="fas fa-boxes-stacked"></i><span>Resources</span></a>
+        <a href="/admin/attendance" class="nav-item"><i class="fas fa-calendar-check"></i><span>Attendance</span></a>
+        <a href="/admin/analytics" class="nav-item active"><i class="fas fa-chart-pie"></i><span>Analytics</span></a>
+        <a href="/admin/reports" class="nav-item"><i class="fas fa-file-alt"></i><span>Reports</span></a>
+        <a href="/itadmin" class="nav-item"><i class="fas fa-user-shield"></i><span>IT Admins</span></a>
       </nav>
     </aside>
 
-    <div class="erp-main">
-      <header class="erp-topbar">
-        <div class="title">Analytics</div>
-        <div class="nav-actions">
-          <a class="nav-link" href="/admin/dashboard"><i class="fas fa-home"></i> Dashboard</a>
-          <a class="nav-link" href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    <!-- Main Content -->
+    <div class="main-content">
+      <header class="topbar">
+        <button class="menu-toggle" id="menuToggle">
+          <i class="fas fa-bars"></i>
+        </button>
+        <h1 class="page-title">Analytics & Insights</h1>
+        <div class="topbar-actions">
+          <a href="/admin/dashboard" class="btn btn-ghost"><i class="fas fa-home"></i></a>
+          <a href="/logout" class="btn btn-ghost"><i class="fas fa-sign-out-alt"></i></a>
         </div>
       </header>
 
-      <section class="erp-content">
-        <div class="page-header">
-          <div>
-            <h2><i class="fas fa-chart-column"></i> Insights & Ratios</h2>
-            <p class="subhead">Attendance trends, risk signals, and resource coverage across all schools.</p>
-          </div>
-        </div>
-
-        <% if (success_msg) { %>
-          <div class="alert alert-success"><%= success_msg %></div>
+      <main class="content">
+        <% if (success_msg && String(success_msg).trim() !== "") { %>
+          <div class="alert alert-success"><i class="fas fa-check-circle"></i> <%= success_msg %></div>
         <% } %>
-        <% if (error_msg) { %>
-          <div class="alert alert-danger"><%= error_msg %></div>
+        <% if (error_msg && String(error_msg).trim() !== "") { %>
+          <div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> <%= error_msg %></div>
         <% } %>
 
-        <div class="card-grid">
-          <div class="card">
-            <div class="metric">
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
               <i class="fas fa-user-check"></i>
-              <div>
-                <div class="label">Student Attendance (last <%= lookbackDays %>d)</div>
-                <div class="value"><%= attendanceRates.students %>%</div>
-              </div>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value"><%= attendanceRates.students %>%</span>
+              <span class="stat-label">Student Attendance (<%= lookbackDays %>d)</span>
             </div>
           </div>
-          <div class="card">
-            <div class="metric">
+          <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
               <i class="fas fa-user-tie"></i>
-              <div>
-                <div class="label">Teacher Attendance (last <%= lookbackDays %>d)</div>
-                <div class="value"><%= attendanceRates.teachers %>%</div>
-              </div>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value"><%= attendanceRates.teachers %>%</span>
+              <span class="stat-label">Teacher Attendance (<%= lookbackDays %>d)</span>
             </div>
           </div>
-          <div class="card">
-            <div class="metric">
+          <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
               <i class="fas fa-clock"></i>
-              <div>
-                <div class="label">Avg Daily Late Minutes</div>
-                <div class="value" id="avgLateValue">--</div>
-              </div>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value" id="avgLateValue">--</span>
+              <span class="stat-label">Avg Daily Late Minutes</span>
             </div>
           </div>
-          <div class="card">
-            <div class="metric">
+          <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);">
               <i class="fas fa-triangle-exclamation"></i>
-              <div>
-                <div class="label">Chronic Absentees</div>
-                <div class="value"><%= (chronicAbsentees && chronicAbsentees.length) || 0 %></div>
-              </div>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value"><%= (chronicAbsentees && chronicAbsentees.length) || 0 %></span>
+              <span class="stat-label">Chronic Absentees</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+              <i class="fas fa-star"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value" id="combinedPerformanceValue">--</span>
+              <span class="stat-label">Predicted Performance</span>
             </div>
           </div>
         </div>
 
-        <section class="card section">
-          <h3><i class="fas fa-chart-line"></i> Attendance Trend (last <%= lookbackDays %> days)</h3>
-          <div class="chart-box">
+        <!-- Charts Row -->
+        <div class="charts-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="fas fa-chart-pie"></i> Attendance Split</h3>
+            </div>
+            <div class="chart-box" style="padding: 1rem;">
+              <canvas id="attendancePieChart" aria-label="Attendance split pie chart"></canvas>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="fas fa-fire-flame-curved"></i> Lateness by Weekday</h3>
+            </div>
+            <div class="chart-box" style="padding: 1rem;">
+              <canvas id="latenessChart" aria-label="Lateness heatmap"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Attendance Trend -->
+        <div class="card" style="margin-top: 1.5rem;">
+          <div class="card-header">
+            <h3><i class="fas fa-chart-line"></i> Attendance Trend (last <%= lookbackDays %> days)</h3>
+          </div>
+          <div class="chart-box" style="padding: 1rem;">
             <canvas id="attendanceTrendChart" aria-label="Attendance trend"></canvas>
           </div>
-        </section>
+        </div>
 
-        <section class="card section">
-          <h3><i class="fas fa-fire-flame-curved"></i> Lateness by Weekday</h3>
-          <div class="chart-box">
-            <canvas id="latenessChart" aria-label="Lateness heatmap"></canvas>
+        <!-- Chronic Absentees Table -->
+        <div class="card" style="margin-top: 1.5rem;">
+          <div class="card-header">
+            <h3><i class="fas fa-user-shield"></i> Chronic Absentees (>=3 absences, last <%= lookbackDays %>d)</h3>
           </div>
-          <p class="subhead" style="margin-top:0.5rem;">Total late minutes recorded per weekday (students).</p>
-        </section>
-
-        <section class="card section">
-          <h3><i class="fas fa-user-shield"></i> Chronic Absentees (>=3 absences, last <%= lookbackDays %>d)</h3>
           <div class="table-wrapper">
             <table>
               <thead>
@@ -123,30 +154,33 @@
               </thead>
               <tbody>
                 <% if (!chronicAbsentees || !chronicAbsentees.length) { %>
-                  <tr><td colspan="8">No chronic absenteeism detected in the last <%= lookbackDays %> days.</td></tr>
+                  <tr><td colspan="8" style="text-align: center; padding: 2rem; opacity: 0.6;">No chronic absenteeism detected</td></tr>
                 <% } else { %>
                   <% chronicAbsentees.forEach((row, idx) => { %>
                     <tr>
                       <td><%= idx + 1 %></td>
-                      <td><%= row.name %></td>
+                      <td><strong><%= row.name %></strong></td>
                       <td><%= row.grade %></td>
                       <td><%= row.student_class %></td>
-                      <td><%= row.school_name %></td>
-                      <td><%= row.absent_days %></td>
+                      <td><span class="badge badge-info"><%= row.school_name %></span></td>
+                      <td><span class="badge badge-danger"><%= row.absent_days %></span></td>
                       <td><%= row.excused_days || 0 %></td>
-                      <td><%= row.absent_days - (row.excused_days || 0) %></td>
+                      <td><span class="badge badge-warning"><%= row.absent_days - (row.excused_days || 0) %></span></td>
                     </tr>
                   <% }) %>
                 <% } %>
               </tbody>
             </table>
           </div>
-        </section>
+        </div>
 
-        <section class="card">
-          <h3><i class="fas fa-user-group"></i> Teacher - Student Ratio per School</h3>
+        <!-- Teacher-Student Ratio -->
+        <div class="card" style="margin-top: 1.5rem;">
+          <div class="card-header">
+            <h3><i class="fas fa-user-group"></i> Teacher - Student Ratio per School</h3>
+          </div>
           <div class="table-wrapper">
-            <table class="ts-table">
+            <table>
               <thead>
                 <tr>
                   <th>#</th>
@@ -158,28 +192,32 @@
               </thead>
               <tbody>
                 <% if (!teacherStudent || teacherStudent.length === 0) { %>
-                  <tr><td colspan="5">No school data available.</td></tr>
+                  <tr><td colspan="5" style="text-align: center; padding: 2rem; opacity: 0.6;">No school data available</td></tr>
+                <% } else { %>
+                  <% teacherStudent.forEach((row, idx) => { 
+                      const ratio = row.total_teachers > 0 ? (row.total_students / row.total_teachers).toFixed(2) : 'N/A';
+                  %>
+                    <tr>
+                      <td><%= idx + 1 %></td>
+                      <td><strong><%= row.school_name %></strong></td>
+                      <td><%= row.total_students %></td>
+                      <td><%= row.total_teachers %></td>
+                      <td><span class="badge badge-primary"><%= ratio %></span></td>
+                    </tr>
+                  <% }) %>
                 <% } %>
-                <% teacherStudent.forEach((row, idx) => { 
-                    const ratio = row.total_teachers > 0 ? (row.total_students / row.total_teachers).toFixed(2) : 'N/A';
-                %>
-                  <tr>
-                    <td><%= idx + 1 %></td>
-                    <td><%= row.school_name %></td>
-                    <td><%= row.total_students %></td>
-                    <td><%= row.total_teachers %></td>
-                    <td><%= ratio %></td>
-                  </tr>
-                <% }) %>
               </tbody>
             </table>
           </div>
-        </section>
+        </div>
 
-        <section class="card section">
-          <h3><i class="fas fa-book-open-reader"></i> Student - Resource Ratio (Subject & Grade per School)</h3>
+        <!-- Resource Ratio Table -->
+        <div class="card" style="margin-top: 1.5rem;">
+          <div class="card-header">
+            <h3><i class="fas fa-book-open-reader"></i> Student - Resource Ratio</h3>
+          </div>
           <div class="table-wrapper">
-            <table class="rr-table">
+            <table>
               <thead>
                 <tr>
                   <th>#</th>
@@ -188,51 +226,77 @@
                   <th>Grade</th>
                   <th>Students</th>
                   <th>Books</th>
-                  <th>Students per Book</th>
+                  <th>Students/Book</th>
                 </tr>
               </thead>
               <tbody>
                 <% if (!resourceRatios || resourceRatios.length === 0) { %>
-                  <tr><td colspan="7">No resource data available.</td></tr>
+                  <tr><td colspan="7" style="text-align: center; padding: 2rem; opacity: 0.6;">No resource data available</td></tr>
+                <% } else { %>
+                  <% resourceRatios.forEach((row, idx) => { 
+                      const ratio = row.total_books > 0 ? (row.total_students / row.total_books).toFixed(2) : 'N/A';
+                  %>
+                    <tr>
+                      <td><%= idx + 1 %></td>
+                      <td><strong><%= row.school_name %></strong></td>
+                      <td><%= row.subject_name || 'Unknown' %></td>
+                      <td><%= row.grade || '-' %></td>
+                      <td><%= row.total_students || 0 %></td>
+                      <td><%= row.total_books || 0 %></td>
+                      <td><span class="badge badge-<%= ratio === 'N/A' || parseFloat(ratio) > 5 ? 'warning' : 'success' %>"><%= ratio %></span></td>
+                    </tr>
+                  <% }) %>
                 <% } %>
-                <% resourceRatios.forEach((row, idx) => { 
-                    const ratio = row.total_books > 0 ? (row.total_students / row.total_books).toFixed(2) : 'N/A';
-                %>
-                  <tr>
-                    <td><%= idx + 1 %></td>
-                    <td><%= row.school_name %></td>
-                    <td><%= row.subject_name || 'Unknown subject' %></td>
-                    <td><%= row.grade || '-' %></td>
-                    <td><%= row.total_students || 0 %></td>
-                    <td><%= row.total_books || 0 %></td>
-                    <td><%= ratio %></td>
-                  </tr>
-                <% }) %>
               </tbody>
             </table>
           </div>
-        </section>
+        </div>
 
-        <section class="card section">
-          <h3><i class="fas fa-chart-bar"></i> Students per School</h3>
-          <div class="chart-box">
-            <canvas id="studentsChart" aria-label="Students per school bar chart"></canvas>
+        <!-- More Charts -->
+        <div class="charts-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="fas fa-sparkles"></i> Predicted Performance</h3>
+            </div>
+            <div class="chart-box" style="padding: 1rem;">
+              <canvas id="predictedPerformanceChart" aria-label="Predicted performance per school"></canvas>
+            </div>
           </div>
-        </section>
-      </section>
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="fas fa-chart-bar"></i> Students per School</h3>
+            </div>
+            <div class="chart-box" style="padding: 1rem;">
+              <canvas id="studentsChart" aria-label="Students per school bar chart"></canvas>
+            </div>
+          </div>
+        </div>
+      </main>
 
       <footer class="footer">
-        2025 Primary School Performance System | powered by memory nikisi
+        <p>&copy; 2025 Primary School Performance System</p>
       </footer>
     </div>
   </div>
 
+  <script src="/js/main.js"></script>
+  <script>
+    // Initialize theme from localStorage
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    const themeIcon = document.querySelector('#themeToggle i');
+    if (themeIcon) {
+      themeIcon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/brain.js@2.0.0-beta.2/dist/browser.js"></script>
   <script>
     (function() {
       // Students per school (existing)
       const labels = <%- JSON.stringify((chartData && chartData.labels) || []) %>;
       const values = <%- JSON.stringify((chartData && chartData.values) || []) %>;
+      const attendanceCounts = <%- JSON.stringify(attendanceCounts || {}) %>;
       if (labels.length && values.length) {
         const ctx = document.getElementById('studentsChart').getContext('2d');
         new Chart(ctx, {
@@ -264,9 +328,31 @@
         });
       }
 
+      // Attendance pie (students + teachers combined)
+      if (attendanceCounts.students && attendanceCounts.teachers) {
+        const totalPresent = (attendanceCounts.students.present || 0) + (attendanceCounts.teachers.present || 0);
+        const totalAbsent = (attendanceCounts.students.absent || 0) + (attendanceCounts.teachers.absent || 0);
+        const ctxPie = document.getElementById('attendancePieChart').getContext('2d');
+        new Chart(ctxPie, {
+          type: 'pie',
+          data: {
+            labels: ['Present', 'Absent'],
+            datasets: [{
+              data: [totalPresent, totalAbsent],
+              backgroundColor: ['#10b981', '#ef4444']
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom' } }
+          }
+        });
+      }
+
       // Attendance trend (students vs teachers)
       const trendStudents = <%- JSON.stringify((attendanceTrend && attendanceTrend.students) || []) %>;
       const trendTeachers = <%- JSON.stringify((attendanceTrend && attendanceTrend.teachers) || []) %>;
+      const performanceFeatures = <%- JSON.stringify(performanceFeatures || []) %>;
       const trendLabels = trendStudents.map(r => r.date);
       if (trendLabels.length) {
         const studentPresent = trendStudents.map(r => Number(r.present) || 0);
@@ -305,6 +391,171 @@
           }
         });
       }
+
+      // Predicted performance (brain.js in-browser to avoid extra server deps)
+      if (performanceFeatures.length && window.brain && window.brain.NeuralNetwork) {
+        const normalize = (f) => ({
+          studentAttendance: Math.max(0, Math.min(1, f.studentAttendanceRate || 0)),
+          teacherAttendance: Math.max(0, Math.min(1, f.teacherAttendanceRate || 0)),
+          booksPerStudent: Math.min((f.booksPerStudent || 0) / 10, 1), // cap at 10 books/student
+          computersPerStudent: Math.min((f.computersPerStudent || 0) / 3, 1), // cap at 3 computers/student
+          teacherStudentRatio: Math.min((f.teacherStudentRatio || 0) / 30, 1) // cap ratio at 30:1
+        });
+
+        const heuristicScore = (f) => {
+          // baseline + attendance + resources; penalize large student/teacher ratio
+          const att = 0.5 * f.studentAttendance + 0.15 * f.teacherAttendance;
+          const res = 0.2 * f.booksPerStudent + 0.1 * f.computersPerStudent;
+          const ratioPenalty = 0.05 * Math.max(0, f.teacherStudentRatio - 1); // already normalized 0-1
+          const raw = 0.5 + att + res - ratioPenalty;
+          return Math.max(0, Math.min(1, raw));
+        };
+
+        const training = performanceFeatures.map(f => {
+          const input = normalize(f);
+          return { input, output: { score: heuristicScore(input) } };
+        });
+
+        // Light jitter to avoid overfitting when few schools
+        const augmented = [];
+        training.forEach(t => {
+          augmented.push(t);
+          augmented.push({
+            input: Object.fromEntries(Object.entries(t.input).map(([k,v]) => [k, Math.max(0, Math.min(1, v + (Math.random() - 0.5) * 0.05))])),
+            output: t.output
+          });
+        });
+
+        const net = new brain.NeuralNetwork({ hiddenLayers: [5, 3] });
+        net.train(augmented, { iterations: 300, log: false, errorThresh: 0.003 });
+
+        const predictions = performanceFeatures.map(f => {
+          const out = net.run(normalize(f)) || {};
+          const score = Math.max(0, Math.min(1, out.score || 0));
+          return { school: f.schoolName, scorePct: +(score * 100).toFixed(1) };
+        });
+
+        const combined = predictions.length
+          ? predictions.reduce((sum, p) => sum + p.scorePct, 0) / predictions.length
+          : 0;
+
+        const combinedEl = document.getElementById('combinedPerformanceValue');
+        if (combinedEl) combinedEl.textContent = `${combined.toFixed(1)}%`;
+
+        if (predictions.length) {
+          const ctxPred = document.getElementById('predictedPerformanceChart').getContext('2d');
+          new Chart(ctxPred, {
+            type: 'bar',
+            data: {
+              labels: predictions.map(p => p.school),
+              datasets: [{
+                label: 'Predicted Performance (%)',
+                data: predictions.map(p => p.scorePct),
+                backgroundColor: '#10b981',
+                borderRadius: 6,
+                borderSkipped: false
+              }]
+            },
+            options: {
+              responsive: true,
+              plugins: { legend: { display: false } },
+              scales: {
+                y: { beginAtZero: true, max: 100, title: { display: true, text: '%' } },
+                x: { title: { display: true, text: 'School' } }
+              }
+            }
+          });
+        }
+      } else {
+        const combinedEl = document.getElementById('combinedPerformanceValue');
+        if (combinedEl) combinedEl.textContent = 'N/A';
+      }
+
+      // Predicted performance (AI + heuristic fallback)
+      (function runPerformanceModel() {
+        const combinedEl = document.getElementById('combinedPerformanceValue');
+
+        if (!performanceFeatures.length) {
+          if (combinedEl) combinedEl.textContent = 'N/A';
+          return;
+        }
+
+        const normalize = (f) => ({
+          studentAttendance: Math.max(0, Math.min(1, f.studentAttendanceRate || 0)),
+          teacherAttendance: Math.max(0, Math.min(1, f.teacherAttendanceRate || 0)),
+          booksPerStudent: Math.min((f.booksPerStudent || 0) / 10, 1), // cap at 10 books/student
+          computersPerStudent: Math.min((f.computersPerStudent || 0) / 3, 1), // cap at 3 computers/student
+          teacherStudentRatio: Math.min((f.teacherStudentRatio || 0) / 30, 1) // cap ratio at 30:1
+        });
+
+        const heuristicScore = (f) => {
+          // weighted attendance + resources, slight penalty for crowded ratio
+          const att = 0.55 * f.studentAttendance + 0.15 * f.teacherAttendance;
+          const res = 0.2 * f.booksPerStudent + 0.1 * f.computersPerStudent;
+          const ratioPenalty = 0.08 * Math.max(0, f.teacherStudentRatio - 0.33); // ideal ~1 teacher per 3 students normalized
+          const raw = 0.45 + att + res - ratioPenalty;
+          return Math.max(0, Math.min(1, raw));
+        };
+
+        const baseSamples = performanceFeatures.map(f => {
+          const input = normalize(f);
+          return { input, output: { score: heuristicScore(input) } };
+        });
+
+        let predictions = [];
+
+        if (window.brain && window.brain.NeuralNetwork) {
+          // Train quickly; fall back to heuristic if anything fails
+          try {
+            const net = new brain.NeuralNetwork({ hiddenLayers: [6, 4] });
+            net.train(baseSamples, { iterations: 400, log: false, errorThresh: 0.002 });
+            predictions = performanceFeatures.map(f => {
+              const out = net.run(normalize(f)) || {};
+              const score = Math.max(0, Math.min(1, out.score || heuristicScore(normalize(f))));
+              return { school: f.schoolName, scorePct: +(score * 100).toFixed(1) };
+            });
+          } catch (e) {
+            console.warn('AI model fallback to heuristic:', e);
+          }
+        }
+
+        if (!predictions.length) {
+          predictions = performanceFeatures.map(f => {
+            const score = heuristicScore(normalize(f));
+            return { school: f.schoolName, scorePct: +(score * 100).toFixed(1) };
+          });
+        }
+
+        const combined = predictions.length
+          ? predictions.reduce((sum, p) => sum + p.scorePct, 0) / predictions.length
+          : 0;
+        if (combinedEl) combinedEl.textContent = `${combined.toFixed(1)}%`;
+
+        if (predictions.length) {
+          const ctxPred = document.getElementById('predictedPerformanceChart').getContext('2d');
+          new Chart(ctxPred, {
+            type: 'bar',
+            data: {
+              labels: predictions.map(p => p.school),
+              datasets: [{
+                label: 'Predicted Performance (%)',
+                data: predictions.map(p => p.scorePct),
+                backgroundColor: '#10b981',
+                borderRadius: 6,
+                borderSkipped: false
+              }]
+            },
+            options: {
+              responsive: true,
+              plugins: { legend: { display: false } },
+              scales: {
+                y: { beginAtZero: true, max: 100, title: { display: true, text: '%' } },
+                x: { title: { display: true, text: 'School' } }
+              }
+            }
+          });
+        }
+      })();
 
       // Lateness by weekday
       const latenessRows = <%- JSON.stringify(latenessHeatmap || []) %>;

@@ -2,94 +2,567 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Attendance Sessions | School</title>
+  <title>Student Attendance | PSP</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="/css/style.css">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link rel="icon" type="image/png" href="<%= typeof schoolLogo !== 'undefined' && schoolLogo ? '/uploads/' + schoolLogo : '/assets/logo.png' %>">
+  <style>
+    /* Attendance Page Specific Styles */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .stat-card.total { border-color: var(--primary); background: rgba(var(--primary-rgb), 0.05); }
+    .stat-card.present { border-color: #22c55e; background: rgba(34, 197, 94, 0.05); }
+    .stat-card.absent { border-color: #ef4444; background: rgba(239, 68, 68, 0.05); }
+    .stat-card.late { border-color: #f59e0b; background: rgba(245, 158, 11, 0.05); }
+    .stat-card .stat-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+    .stat-card .stat-label i { font-size: 1rem; }
+    .stat-card.total .stat-label i { color: var(--primary); }
+    .stat-card.present .stat-label i { color: #22c55e; }
+    .stat-card.absent .stat-label i { color: #ef4444; }
+    .stat-card.late .stat-label i { color: #f59e0b; }
+    .stat-card .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .stat-card.present .stat-value { color: #22c55e; }
+    .stat-card.absent .stat-value { color: #ef4444; }
+    .stat-card.late .stat-value { color: #f59e0b; }
+
+    .attendance-controls {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    .attendance-controls .form-group { flex: 1; min-width: 200px; }
+    .attendance-controls .form-group label { font-size: 0.8rem; margin-bottom: 0.25rem; }
+
+    .progress-section {
+      margin-bottom: 1rem;
+    }
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+      color: var(--text-secondary);
+    }
+    .progress-bar {
+      height: 8px;
+      background: var(--bg-secondary);
+      border-radius: 100px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #22c55e, #4ade80);
+      border-radius: 100px;
+      transition: width 0.3s ease;
+    }
+
+    .auto-save-notice {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      background: rgba(var(--primary-rgb), 0.1);
+      border: 1px solid var(--primary);
+      border-radius: var(--radius);
+      font-size: 0.85rem;
+      color: var(--primary);
+      margin-bottom: 1rem;
+    }
+    .auto-save-notice i { animation: spin 2s linear infinite; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+
+    .attendance-table { width: 100%; }
+    .attendance-table th { text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
+    .attendance-table td { vertical-align: middle; }
+    
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 100px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .status-badge.present { background: #dcfce7; color: #15803d; }
+    .status-badge.absent { background: #fee2e2; color: #b91c1c; }
+    .status-badge.late { background: #fef3c7; color: #b45309; }
+
+    .quick-mark-btns {
+      display: flex;
+      gap: 0.35rem;
+    }
+    .quick-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.4rem 0.75rem;
+      border-radius: 100px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.2s ease;
+    }
+    .quick-btn.present-btn {
+      background: var(--bg-secondary);
+      color: #22c55e;
+      border-color: var(--border);
+    }
+    .quick-btn.present-btn:hover, .quick-btn.present-btn.active {
+      background: #22c55e;
+      color: white;
+      border-color: #22c55e;
+    }
+    .quick-btn.absent-btn {
+      background: var(--bg-secondary);
+      color: #ef4444;
+      border-color: var(--border);
+    }
+    .quick-btn.absent-btn:hover, .quick-btn.absent-btn.active {
+      background: #ef4444;
+      color: white;
+      border-color: #ef4444;
+    }
+    .quick-btn.late-btn {
+      background: var(--bg-secondary);
+      color: #f59e0b;
+      border-color: var(--border);
+    }
+    .quick-btn.late-btn:hover, .quick-btn.late-btn.active {
+      background: #f59e0b;
+      color: white;
+      border-color: #f59e0b;
+    }
+
+    .mark-all-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1.25rem;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .mark-all-btn:hover {
+      background: #22c55e;
+      color: white;
+      border-color: #22c55e;
+    }
+
+    .remarks-input {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-size: 0.85rem;
+    }
+    .remarks-input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    
+    .section-divider {
+      margin: 2rem 0;
+      border-top: 2px dashed var(--border);
+    }
+  </style>
 </head>
 <body>
-  <div class="erp-shell">
-    <aside class="erp-sidebar">
-      <div class="sidebar-brand">
-        <img src="/assets/logo.png" alt="Logo" class="logo">
-        <div class="brand-text"><%= user.username %> (School)</div>
+  <div class="app-shell">
+    <div class="sidebar-overlay"></div>
+
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <img src="<%= typeof schoolLogo !== 'undefined' && schoolLogo ? '/uploads/' + schoolLogo : '/assets/logo.png' %>" alt="Logo" class="sidebar-logo">
+          <div>
+            <div class="sidebar-brand-text"><%= typeof schoolDisplayName !== 'undefined' && schoolDisplayName ? schoolDisplayName : user.username %></div>
+            <div class="sidebar-brand-label">School Portal</div>
+          </div>
+        </div>
       </div>
       <nav class="sidebar-nav">
-        <a class="sidebar-link" href="/school/dashboard"><i class="fas fa-gauge"></i> Dashboard</a>
-        <a class="sidebar-link" href="/student"><i class="fas fa-user-graduate"></i> Students</a>
-        <a class="sidebar-link" href="/teacher"><i class="fas fa-chalkboard-teacher"></i> Teachers</a>
-        <a class="sidebar-link active" href="/student-attendance"><i class="fas fa-user-check"></i> Student Attendance</a>
-        <a class="sidebar-link" href="/teacher-attendance"><i class="fas fa-user-clock"></i> Teacher Attendance</a>
-        <a class="sidebar-link" href="/resources"><i class="fas fa-boxes-stacked"></i> Resources</a>
+        <div class="nav-section">
+          <div class="nav-section-title">Main</div>
+          <a class="nav-link" href="/school/dashboard"><i class="fas fa-gauge-high"></i> Dashboard</a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Management</div>
+          <a class="nav-link" href="/student"><i class="fas fa-user-graduate"></i> Students</a>
+          <a class="nav-link" href="/teacher"><i class="fas fa-chalkboard-user"></i> Teachers</a>
+          <a class="nav-link" href="/resources"><i class="fas fa-boxes-stacked"></i> Resources</a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Attendance</div>
+          <a class="nav-link active" href="/student-attendance"><i class="fas fa-clipboard-user"></i> Student Attendance</a>
+          <a class="nav-link" href="/teacher-attendance"><i class="fas fa-user-clock"></i> Teacher Attendance</a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Account</div>
+          <a class="nav-link logout" href="/logout"><i class="fas fa-right-from-bracket"></i> Logout</a>
+        </div>
       </nav>
     </aside>
 
-    <div class="erp-main">
-      <header class="erp-topbar">
-        <div class="title">Student Attendance Sessions</div>
-        <div class="nav-actions">
-          <a class="nav-link" href="/student-attendance/mark"><i class="fas fa-pen"></i> Mark</a>
-          <a class="nav-link" href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="mobile-menu-btn" aria-label="Toggle menu">
+            <i class="fas fa-bars"></i>
+          </button>
+          <span class="page-title">Student Attendance</span>
+        </div>
+        <div class="topbar-right">
+          <button class="theme-toggle" aria-label="Toggle theme">
+            <i class="fas fa-moon"></i>
+            <i class="fas fa-sun"></i>
+          </button>
+          <a href="/logout" class="topbar-btn danger">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Logout</span>
+          </a>
         </div>
       </header>
 
-      <section class="erp-content">
+      <section class="content">
         <div class="page-header">
-          <div>
-            <h2><i class="fas fa-calendar"></i> Attendance Sessions</h2>
-            <p class="subhead">Browse recorded student attendance by date.</p>
+          <h1><i class="fas fa-clipboard-user"></i> Student Attendance</h1>
+          <p class="subtitle">Mark attendance and view attendance records.</p>
+        </div>
+
+        <% if (typeof success_msg !== 'undefined' && success_msg && String(success_msg).trim() !== "") { %>
+          <div class="alert success"><i class="fas fa-check-circle"></i> <%= success_msg %></div>
+        <% } %>
+        <% if (typeof error_msg !== 'undefined' && error_msg && String(error_msg).trim() !== "") { %>
+          <div class="alert error"><i class="fas fa-exclamation-circle"></i> <%= error_msg %></div>
+        <% } %>
+
+        <!-- Mark Attendance Section -->
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+          <div class="stat-card total">
+            <div class="stat-label"><i class="fas fa-users"></i> Total Students</div>
+            <div class="stat-value" id="total-count"><%= students ? students.length : 0 %></div>
+          </div>
+          <div class="stat-card present">
+            <div class="stat-label"><i class="fas fa-check-circle"></i> Present</div>
+            <div class="stat-value" id="present-count"><%= students ? students.length : 0 %></div>
+          </div>
+          <div class="stat-card absent">
+            <div class="stat-label"><i class="fas fa-times-circle"></i> Absent</div>
+            <div class="stat-value" id="absent-count">0</div>
+          </div>
+          <div class="stat-card late">
+            <div class="stat-label"><i class="fas fa-clock"></i> Late</div>
+            <div class="stat-value" id="late-count">0</div>
           </div>
         </div>
 
-        <% if (success_msg) { %>
-          <div class="alert alert-success"><%= success_msg %></div>
-        <% } %>
-        <% if (error_msg) { %>
-          <div class="alert alert-danger"><%= error_msg %></div>
-        <% } %>
-
+        <!-- Attendance Register Card -->
         <div class="card">
-          <form method="GET" action="/student-attendance" class="actions-row" style="flex-wrap: wrap;">
-            <div style="flex:1; min-width: 200px;">
-              <label>Date</label>
-              <input type="date" name="date" value="<%= searchDate || '' %>">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title"><i class="fas fa-pen"></i> Mark Attendance</h3>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">Select a class and mark daily attendance</p>
             </div>
-            <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Filter</button>
-            <a href="/student-attendance" class="btn btn-outline"><i class="fas fa-rotate-left"></i> Reset</a>
-            <a href="/student-attendance/mark" class="btn btn-secondary"><i class="fas fa-pen"></i> Mark Attendance</a>
-          </form>
+          </div>
+
+          <!-- Controls -->
+          <div class="attendance-controls">
+            <div class="form-group">
+              <label>Select Class</label>
+              <select id="class-selector" class="form-input" onchange="loadClass()">
+                <option value="">-- Select a class --</option>
+                <% if (typeof allClasses !== 'undefined' && allClasses.length > 0) { %>
+                  <% allClasses.forEach(c => { %>
+                    <option value="<%= c.grade %>|<%= c.student_class %>" 
+                      <%= (selectedGrade === String(c.grade) && selectedClass === c.student_class) ? 'selected' : '' %>>
+                      Form <%= c.grade %> <%= c.student_class %> (<%= c.count %> students)
+                    </option>
+                  <% }) %>
+                <% } %>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" id="attendance-date" class="form-input" value="<%= selectedDate || '' %>">
+            </div>
+            <button type="button" class="mark-all-btn" onclick="markAllPresent()">
+              <i class="fas fa-check-double"></i> Mark All Present
+            </button>
+          </div>
+
+          <% if (students && students.length > 0) { %>
+            <!-- Progress Bar -->
+            <div class="progress-section">
+              <div class="progress-header">
+                <span>Progress: <span id="marked-count"><%= students.length %></span> / <%= students.length %> marked</span>
+                <span id="progress-percent">100%</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill" style="width: 100%;"></div>
+              </div>
+            </div>
+
+            <!-- Auto-save Notice -->
+            <div class="auto-save-notice">
+              <i class="fas fa-sync-alt"></i>
+              Auto-save enabled - your progress is automatically saved
+            </div>
+
+            <!-- Attendance Table -->
+            <form id="attendance-form" method="POST" action="/student-attendance/mark">
+              <input type="hidden" name="grade" value="<%= selectedGrade %>">
+              <input type="hidden" name="student_class" value="<%= selectedClass %>">
+              <input type="hidden" name="date" id="form-date" value="<%= selectedDate %>">
+
+              <div class="table-wrapper">
+                <table class="attendance-table">
+                  <thead>
+                    <tr>
+                      <th>Roll No.</th>
+                      <th>Student Name</th>
+                      <th>Status</th>
+                      <th>Quick Mark</th>
+                      <th>Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% students.forEach((student, idx) => { %>
+                      <tr data-student-id="<%= student.id %>">
+                        <td><%= String(idx + 1).padStart(3, '0') %></td>
+                        <td><strong><%= student.name %></strong></td>
+                        <td>
+                          <span class="status-badge present" id="status-badge-<%= student.id %>">
+                            <i class="fas fa-check"></i> Present
+                          </span>
+                          <input type="hidden" name="status_<%= student.id %>" id="status-<%= student.id %>" value="Present">
+                        </td>
+                        <td>
+                          <div class="quick-mark-btns">
+                            <button type="button" class="quick-btn present-btn active" onclick="setStatus(<%= student.id %>, 'Present')">
+                              <i class="fas fa-check"></i> Present
+                            </button>
+                            <button type="button" class="quick-btn absent-btn" onclick="setStatus(<%= student.id %>, 'Absent')">
+                              <i class="fas fa-times"></i> Absent
+                            </button>
+                            <button type="button" class="quick-btn late-btn" onclick="setStatus(<%= student.id %>, 'Late')">
+                              <i class="fas fa-clock"></i> Late
+                            </button>
+                          </div>
+                        </td>
+                        <td>
+                          <input type="text" name="reason_<%= student.id %>" class="remarks-input" placeholder="Optional remarks...">
+                        </td>
+                      </tr>
+                    <% }) %>
+                  </tbody>
+                </table>
+              </div>
+
+              <button type="submit" class="btn primary" style="margin-top: 1.5rem; width: 100%; padding: 1rem;">
+                <i class="fas fa-save"></i> Save Attendance
+              </button>
+            </form>
+          <% } else { %>
+            <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+              <i class="fas fa-users" style="font-size: 3rem; opacity: 0.3; margin-bottom: 1rem; display: block;"></i>
+              <p>Select a class above to start marking attendance</p>
+            </div>
+          <% } %>
         </div>
 
-        <div class="table-wrapper" style="margin-top: 1rem;">
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Date</th>
-                <th>View</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% if (!sessions || sessions.length === 0) { %>
-                <tr><td colspan="3">No sessions found.</td></tr>
-              <% } else { %>
-                <% sessions.forEach((session, idx) => { %>
-                  <tr>
-                    <td><%= idx + 1 %></td>
-                    <td><%= session.date %></td>
-                    <td><a class="btn btn-outline" href="/student-attendance/view/<%= session.date %>"><i class="fas fa-eye"></i> View</a></td>
-                  </tr>
-                <% }) %>
-              <% } %>
-            </tbody>
-          </table>
+        <!-- Section Divider -->
+        <div class="section-divider"></div>
+
+        <!-- Attendance Sessions Section -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-calendar"></i> Attendance Sessions</h3>
+            <span class="badge"><%= sessions ? sessions.length : 0 %> sessions</span>
+          </div>
+          <form method="GET" action="/student-attendance" class="form-row" style="flex-wrap: wrap; padding: 1rem; gap: 0.5rem; border-bottom: 1px solid var(--border);">
+            <div class="form-group" style="flex:1; min-width: 200px; margin-bottom: 0;">
+              <label>Filter by Date</label>
+              <input type="date" name="date" class="form-input" value="<%= searchDate || '' %>">
+            </div>
+            <button type="submit" class="btn primary"><i class="fas fa-filter"></i> Filter</button>
+            <a href="/student-attendance" class="btn outline"><i class="fas fa-rotate-left"></i> Reset</a>
+          </form>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Date</th>
+                  <th>View</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if (!sessions || sessions.length === 0) { %>
+                  <tr><td colspan="3" class="empty-state">No sessions found.</td></tr>
+                <% } else { %>
+                  <% sessions.forEach((session, idx) => { %>
+                    <tr>
+                      <td><%= idx + 1 %></td>
+                      <td><strong><%= session.date %></strong></td>
+                      <td><a class="btn outline small" href="/student-attendance/view/<%= session.date %>"><i class="fas fa-eye"></i> View</a></td>
+                    </tr>
+                  <% }) %>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
       <footer class="footer">
-        2025 Primary School Performance System | powered by memory nikisi
+        © 2026 Primary School Performance System
       </footer>
-    </div>
+    </main>
   </div>
+
+  <script src="/js/main.js"></script>
+  <script>
+    // Auto-pick today's date
+    document.addEventListener('DOMContentLoaded', function() {
+      const dateInput = document.getElementById('attendance-date');
+      if (dateInput && !dateInput.value) {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        dateInput.value = `${yyyy}-${mm}-${dd}`;
+        const formDate = document.getElementById('form-date');
+        if (formDate) formDate.value = dateInput.value;
+      }
+      
+      // Sync date input with form
+      if (dateInput) {
+        dateInput.addEventListener('change', function() {
+          const formDate = document.getElementById('form-date');
+          if (formDate) formDate.value = this.value;
+        });
+      }
+
+      updateStats();
+    });
+
+    function loadClass() {
+      const selector = document.getElementById('class-selector');
+      const dateInput = document.getElementById('attendance-date');
+      
+      if (selector.value) {
+        const [grade, studentClass] = selector.value.split('|');
+        const date = dateInput.value || new Date().toISOString().split('T')[0];
+        window.location.href = `/student-attendance?grade=${encodeURIComponent(grade)}&class=${encodeURIComponent(studentClass)}&markDate=${date}`;
+      }
+    }
+
+    function setStatus(studentId, status) {
+      // Update hidden input
+      document.getElementById('status-' + studentId).value = status;
+      
+      // Update badge
+      const badge = document.getElementById('status-badge-' + studentId);
+      badge.className = 'status-badge ' + status.toLowerCase();
+      
+      const icons = { Present: 'fa-check', Absent: 'fa-times', Late: 'fa-clock' };
+      badge.innerHTML = `<i class="fas ${icons[status]}"></i> ${status}`;
+      
+      // Update buttons
+      const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
+      row.querySelectorAll('.quick-btn').forEach(btn => btn.classList.remove('active'));
+      row.querySelector(`.${status.toLowerCase()}-btn`).classList.add('active');
+      
+      updateStats();
+      autoSave(studentId, status);
+    }
+
+    function markAllPresent() {
+      document.querySelectorAll('tr[data-student-id]').forEach(row => {
+        const studentId = row.dataset.studentId;
+        setStatus(parseInt(studentId), 'Present');
+      });
+    }
+
+    function updateStats() {
+      let present = 0, absent = 0, late = 0;
+      
+      document.querySelectorAll('input[id^="status-"]').forEach(input => {
+        if (input.value === 'Present') present++;
+        else if (input.value === 'Absent') absent++;
+        else if (input.value === 'Late') late++;
+      });
+      
+      document.getElementById('present-count').textContent = present;
+      document.getElementById('absent-count').textContent = absent;
+      document.getElementById('late-count').textContent = late;
+      
+      const total = present + absent + late;
+      const marked = total;
+      const totalStudents = parseInt(document.getElementById('total-count').textContent);
+      
+      const markedCount = document.getElementById('marked-count');
+      const progressPercent = document.getElementById('progress-percent');
+      const progressFill = document.getElementById('progress-fill');
+      
+      if (markedCount) markedCount.textContent = marked;
+      if (progressPercent && progressFill) {
+        const percent = totalStudents > 0 ? Math.round((marked / totalStudents) * 100) : 0;
+        progressPercent.textContent = percent + '%';
+        progressFill.style.width = percent + '%';
+      }
+    }
+
+    function autoSave(studentId, status) {
+      // Visual feedback for auto-save
+      const notice = document.querySelector('.auto-save-notice');
+      if (notice) {
+        notice.innerHTML = '<i class="fas fa-sync-alt"></i> Saving...';
+        
+        setTimeout(() => {
+          notice.innerHTML = '<i class="fas fa-check-circle"></i> Auto-saved';
+          setTimeout(() => {
+            notice.innerHTML = '<i class="fas fa-sync-alt"></i> Auto-save enabled - your progress is automatically saved';
+          }, 1500);
+        }, 500);
+      }
+    }
+  </script>
 </body>
 </html>

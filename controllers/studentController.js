@@ -93,24 +93,24 @@ exports.deleteStudent = (req, res) => {
   });
 };
 
-// SEARCH students (FIXED)
+// SEARCH students (FIXED - Case-insensitive)
 exports.searchStudents = (req, res) => {
   const schoolId = req.session.user.id;
   const query = req.query.q ? req.query.q.trim() : "";
 
   if (!query) return res.redirect('/student');
 
-const sql = `
-  SELECT * FROM students 
-  WHERE school_id = ? AND (
-    BINARY name LIKE BINARY ? OR
-    CAST(grade AS CHAR) LIKE BINARY ? OR 
-    BINARY student_class LIKE BINARY ? OR 
-    BINARY student_id LIKE BINARY ?
-  )
-`;
+  const sql = `
+    SELECT * FROM students 
+    WHERE school_id = ? AND (
+      name COLLATE utf8mb4_general_ci LIKE ? OR
+      CAST(grade AS CHAR) LIKE ? OR 
+      student_class COLLATE utf8mb4_general_ci LIKE ? OR 
+      student_id COLLATE utf8mb4_general_ci LIKE ?
+    )
+  `;
 
-
+  // Using COLLATE for case-insensitive search
   const wildcard = `%${query}%`;
 
   db.query(sql, [schoolId, wildcard, wildcard, wildcard, wildcard], (err, rows) => {
