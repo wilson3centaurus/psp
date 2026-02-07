@@ -25,7 +25,7 @@ exports.viewSchools = (req, res) => {
 exports.editSchoolPage = (req, res) => {
   const id = req.params.id;
 
-  const sql = 'SELECT * FROM users WHERE id = ? AND role = "school"';
+  const sql = `SELECT * FROM users WHERE id = ? AND role = 'school'`;
 
   db.query(sql, [id], (err, results) => {
     if (err || results.length === 0) {
@@ -118,7 +118,7 @@ exports.deleteSchool = (req, res) => {
 exports.viewSchoolDashboard = (req, res) => {
   const id = req.params.id;
 
-  const sql = 'SELECT * FROM users WHERE id = ? AND role = "school"';
+  const sql = `SELECT * FROM users WHERE id = ? AND role = 'school'`;
 
   db.query(sql, [id], (err, results) => {
     if (err || results.length === 0) {
