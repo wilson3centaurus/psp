@@ -22,7 +22,8 @@
   function getPreferredTheme() {
     const stored = getStoredTheme();
     if (stored) return stored;
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    // Default to dark theme
+    return 'dark';
   }
 
   function setTheme(theme) {

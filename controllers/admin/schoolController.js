@@ -68,10 +68,10 @@ exports.updateSchool = (req, res) => {
   let sql, params;
   
   if (logoFilename) {
-    sql = 'UPDATE users SET display_name = ?, email = ?, phone = ?, address = ?, logo = ? WHERE id = ? AND role = "school"';
+    sql = 'UPDATE users SET display_name = ?, email = ?, phone = ?, address = ?, logo = ? WHERE id = ? AND role = \'school\'';
     params = [display_name, email, phone, address, logoFilename, id];
   } else {
-    sql = 'UPDATE users SET display_name = ?, email = ?, phone = ?, address = ? WHERE id = ? AND role = "school"';
+    sql = 'UPDATE users SET display_name = ?, email = ?, phone = ?, address = ? WHERE id = ? AND role = \'school\'';
     params = [display_name, email, phone, address, id];
   }
 
@@ -101,7 +101,7 @@ exports.deleteSchool = (req, res) => {
     }
   });
 
-  const sql = 'DELETE FROM users WHERE id = ? AND role = "school"';
+  const sql = 'DELETE FROM users WHERE id = ? AND role = \'school\'';
 
   db.query(sql, [id], (err) => {
     if (err) {

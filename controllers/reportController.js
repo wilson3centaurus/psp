@@ -4,7 +4,7 @@ const ExcelJS = require('exceljs');
 const PDFDocument = require('pdfkit');
 
 exports.exportExcel = (req, res) => {
-  db.query('SELECT * FROM users WHERE role = "school"', (err, rows) => {
+  db.query('SELECT * FROM users WHERE role = \'school\'', (err, rows) => {
     if (err) throw err;
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('Schools');
@@ -21,7 +21,7 @@ exports.exportExcel = (req, res) => {
 };
 
 exports.exportPDF = (req, res) => {
-  db.query('SELECT * FROM users WHERE role = "school"', (err, rows) => {
+  db.query('SELECT * FROM users WHERE role = \'school\'', (err, rows) => {
     if (err) throw err;
     const doc = new PDFDocument();
     res.setHeader('Content-Type', 'application/pdf');

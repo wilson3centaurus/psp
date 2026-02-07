@@ -4,6 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login | Primary School Performance</title>
+  <script>
+    // Set theme immediately to prevent flash
+    (function() {
+      const theme = localStorage.getItem('psp-theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
   <link rel="stylesheet" href="/css/style.css">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
   <link rel="icon" type="image/png" href="/assets/logo.png">

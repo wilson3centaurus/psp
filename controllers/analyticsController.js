@@ -3,7 +3,7 @@ const db = require('../config/db');
 
 exports.analyticsPage = (req, res) => {
 const queries = {
-schools: 'SELECT COUNT(*) AS total FROM users WHERE role = "school"',
+schools: 'SELECT COUNT(*) AS total FROM users WHERE role = \'school\'',
 students: 'SELECT COUNT(*) AS total FROM students',
 teachers: 'SELECT COUNT(*) AS total FROM teachers',
 resources: 'SELECT COUNT(*) AS total FROM resources'
