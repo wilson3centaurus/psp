@@ -1,0 +1,26 @@
+name,subject,gender,email,phone,teacher_id
+Mr. John Mokoena,Mathematics,Male,j.mokoena@school.com,+263712345001,T001
+Mrs. Sarah Ndebele,English,Female,s.ndebele@school.com,+263712345002,T002
+Mr. Peter Chidzonga,Science,Male,p.chidzonga@school.com,+263712345003,T003
+Ms. Grace Mutasa,Social Studies,Female,g.mutasa@school.com,+263712345004,T004
+Mr. Tapiwa Chikwanha,Physical Education,Male,t.chikwanha@school.com,+263712345005,T005
+Mrs. Linda Gumbo,Mathematics,Female,l.gumbo@school.com,+263712345006,T006
+Mr. David Mpofu,English,Male,d.mpofu@school.com,+263712345007,T007
+Ms. Faith Sibanda,Shona,Female,f.sibanda@school.com,+263712345008,T008
+Mr. Andrew Mahachi,ICT,Male,a.mahachi@school.com,+263712345009,T009
+Mrs. Tendai Nyathi,Science,Female,t.nyathi@school.com,+263712345010,T010
+Mr. Charles Mapfumo,History,Male,c.mapfumo@school.com,+263712345011,T011
+Ms. Rumbidzai Dube,Art,Female,r.dube@school.com,+263712345012,T012
+Mr. Blessing Ncube,Music,Male,b.ncube@school.com,+263712345013,T013
+Mrs. Chipo Khumalo,Mathematics,Female,c.khumalo@school.com,+263712345014,T014
+Mr. Kudakwashe Sithole,Geography,Male,k.sithole@school.com,+263712345015,T015
+Ms. Yeukai Zulu,English,Female,y.zulu@school.com,+263712345016,T016
+Mr. Munyaradzi Nkosi,Science,Male,m.nkosi@school.com,+263712345017,T017
+Mrs. Rutendo Masuku,Agriculture,Female,r.masuku@school.com,+263712345018,T018
+Mr. Panashe Ngubane,Religious Studies,Male,p.ngubane@school.com,+263712345019,T019
+Ms. Shingai Mahlangu,Home Economics,Female,s.mahlangu@school.com,+263712345020,T020
+Mr. Tonderai Madziva,Physical Education,Male,t.madziva@school.com,+263712345021,T021
+Mrs. Nyasha Chirwa,Library Studies,Female,n.chirwa@school.com,+263712345022,T022
+Mr. Tanaka Mlambo,ICT,Male,t.mlambo@school.com,+263712345023,T023
+Ms. Chiedza Moyo,Guidance & Counseling,Female,c.moyo@school.com,+263712345024,T024
+Mr. Simbarashe Sibanda,French,Male,s.sibanda@school.com,+263712345025,T025

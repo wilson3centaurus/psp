@@ -18,7 +18,7 @@ exports.listStudents = (req, res) => {
 
 // Show add student form
 exports.addStudentPage = (req, res) => {
-  res.render('school/addStudent');
+  res.render('school/addstudent');
 };
 
 // Add single student

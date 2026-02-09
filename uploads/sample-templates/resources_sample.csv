@@ -1,0 +1,13 @@
+subject_id,subject_name,grade,num_students,num_books,num_computers
+MATH01,Mathematics,Grade 1,45,50,5
+ENG01,English,Grade 1,45,48,5
+SCI01,Science,Grade 2,42,45,4
+MATH02,Mathematics,Grade 2,42,44,4
+ENG02,English,Grade 3,38,40,3
+SCI02,Science,Grade 3,38,42,3
+MATH03,Mathematics,Grade 4,35,38,4
+ENG03,English,Grade 4,35,36,4
+SCI03,Science,Grade 5,40,42,5
+MATH04,Mathematics,Grade 5,40,44,5
+SHONA,Shona,Grade 6,33,35,2
+ICT01,ICT,Grade 6,33,10,15
