@@ -31,20 +31,12 @@
             <label for="subject"><i class="fas fa-book"></i> Subject</label>
             <select id="subject" name="subject" class="form-input" required>
               <option value="">Select Subject</option>
-              <option value="English" <%= teacher.subject === 'English' ? 'selected' : '' %>>English</option>
               <option value="Mathematics" <%= teacher.subject === 'Mathematics' ? 'selected' : '' %>>Mathematics</option>
-              <option value="Science" <%= teacher.subject === 'Science' ? 'selected' : '' %>>Science</option>
-              <option value="Social Studies" <%= teacher.subject === 'Social Studies' ? 'selected' : '' %>>Social Studies</option>
-              <option value="Shona" <%= teacher.subject === 'Shona' ? 'selected' : '' %>>Shona</option>
-              <option value="Ndebele" <%= teacher.subject === 'Ndebele' ? 'selected' : '' %>>Ndebele</option>
-              <option value="Physical Education" <%= teacher.subject === 'Physical Education' ? 'selected' : '' %>>Physical Education</option>
-              <option value="Agriculture" <%= teacher.subject === 'Agriculture' ? 'selected' : '' %>>Agriculture</option>
-              <option value="Art" <%= teacher.subject === 'Art' ? 'selected' : '' %>>Art</option>
-              <option value="Music" <%= teacher.subject === 'Music' ? 'selected' : '' %>>Music</option>
-              <option value="Religious Studies" <%= teacher.subject === 'Religious Studies' ? 'selected' : '' %>>Religious Studies</option>
-              <option value="ICT" <%= teacher.subject === 'ICT' ? 'selected' : '' %>>ICT</option>
-              <option value="Life Skills" <%= teacher.subject === 'Life Skills' ? 'selected' : '' %>>Life Skills</option>
-              <option value="Other" <%= !['English','Mathematics','Science','Social Studies','Shona','Ndebele','Physical Education','Agriculture','Art','Music','Religious Studies','ICT','Life Skills'].includes(teacher.subject) ? 'selected' : '' %>>Other</option>
+              <option value="English" <%= teacher.subject === 'English' ? 'selected' : '' %>>English</option>
+              <option value="Chishona" <%= teacher.subject === 'Chishona' ? 'selected' : '' %>>Chishona</option>
+              <option value="Social Science" <%= teacher.subject === 'Social Science' ? 'selected' : '' %>>Social Science</option>
+              <option value="Physical Education and Arts" <%= teacher.subject === 'Physical Education and Arts' ? 'selected' : '' %>>Physical Education and Arts</option>
+              <option value="Science and Technology" <%= teacher.subject === 'Science and Technology' ? 'selected' : '' %>>Science and Technology</option>
             </select>
           </div>
           <div class="form-group">

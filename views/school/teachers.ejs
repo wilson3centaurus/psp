@@ -105,16 +105,27 @@
           <div class="card-header">
             <h3 class="card-title"><i class="fas fa-plus"></i> Add Teachers</h3>
           </div>
-          <div class="form-row" style="flex-wrap: wrap;">
-            <a href="/teacher/add" class="btn primary">
-              <i class="fas fa-user-plus"></i> Add Teacher
-            </a>
-            <form method="POST" action="/teacher/upload-csv" enctype="multipart/form-data" class="form-row" style="gap: 0.5rem;">
-              <input type="file" name="csv" accept=".csv" class="form-input" required style="max-width: 250px;">
-              <button type="submit" class="btn secondary">
-                <i class="fas fa-upload"></i> Upload CSV
-              </button>
-            </form>
+          <div style="display: flex; gap: 1rem; flex-wrap: wrap; padding: 0.5rem 0; align-items: flex-start;">
+            <!-- Left pane: Manual Add -->
+            <div style="flex: 1; min-width: 200px;">
+              <p style="margin-bottom: 0.5rem; font-weight: 600;"><i class="fas fa-user-plus"></i> Add Manually</p>
+              <a href="/teacher/add" class="btn primary" style="width: 100%; justify-content: center;">
+                <i class="fas fa-user-plus"></i> Add Teacher
+              </a>
+            </div>
+            <!-- Right pane: CSV Upload -->
+            <div style="flex: 1; min-width: 200px;">
+              <p style="margin-bottom: 0.5rem; font-weight: 600;"><i class="fas fa-file-csv"></i> Bulk Upload via CSV</p>
+              <form method="POST" action="/teacher/upload-csv" enctype="multipart/form-data">
+                <label for="teacher_csv" style="display: block; margin-bottom: 0.4rem; font-size: 0.85rem; opacity: 0.8;">Choose CSV file (columns: name, subject, gender, email, phone, teacher_id)</label>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                  <input type="file" id="teacher_csv" name="csv" accept=".csv" class="form-input" required style="flex: 1;">
+                  <button type="submit" class="btn secondary">
+                    <i class="fas fa-upload"></i> Upload
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
 

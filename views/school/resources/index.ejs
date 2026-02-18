@@ -85,14 +85,15 @@
           <div class="card-header">
             <h3 class="card-title"><i class="fas fa-upload"></i> Upload Resources</h3>
           </div>
-          <form action="/resources/upload-csv" method="POST" enctype="multipart/form-data" class="form-row" style="flex-wrap: wrap;">
-            <div style="flex:1; min-width: 200px;">
-              <p><strong>Upload Resources via CSV</strong></p>
-              <small class="text-muted">Columns: subject_id, subject_name, grade, num_students, num_books, num_computers</small>
-            </div>
-            <input type="file" name="csv" accept=".csv" class="form-input" required style="max-width: 250px;">
-            <button class="btn secondary" type="submit"><i class="fas fa-upload"></i> Upload CSV</button>
-          </form>
+          <div style="padding: 0.5rem 0;">
+            <form action="/resources/upload-csv" method="POST" enctype="multipart/form-data">
+              <label for="res_csv" style="display: block; margin-bottom: 0.4rem; font-size: 0.85rem; opacity: 0.8;">Choose CSV file (columns: subject_id, subject_name, grade, num_students, num_books, num_computers)</label>
+              <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                <input type="file" id="res_csv" name="csv" accept=".csv" class="form-input" required style="flex: 1; min-width: 200px;">
+                <button class="btn secondary" type="submit"><i class="fas fa-upload"></i> Upload CSV</button>
+              </div>
+            </form>
+          </div>
         </div>
 
         <div class="card">
