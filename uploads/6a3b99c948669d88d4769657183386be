@@ -1,0 +1,19 @@
+subject_id,subject_name,grade,num_students,num_books,num_computers
+MATH-1,Mathematics,1,44,30,5
+ENG-1,English,1,44,34,5
+CHIS-1,Chishona,1,44,22,0
+SCI-1,Science and Technology,1,44,20,7
+SOC-1,Social Science,1,44,26,3
+PE-1,Physical Education and Arts,1,44,10,0
+MATH-2,Mathematics,2,40,28,5
+ENG-2,English,2,40,26,5
+CHIS-2,Chishona,2,40,20,0
+SCI-2,Science and Technology,2,40,17,7
+SOC-2,Social Science,2,40,23,3
+PE-2,Physical Education and Arts,2,40,7,0
+MATH-3,Mathematics,3,46,36,6
+ENG-3,English,3,46,32,6
+CHIS-3,Chishona,3,46,24,0
+SCI-3,Science and Technology,3,46,22,8
+SOC-3,Social Science,3,46,28,4
+PE-3,Physical Education and Arts,3,46,12,0
