@@ -1,13 +1,13 @@
 name,subject,gender,email,phone,teacher_id
-Tapiwa Mutasa,Mathematics,Male,tmutasa@school.co.zw,0771234567,5207039Z
-Grace Chipunza,English,Female,gchipunza@school.co.zw,0782345678,5208041A
-Simbarashe Moyo,Chishona,Male,smoyo@school.co.zw,0713456789,5209052B
-Nyarai Dzviti,Science and Technology,Female,ndzviti@school.co.zw,0774567890,5210063C
-Blessing Mugabe,Social Science,Male,bmugabe@school.co.zw,0785678901,5211074D
-Tendai Chigwida,Physical Education and Arts,Female,tchigwida@school.co.zw,0716789012,5212085E
-Tafadzwa Chirwa,Mathematics,Female,tchirwa@school.co.zw,0773210987,5213096F
-Munyaradzi Banda,English,Male,mbanda@school.co.zw,0784321098,5214107G
-Ruvimbo Machingura,Chishona,Female,rmachingura@school.co.zw,0715432109,5215118H
-Kudakwashe Mpofu,Science and Technology,Male,kmpofu@school.co.zw,0776543210,5216129J
-Chiedza Ndlovu,Social Science,Female,cndlovu@school.co.zw,0787654321,5217130K
-Tinashe Mapfumo,Physical Education and Arts,Male,tmapfumo@school.co.zw,0718765432,5218141L
+Tapiwa Mutasa,Mathematics,Male,tmutasa@school.co.zw,0771234567,EC1042
+Grace Chipunza,English,Female,gchipunza@school.co.zw,0782345678,EC2158
+Simbarashe Moyo,Chishona,Male,smoyo@school.co.zw,0713456789,EC3274
+Nyarai Dzviti,Science and Technology,Female,ndzviti@school.co.zw,0774567890,EC4391
+Blessing Mugabe,Social Science,Male,bmugabe@school.co.zw,0785678901,EC5467
+Tendai Chigwida,Physical Education and Arts,Female,tchigwida@school.co.zw,0716789012,EC6583
+Tafadzwa Chirwa,Mathematics,Female,tchirwa@school.co.zw,0773210987,EC7619
+Munyaradzi Banda,English,Male,mbanda@school.co.zw,0784321098,EC8735
+Ruvimbo Machingura,Chishona,Female,rmachingura@school.co.zw,0715432109,EC9841
+Kudakwashe Mpofu,Science and Technology,Male,kmpofu@school.co.zw,0776543210,EC1057
+Chiedza Ndlovu,Social Science,Female,cndlovu@school.co.zw,0787654321,EC2163
+Tinashe Mapfumo,Physical Education and Arts,Male,tmapfumo@school.co.zw,0718765432,EC3279
