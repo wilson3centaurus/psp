@@ -280,7 +280,7 @@
           </div>
           <div class="stat-card present">
             <div class="stat-label"><i class="fas fa-check-circle"></i> Present</div>
-            <div class="stat-value" id="present-count"><%= students ? students.length : 0 %></div>
+            <div class="stat-value" id="present-count">0</div>
           </div>
           <div class="stat-card absent">
             <div class="stat-label"><i class="fas fa-times-circle"></i> Absent</div>
@@ -290,6 +290,18 @@
             <div class="stat-label"><i class="fas fa-clock"></i> Late</div>
             <div class="stat-value" id="late-count">0</div>
           </div>
+        </div>
+
+        <!-- Biometric Attendance - Coming Soon -->
+        <div class="biometric-banner">
+          <span class="coming-soon-tag"><i class="fas fa-tools"></i> ⚒️ Coming Soon ⚠️</span>
+          <div class="biometric-icons">
+            <div class="biometric-icon"><i class="fas fa-fingerprint"></i><span>Fingerprint</span></div>
+            <div class="biometric-icon"><i class="fas fa-face-smile"></i><span>Face ID</span></div>
+            <div class="biometric-icon"><i class="fas fa-id-card"></i><span>Card Scan</span></div>
+          </div>
+          <h3>Biometric Attendance</h3>
+          <p>Automated biometric attendance capture is currently in development. Stay tuned for fingerprint and facial recognition support.</p>
         </div>
 
         <!-- Attendance Register Card -->
@@ -330,11 +342,11 @@
             <!-- Progress Bar -->
             <div class="progress-section">
               <div class="progress-header">
-                <span>Progress: <span id="marked-count"><%= students.length %></span> / <%= students.length %> marked</span>
-                <span id="progress-percent">100%</span>
+                <span>Progress: <span id="marked-count">0</span> / <%= students.length %> marked</span>
+                <span id="progress-percent">0%</span>
               </div>
               <div class="progress-bar">
-                <div class="progress-fill" id="progress-fill" style="width: 100%;"></div>
+                <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
               </div>
             </div>
 
@@ -367,14 +379,14 @@
                         <td><%= String(idx + 1).padStart(3, '0') %></td>
                         <td><strong><%= student.name %></strong></td>
                         <td>
-                          <span class="status-badge present" id="status-badge-<%= student.id %>">
-                            <i class="fas fa-check"></i> Present
+                          <span class="status-badge unmarked" id="status-badge-<%= student.id %>">
+                            <i class="fas fa-minus"></i> Unmarked
                           </span>
-                          <input type="hidden" name="status_<%= student.id %>" id="status-<%= student.id %>" value="Present">
+                          <input type="hidden" name="status_<%= student.id %>" id="status-<%= student.id %>" value="">
                         </td>
                         <td>
                           <div class="quick-mark-btns">
-                            <button type="button" class="quick-btn present-btn active" onclick="setStatus(<%= student.id %>, 'Present')">
+                            <button type="button" class="quick-btn present-btn" onclick="setStatus(<%= student.id %>, 'Present')">
                               <i class="fas fa-check"></i> Present
                             </button>
                             <button type="button" class="quick-btn absent-btn" onclick="setStatus(<%= student.id %>, 'Absent')">

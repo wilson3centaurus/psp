@@ -334,26 +334,15 @@
         <% } %>
 
         <!-- Biometric Feature Placeholder -->
-        <div class="biometric-section">
-          <div class="coming-soon-badge">
-            <i class="fas fa-clock"></i> Coming Soon
-          </div>
-          <h3><i class="fas fa-fingerprint"></i> Biometric Attendance</h3>
-          <p>We're working on adding fingerprint and facial recognition for faster, more accurate attendance tracking.</p>
+        <div class="biometric-banner">
+          <span class="coming-soon-tag"><i class="fas fa-tools"></i> ⚒️ Coming Soon ⚠️</span>
           <div class="biometric-icons">
-            <div class="biometric-icon">
-              <i class="fas fa-fingerprint"></i>
-              <span>Fingerprint</span>
-            </div>
-            <div class="biometric-icon">
-              <i class="fas fa-face-smile"></i>
-              <span>Face ID</span>
-            </div>
-            <div class="biometric-icon">
-              <i class="fas fa-id-card"></i>
-              <span>ID Card Scan</span>
-            </div>
+            <div class="biometric-icon"><i class="fas fa-fingerprint"></i><span>Fingerprint</span></div>
+            <div class="biometric-icon"><i class="fas fa-face-smile"></i><span>Face ID</span></div>
+            <div class="biometric-icon"><i class="fas fa-id-card"></i><span>Card Scan</span></div>
           </div>
+          <h3>Biometric Attendance</h3>
+          <p>Automated biometric attendance capture is currently in development. Stay tuned for fingerprint and facial recognition support.</p>
         </div>
 
         <!-- Mark Attendance Section -->
@@ -365,7 +354,7 @@
           </div>
           <div class="stat-card present">
             <div class="stat-label"><i class="fas fa-check-circle"></i> Present</div>
-            <div class="stat-value" id="present-count"><%= teachers ? teachers.length : 0 %></div>
+            <div class="stat-value" id="present-count">0</div>
           </div>
           <div class="stat-card absent">
             <div class="stat-label"><i class="fas fa-times-circle"></i> Absent</div>
@@ -401,11 +390,11 @@
             <!-- Progress Bar -->
             <div class="progress-section">
               <div class="progress-header">
-                <span>Progress: <span id="marked-count"><%= teachers.length %></span> / <%= teachers.length %> marked</span>
-                <span id="progress-percent">100%</span>
+                <span>Progress: <span id="marked-count">0</span> / <%= teachers.length %> marked</span>
+                <span id="progress-percent">0%</span>
               </div>
               <div class="progress-bar">
-                <div class="progress-fill" id="progress-fill" style="width: 100%;"></div>
+                <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
               </div>
             </div>
 
@@ -443,14 +432,14 @@
                         </td>
                         <td><code style="font-size: 0.8rem;"><%= teacher.teacher_id %></code></td>
                         <td>
-                          <span class="status-badge present" id="status-badge-<%= teacher.id %>">
-                            <i class="fas fa-check"></i> Present
+                          <span class="status-badge unmarked" id="status-badge-<%= teacher.id %>">
+                            <i class="fas fa-minus"></i> Unmarked
                           </span>
-                          <input type="hidden" name="status_<%= teacher.id %>" id="status-<%= teacher.id %>" value="Present">
+                          <input type="hidden" name="status_<%= teacher.id %>" id="status-<%= teacher.id %>" value="">
                         </td>
                         <td>
                           <div class="quick-mark-btns">
-                            <button type="button" class="quick-btn present-btn active" onclick="setStatus(<%= teacher.id %>, 'Present')">
+                            <button type="button" class="quick-btn present-btn" onclick="setStatus(<%= teacher.id %>, 'Present')">
                               <i class="fas fa-check"></i> Present
                             </button>
                             <button type="button" class="quick-btn absent-btn" onclick="setStatus(<%= teacher.id %>, 'Absent')">

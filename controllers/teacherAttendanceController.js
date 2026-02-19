@@ -117,9 +117,11 @@ exports.submitAttendance = (req, res) => {
         return res.redirect("/teacher-attendance");
       }
 
-      const attendanceRows = submittedKeys.map(key => {
+      const attendanceRows = submittedKeys
+        .filter(key => req.body[key] && req.body[key].trim() !== '')
+        .map(key => {
         const teacherId = key.split("_")[1];
-        const status = req.body[key];
+        const status = req.body[key] || 'Absent';
         const reason = req.body[`reason_${teacherId}`] || '';
         const excused = req.body[`excused_${teacherId}`] ? 1 : 0;
         const lateMinutes = Number(req.body[`late_${teacherId}`]) || 0;

@@ -134,7 +134,7 @@
                   <th>Subject</th>
                   <th>Email</th>
                   <th>Phone</th>
-                  <th>Teacher ID</th>
+                  <th>EC#</th>
                   <th>School</th>
                 </tr>
               </thead>
@@ -149,7 +149,7 @@
                       <td><span class="badge success"><%= teacher.subject %></span></td>
                       <td><%= teacher.email %></td>
                       <td><%= teacher.phone %></td>
-                      <td><code><%= teacher.teacher_id %></code></td>
+                      <td><span class="ec-number"><%= teacher.teacher_id %></span></td>
                       <td><span class="badge"><%= teacher.school_name || (`School #${teacher.school_id}`) %></span></td>
                     </tr>
                   <% }) %>

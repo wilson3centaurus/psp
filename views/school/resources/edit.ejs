@@ -20,6 +20,13 @@
     </div>
 
     <div class="card form-card">
+      <% if (typeof success_msg !== 'undefined' && success_msg && String(success_msg).trim() !== "") { %>
+        <div class="alert success"><i class="fas fa-check-circle"></i> <%= success_msg %></div>
+      <% } %>
+      <% if (typeof error_msg !== 'undefined' && error_msg && String(error_msg).trim() !== "") { %>
+        <div class="alert error"><i class="fas fa-exclamation-circle"></i> <%= error_msg %></div>
+      <% } %>
+
       <form action="/resources/edit/<%= resource.id %>" method="POST">
         <!-- Subject Information -->
         <div class="form-section">
@@ -29,19 +36,12 @@
               <label for="subject_name"><i class="fas fa-book"></i> Subject</label>
               <select name="subject_name" id="subject_name" class="form-input" required>
                 <option value="">Select Subject</option>
-                <option value="English" <%= resource.subject_name === 'English' ? 'selected' : '' %>>English</option>
                 <option value="Mathematics" <%= resource.subject_name === 'Mathematics' ? 'selected' : '' %>>Mathematics</option>
-                <option value="Science" <%= resource.subject_name === 'Science' ? 'selected' : '' %>>Science</option>
-                <option value="Social Studies" <%= resource.subject_name === 'Social Studies' ? 'selected' : '' %>>Social Studies</option>
-                <option value="Shona" <%= resource.subject_name === 'Shona' ? 'selected' : '' %>>Shona</option>
-                <option value="Ndebele" <%= resource.subject_name === 'Ndebele' ? 'selected' : '' %>>Ndebele</option>
-                <option value="Physical Education" <%= resource.subject_name === 'Physical Education' ? 'selected' : '' %>>Physical Education</option>
-                <option value="Agriculture" <%= resource.subject_name === 'Agriculture' ? 'selected' : '' %>>Agriculture</option>
-                <option value="Art" <%= resource.subject_name === 'Art' ? 'selected' : '' %>>Art</option>
-                <option value="Music" <%= resource.subject_name === 'Music' ? 'selected' : '' %>>Music</option>
-                <option value="Religious Studies" <%= resource.subject_name === 'Religious Studies' ? 'selected' : '' %>>Religious Studies</option>
-                <option value="ICT" <%= resource.subject_name === 'ICT' ? 'selected' : '' %>>ICT</option>
-                <option value="Life Skills" <%= resource.subject_name === 'Life Skills' ? 'selected' : '' %>>Life Skills</option>
+                <option value="English" <%= resource.subject_name === 'English' ? 'selected' : '' %>>English</option>
+                <option value="Chishona" <%= resource.subject_name === 'Chishona' ? 'selected' : '' %>>Chishona</option>
+                <option value="Social Science" <%= resource.subject_name === 'Social Science' ? 'selected' : '' %>>Social Science</option>
+                <option value="Physical Education and Arts" <%= resource.subject_name === 'Physical Education and Arts' ? 'selected' : '' %>>Physical Education and Arts</option>
+                <option value="Science and Technology" <%= resource.subject_name === 'Science and Technology' ? 'selected' : '' %>>Science and Technology</option>
               </select>
             </div>
             <div class="form-group">

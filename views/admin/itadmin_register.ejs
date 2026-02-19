@@ -46,14 +46,14 @@
         <% } %>
 
         <div class="card" style="max-width: 540px;">
-          <form method="POST" action="/itadmin" class="actions-row" style="flex-direction: column; gap: 0.9rem;">
+          <form method="POST" action="/itadmin" id="registerForm" class="actions-row" style="flex-direction: column; gap: 0.9rem;">
             <div style="width: 100%;">
               <label>Access Code</label>
               <input type="text" name="accessCode" placeholder="Enter IT admin access code" required>
             </div>
             <div style="width: 100%;">
-              <label>Username</label>
-              <input type="text" name="username" placeholder="Choose a unique username" required>
+              <label>Username (Login ID)</label>
+              <input type="text" name="username" placeholder="e.g. baring_primary" required>
             </div>
             <div style="width: 100%;">
               <label>Password</label>
@@ -66,15 +66,40 @@
             </div>
             <div style="width: 100%;">
               <label>Role</label>
-              <select name="role" required>
+              <select name="role" id="roleSelect" required onchange="toggleSchoolFields()">
                 <option value="">Select role</option>
                 <option value="school">School</option>
                 <option value="admin">Admin</option>
               </select>
             </div>
 
+            <!-- School-specific fields (shown when role = school) -->
+            <div id="schoolFields" style="display: none; width: 100%;">
+              <div style="border: 1px dashed var(--border); border-radius: var(--radius); padding: 1rem; margin-top: 0.25rem; background: var(--bg-secondary);">
+                <h4 style="margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem; color: var(--text-primary);"><i class="fas fa-school" style="color: var(--primary);"></i> School Details</h4>
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                  <div>
+                    <label>Display Name</label>
+                    <input type="text" name="display_name" placeholder="e.g. Baring Primary School">
+                  </div>
+                  <div>
+                    <label>Email Address</label>
+                    <input type="email" name="email" placeholder="e.g. admin@baringprimary.co.zw">
+                  </div>
+                  <div>
+                    <label>Phone Number</label>
+                    <input type="text" name="phone" placeholder="e.g. +263 242 123456">
+                  </div>
+                  <div>
+                    <label>Address</label>
+                    <input type="text" name="address" placeholder="e.g. 123 Main Rd, Harare">
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <button class="btn btn-primary" type="submit" style="width: 100%; margin-top: 0.2rem;">
-              <i class="fas fa-user-plus"></i> Add User
+              <i class="fas fa-user-plus"></i> Create Account
             </button>
           </form>
         </div>
@@ -98,6 +123,14 @@
         });
       }
     })();
+
+    function toggleSchoolFields() {
+      const role = document.getElementById('roleSelect').value;
+      const schoolFields = document.getElementById('schoolFields');
+      if (schoolFields) {
+        schoolFields.style.display = role === 'school' ? 'block' : 'none';
+      }
+    }
   </script>
 </body>
 </html>

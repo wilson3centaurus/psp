@@ -190,7 +190,7 @@ exports.submitAttendance = (req, res) => {
     if (err) throw err;
 
     const attendanceData = students.map(s => {
-      const status = req.body[`status_${s.id}`] || 'Present';
+      const status = req.body[`status_${s.id}`] || 'Absent';
       const reason = req.body[`reason_${s.id}`] || '';
       const excused = req.body[`excused_${s.id}`] ? 1 : 0;
       const lateMinutes = status === 'Late' ? 1 : (Number(req.body[`late_${s.id}`]) || 0);

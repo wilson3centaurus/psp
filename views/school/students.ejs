@@ -114,6 +114,7 @@
             <!-- Right pane: CSV Upload -->
             <div style="flex: 1; min-width: 200px;">
               <p style="margin-bottom: 0.5rem; font-weight: 600;"><i class="fas fa-file-csv"></i> Bulk Upload via CSV</p>
+              <a href="/uploads/sample-templates/student_template.csv" download style="font-size: 0.8rem; margin-bottom: 0.5rem; display: inline-block; opacity: 0.7;"><i class="fas fa-download"></i> Download sample template</a>
               <form action="/student/upload" method="POST" enctype="multipart/form-data">
                 <label for="csv" style="display: block; margin-bottom: 0.4rem; font-size: 0.85rem; opacity: 0.8;">Choose CSV file (columns: name, grade, student_class, gender, student_id)</label>
                 <div style="display: flex; gap: 0.5rem; align-items: center;">

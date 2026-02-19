@@ -12,7 +12,7 @@ exports.showRegisterPage = (req, res) => {
 };
 
 exports.registerUser = (req, res) => {
-  const { username, password, role, accessCode } = req.body;
+  const { username, password, role, accessCode, display_name, email, phone, address } = req.body;
 
   console.log('User registration attempt:', { username, role });
 
@@ -26,10 +26,19 @@ exports.registerUser = (req, res) => {
 
   const hashedPassword = bcrypt.hashSync(password, 10);
 
-  db.query(
-    'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
-    [username, hashedPassword, role],
-    (err) => {
+  // If creating a school, include display_name, email, phone, address
+  const sql = 'INSERT INTO users (username, password, role, display_name, email, phone, address) VALUES (?, ?, ?, ?, ?, ?, ?)';
+  const params = [
+    username, 
+    hashedPassword, 
+    role,
+    (role === 'school' && display_name) ? display_name : null,
+    (role === 'school' && email) ? email : null,
+    (role === 'school' && phone) ? phone : null,
+    (role === 'school' && address) ? address : null
+  ];
+
+  db.query(sql, params, (err) => {
       if (err) {
         console.error('DB insert error:', err);
         return res.render('admin/itadmin_register', {
@@ -40,7 +49,7 @@ exports.registerUser = (req, res) => {
 
       return res.render('admin/itadmin_register', {
         error: null,
-        success: 'User registered successfully'
+        success: `${role === 'school' ? 'School' : 'Admin'} account "${username}" created successfully!`
       });
     }
   );

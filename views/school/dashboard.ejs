@@ -74,6 +74,13 @@
           <p class="subtitle">Manage your students, teachers, attendance, and resources from one place.</p>
         </div>
 
+        <% if (typeof success_msg !== 'undefined' && success_msg && String(success_msg).trim() !== "") { %>
+          <div class="alert success"><i class="fas fa-check-circle"></i> <%= success_msg %></div>
+        <% } %>
+        <% if (typeof error_msg !== 'undefined' && error_msg && String(error_msg).trim() !== "") { %>
+          <div class="alert error"><i class="fas fa-exclamation-circle"></i> <%= error_msg %></div>
+        <% } %>
+
         <div class="stats-grid">
           <a href="/student" class="stat-card">
             <div class="stat-icon">
