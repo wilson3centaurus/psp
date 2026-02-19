@@ -131,20 +131,26 @@
         <div class="card">
           <div class="card-header">
             <h3 class="card-title"><i class="fas fa-list"></i> Student List</h3>
-            <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
-              <span class="badge"><%= students.length %> students</span>
-              <span id="selectionCount" style="font-size:0.85rem; opacity:0.75; display:none;"></span>
-              <button type="button" id="deleteSelectedBtn" class="btn danger" style="display:none;" onclick="submitStudentBulkDelete()">
-                <i class="fas fa-trash"></i> Delete Selected
-              </button>
-            </div>
+            <span class="badge"><%= students.length %> students</span>
           </div>
-          <form id="studentBulkForm" action="/student/delete-bulk" method="POST" onsubmit="return confirmBulkDelete('student')">
+          <% if (students.length > 0) { %>
+          <div style="padding: 0.5rem 0; display: flex; gap: 0.5rem; align-items: center;">
+            <button type="button" id="deleteSelectedStudents" class="btn danger" style="display: none;" onclick="document.getElementById('bulkDeleteStudentForm').submit()">
+              <i class="fas fa-trash"></i> Delete Selected (<span id="selectedStudentCount">0</span>)
+            </button>
+            <button type="button" id="selectAllStudentsBtn" class="btn outline" onclick="toggleSelectAllStudents()">
+              <i class="fas fa-check-double"></i> Select All
+            </button>
+          </div>
+          <% } %>
+          <form id="bulkDeleteStudentForm" action="/student/bulk-delete" method="POST" onsubmit="return confirm('Are you sure you want to delete the selected students? This cannot be undone.')">
           <div class="table-wrapper">
             <table>
               <thead>
                 <tr>
-                  <th style="width:40px;"><input type="checkbox" id="selectAllStudents" title="Select all"></th>
+                  <% if (students.length > 0) { %>
+                  <th style="width: 40px;"><input type="checkbox" id="selectAllStudentsCb" onchange="toggleSelectAllStudents(this)"></th>
+                  <% } %>
                   <th>#</th>
                   <th>Name</th>
                   <th>Grade</th>
@@ -160,7 +166,7 @@
                 <% } else { %>
                   <% students.forEach((student, index) => { %>
                     <tr>
-                      <td><input type="checkbox" name="ids" value="<%= student.id %>" class="row-check student-check"></td>
+                      <td><input type="checkbox" name="ids" value="<%= student.id %>" class="student-checkbox" onchange="updateStudentSelection()"></td>
                       <td><%= index + 1 %></td>
                       <td><strong><%= student.name %></strong></td>
                       <td><span class="badge"><%= student.grade %></span></td>
@@ -193,46 +199,30 @@
 
   <script src="/js/main.js"></script>
   <script>
-    // Select all / deselect all students
-    const selectAllStudents = document.getElementById('selectAllStudents');
-    const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
-    const selectionCount = document.getElementById('selectionCount');
+    function updateStudentSelection() {
+      const checkboxes = document.querySelectorAll('.student-checkbox');
+      const checked = document.querySelectorAll('.student-checkbox:checked');
+      const deleteBtn = document.getElementById('deleteSelectedStudents');
+      const countSpan = document.getElementById('selectedStudentCount');
+      const selectAllCb = document.getElementById('selectAllStudentsCb');
 
-    function updateStudentBulkBar() {
-      const checked = document.querySelectorAll('.student-check:checked');
-      if (checked.length > 0) {
-        deleteSelectedBtn.style.display = 'inline-flex';
-        selectionCount.style.display = 'inline';
-        selectionCount.textContent = checked.length + ' selected';
-      } else {
-        deleteSelectedBtn.style.display = 'none';
-        selectionCount.style.display = 'none';
+      if (deleteBtn) {
+        deleteBtn.style.display = checked.length > 0 ? 'inline-flex' : 'none';
+        countSpan.textContent = checked.length;
+      }
+      if (selectAllCb) {
+        selectAllCb.checked = checkboxes.length > 0 && checked.length === checkboxes.length;
       }
     }
 
-    if (selectAllStudents) {
-      selectAllStudents.addEventListener('change', function () {
-        document.querySelectorAll('.student-check').forEach(cb => cb.checked = this.checked);
-        updateStudentBulkBar();
-      });
-    }
-
-    document.querySelectorAll('.student-check').forEach(cb => {
-      cb.addEventListener('change', function () {
-        const all = document.querySelectorAll('.student-check');
-        selectAllStudents.checked = [...all].every(c => c.checked);
-        updateStudentBulkBar();
-      });
-    });
-
-    function confirmBulkDelete(type) {
-      const checked = document.querySelectorAll('.' + type + '-check:checked');
-      if (checked.length === 0) { alert('No records selected.'); return false; }
-      return confirm('Delete ' + checked.length + ' selected ' + type + '(s)? This cannot be undone.');
-    }
-
-    function submitStudentBulkDelete() {
-      document.getElementById('studentBulkForm').requestSubmit();
+    function toggleSelectAllStudents(masterCb) {
+      const checkboxes = document.querySelectorAll('.student-checkbox');
+      const selectAllCb = document.getElementById('selectAllStudentsCb');
+      // If called from button, toggle based on current state
+      const newState = masterCb ? masterCb.checked : !selectAllCb.checked;
+      if (!masterCb) selectAllCb.checked = newState;
+      checkboxes.forEach(cb => cb.checked = newState);
+      updateStudentSelection();
     }
   </script>
 </body>

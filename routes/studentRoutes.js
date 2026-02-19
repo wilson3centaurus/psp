@@ -15,6 +15,6 @@ router.get('/search', isAuthenticated, isSchool, studentController.searchStudent
 router.get('/edit/:id', isAuthenticated, isSchool, studentController.editStudentPage);
 router.post('/edit/:id', isAuthenticated, isSchool, studentController.updateStudent);
 router.post('/delete/:id', isAuthenticated, isSchool, studentController.deleteStudent);
-router.post('/delete-bulk', isAuthenticated, isSchool, studentController.bulkDeleteStudents);
+router.post('/bulk-delete', isAuthenticated, isSchool, studentController.bulkDelete);
 
 module.exports = router;

@@ -185,32 +185,30 @@ exports.deleteTeacher = (req, res) => {
 
 
 /* ===========================
-   BULK DELETE TEACHERS
+   9. BULK DELETE TEACHERS
 =========================== */
-exports.bulkDeleteTeachers = (req, res) => {
+exports.bulkDelete = (req, res) => {
   const schoolId = req.session.user.id;
   let ids = req.body.ids;
-  if (!ids) {
-    req.flash('error_msg', 'No teachers selected.');
+
+  if (!ids || ids.length === 0) {
+    req.flash('error_msg', 'No teachers selected');
     return res.redirect('/teacher');
   }
+
+  // Ensure ids is an array
   if (!Array.isArray(ids)) ids = [ids];
-  ids = ids.map(Number).filter(Boolean);
-  db.query(
-    'DELETE FROM teachers WHERE id IN (?) AND school_id = ?',
-    [ids, schoolId],
-    (err, result) => {
-      if (err) {
-        req.flash('error_msg', 'Could not delete selected teachers.');
-        return res.redirect('/teacher');
-      }
-      req.flash('success_msg', result.affectedRows + ' teacher(s) deleted.');
-      res.redirect('/teacher');
+
+  db.query('DELETE FROM teachers WHERE id IN (?) AND school_id = ?', [ids, schoolId], (err, result) => {
+    if (err) {
+      console.error('Bulk delete error:', err);
+      req.flash('error_msg', 'Failed to delete teachers');
+      return res.redirect('/teacher');
     }
-  );
+    req.flash('success_msg', `${result.affectedRows} teacher(s) deleted`);
+    res.redirect('/teacher');
+  });
 };
-
-
 
 /* ===========================
    8. SEARCH TEACHERS
