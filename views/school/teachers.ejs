@@ -133,12 +133,20 @@
         <div class="card">
           <div class="card-header">
             <h3 class="card-title"><i class="fas fa-list"></i> Teacher List</h3>
-            <span class="badge"><%= teachers.length %> teachers</span>
+            <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+              <span class="badge"><%= teachers.length %> teachers</span>
+              <span id="teacherSelCount" style="font-size:0.85rem; opacity:0.75; display:none;"></span>
+              <button type="button" id="deleteTeachersBtn" class="btn danger" style="display:none;" onclick="submitTeacherBulkDelete()">
+                <i class="fas fa-trash"></i> Delete Selected
+              </button>
+            </div>
           </div>
+          <form id="teacherBulkForm" action="/teacher/delete-bulk" method="POST" onsubmit="return confirmBulkDelete('teacher')">
           <div class="table-wrapper">
             <table>
               <thead>
                 <tr>
+                  <th style="width:40px;"><input type="checkbox" id="selectAllTeachers" title="Select all"></th>
                   <th>#</th>
                   <th>Full Name</th>
                   <th>Subject</th>
@@ -151,10 +159,11 @@
               </thead>
               <tbody>
                 <% if (teachers.length === 0) { %>
-                  <tr><td colspan="8" class="empty-state">No teachers found.</td></tr>
+                  <tr><td colspan="9" class="empty-state">No teachers found.</td></tr>
                 <% } else { %>
                   <% teachers.forEach((teacher, index) => { %>
                     <tr>
+                      <td><input type="checkbox" name="ids" value="<%= teacher.id %>" class="row-check teacher-check"></td>
                       <td><%= index + 1 %></td>
                       <td><strong><%= teacher.name %></strong></td>
                       <td><span class="badge success"><%= teacher.subject %></span></td>
@@ -176,6 +185,7 @@
               </tbody>
             </table>
           </div>
+          </form>
         </div>
       </section>
 
@@ -186,5 +196,47 @@
   </div>
 
   <script src="/js/main.js"></script>
+  <script>
+    const selectAllTeachers = document.getElementById('selectAllTeachers');
+    const deleteTeachersBtn = document.getElementById('deleteTeachersBtn');
+    const teacherSelCount = document.getElementById('teacherSelCount');
+
+    function updateTeacherBulkBar() {
+      const checked = document.querySelectorAll('.teacher-check:checked');
+      if (checked.length > 0) {
+        deleteTeachersBtn.style.display = 'inline-flex';
+        teacherSelCount.style.display = 'inline';
+        teacherSelCount.textContent = checked.length + ' selected';
+      } else {
+        deleteTeachersBtn.style.display = 'none';
+        teacherSelCount.style.display = 'none';
+      }
+    }
+
+    if (selectAllTeachers) {
+      selectAllTeachers.addEventListener('change', function () {
+        document.querySelectorAll('.teacher-check').forEach(cb => cb.checked = this.checked);
+        updateTeacherBulkBar();
+      });
+    }
+
+    document.querySelectorAll('.teacher-check').forEach(cb => {
+      cb.addEventListener('change', function () {
+        const all = document.querySelectorAll('.teacher-check');
+        selectAllTeachers.checked = [...all].every(c => c.checked);
+        updateTeacherBulkBar();
+      });
+    });
+
+    function confirmBulkDelete(type) {
+      const checked = document.querySelectorAll('.' + type + '-check:checked');
+      if (checked.length === 0) { alert('No records selected.'); return false; }
+      return confirm('Delete ' + checked.length + ' selected ' + type + '(s)? This cannot be undone.');
+    }
+
+    function submitTeacherBulkDelete() {
+      document.getElementById('teacherBulkForm').requestSubmit();
+    }
+  </script>
 </body>
 </html>

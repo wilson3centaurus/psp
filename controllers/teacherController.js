@@ -185,6 +185,34 @@ exports.deleteTeacher = (req, res) => {
 
 
 /* ===========================
+   BULK DELETE TEACHERS
+=========================== */
+exports.bulkDeleteTeachers = (req, res) => {
+  const schoolId = req.session.user.id;
+  let ids = req.body.ids;
+  if (!ids) {
+    req.flash('error_msg', 'No teachers selected.');
+    return res.redirect('/teacher');
+  }
+  if (!Array.isArray(ids)) ids = [ids];
+  ids = ids.map(Number).filter(Boolean);
+  db.query(
+    'DELETE FROM teachers WHERE id IN (?) AND school_id = ?',
+    [ids, schoolId],
+    (err, result) => {
+      if (err) {
+        req.flash('error_msg', 'Could not delete selected teachers.');
+        return res.redirect('/teacher');
+      }
+      req.flash('success_msg', result.affectedRows + ' teacher(s) deleted.');
+      res.redirect('/teacher');
+    }
+  );
+};
+
+
+
+/* ===========================
    8. SEARCH TEACHERS
 =========================== */
 exports.searchTeachers = (req, res) => {

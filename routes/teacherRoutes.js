@@ -25,6 +25,7 @@ router.post('/edit/:id', isAuthenticated, isSchool, teacherController.updateTeac
 
 // Delete teacher
 router.post('/delete/:id', isAuthenticated, isSchool, teacherController.deleteTeacher);
+router.post('/delete-bulk', isAuthenticated, isSchool, teacherController.bulkDeleteTeachers);
 
 // Search teachers
 router.get('/search', isAuthenticated, isSchool, teacherController.searchTeachers);

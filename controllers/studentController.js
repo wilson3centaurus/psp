@@ -93,6 +93,30 @@ exports.deleteStudent = (req, res) => {
   });
 };
 
+// Bulk delete students
+exports.bulkDeleteStudents = (req, res) => {
+  const schoolId = req.session.user.id;
+  let ids = req.body.ids;
+  if (!ids) {
+    req.flash('error_msg', 'No students selected.');
+    return res.redirect('/student');
+  }
+  if (!Array.isArray(ids)) ids = [ids];
+  ids = ids.map(Number).filter(Boolean);
+  db.query(
+    'DELETE FROM students WHERE id IN (?) AND school_id = ?',
+    [ids, schoolId],
+    (err, result) => {
+      if (err) {
+        req.flash('error_msg', 'Could not delete selected students.');
+        return res.redirect('/student');
+      }
+      req.flash('success_msg', result.affectedRows + ' student(s) deleted.');
+      res.redirect('/student');
+    }
+  );
+};
+
 // SEARCH students (FIXED - Case-insensitive)
 exports.searchStudents = (req, res) => {
   const schoolId = req.session.user.id;
