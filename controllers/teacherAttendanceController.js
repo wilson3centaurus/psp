@@ -1,272 +1,225 @@
-const db = require('../config/db');
+﻿const { supabase } = require('../config/db');
 const fs = require('fs');
 const csv = require('csv-parser');
 
+// Helper: get distinct teacher attendance dates for a school
+async function getAttendanceDates(schoolId, searchDate) {
+  let query = supabase
+    .from('teacher_attendance')
+    .select('date')
+    .eq('school_id', schoolId)
+    .order('date', { ascending: false });
+
+  if (searchDate) query = query.eq('date', searchDate);
+
+  const { data } = await query;
+  const seen = new Set();
+  const sessions = [];
+  for (const r of (data || [])) {
+    const d = (r.date || '').slice(0, 10);
+    if (d && !seen.has(d)) { seen.add(d); sessions.push({ date: d }); }
+  }
+  return sessions;
+}
+
 /* ===========================
-   1. LIST TEACHER SESSIONS (with Mark Attendance integrated)
+   1. LIST TEACHER SESSIONS
 =========================== */
-exports.listSessions = (req, res) => {
+exports.listSessions = async (req, res) => {
   const schoolId = req.session.user.id;
-  const searchDate = req.query.searchDate || "";
-  const selectedMarkDate = req.query.markDate || "";
+  const searchDate = req.query.searchDate || '';
+  const selectedMarkDate = req.query.markDate || '';
 
-  // Get school info for logo
-  const schoolQuery = `SELECT display_name, logo FROM users WHERE id = ?`;
-  
-  db.query(schoolQuery, [schoolId], (err, schoolInfo) => {
-    if (err) throw err;
-    
-    const schoolDisplayName = schoolInfo[0]?.display_name || null;
-    const schoolLogo = schoolInfo[0]?.logo || null;
+  const { data: schoolInfo } = await supabase
+    .from('users').select('display_name, logo').eq('id', schoolId).maybeSingle();
+  const schoolDisplayName = schoolInfo?.display_name || null;
+  const schoolLogo = schoolInfo?.logo || null;
 
-    // Get all teachers
-    const teachersQuery = `
-      SELECT * FROM teachers
-      WHERE school_id = ?
-      ORDER BY name ASC
-    `;
+  const [sessions, teacherRes] = await Promise.all([
+    getAttendanceDates(schoolId, searchDate),
+    supabase.from('teachers').select('*').eq('school_id', schoolId).order('name')
+  ]);
 
-    db.query(teachersQuery, [schoolId], (err2, teachers) => {
-      if (err2) throw err2;
-
-      // Get sessions
-      let sessionsSql = `
-        SELECT DISTINCT DATE_FORMAT(date, '%Y-%m-%d') AS date
-        FROM teacher_attendance
-        WHERE school_id = ?
-      `;
-      const sessionsParams = [schoolId];
-
-      if (searchDate) {
-        sessionsSql += ` AND date = ?`;
-        sessionsParams.push(searchDate);
-      }
-
-      sessionsSql += ` ORDER BY date DESC`;
-
-      db.query(sessionsSql, sessionsParams, (err3, sessions) => {
-        if (err3) throw err3;
-
-        res.render("school/teacherAttendance/sessions", {
-          sessions,
-          searchDate,
-          teachers,
-          selectedDate: selectedMarkDate,
-          schoolDisplayName,
-          schoolLogo,
-          success_msg: req.flash("success_msg"),
-          error_msg: req.flash("error_msg")
-        });
-      });
-    });
+  res.render('school/teacherAttendance/sessions', {
+    sessions,
+    searchDate,
+    teachers: teacherRes.data || [],
+    selectedDate: selectedMarkDate,
+    schoolDisplayName,
+    schoolLogo,
+    success_msg: req.flash('success_msg'),
+    error_msg: req.flash('error_msg')
   });
 };
 
 /* ===========================
    2. MARK ATTENDANCE PAGE
 =========================== */
-exports.markAttendancePage = (req, res) => {
+exports.markAttendancePage = async (req, res) => {
   const schoolId = req.session.user.id;
-  const selectedDate = req.query.date || "";
+  const selectedDate = req.query.date || '';
 
-  const sql = `
-    SELECT *
-    FROM teachers
-    WHERE school_id = ?
-    ORDER BY name ASC
-  `;
+  const { data: teacherRows } = await supabase
+    .from('teachers').select('*').eq('school_id', schoolId).order('name');
 
-  db.query(sql, [schoolId], (err, teacherRows) => {
-    if (err) throw err;
-
-    res.render("school/teacherAttendance/mark", {
-      teachers: teacherRows,
-      selectedDate,
-      success_msg: req.flash("success_msg"),
-      error_msg: req.flash("error_msg")
-    });
+  res.render('school/teacherAttendance/mark', {
+    teachers: teacherRows || [],
+    selectedDate,
+    success_msg: req.flash('success_msg'),
+    error_msg: req.flash('error_msg')
   });
 };
 
 /* ===========================
    3. SUBMIT MANUAL ATTENDANCE
 =========================== */
-exports.submitAttendance = (req, res) => {
+exports.submitAttendance = async (req, res) => {
   const schoolId = req.session.user.id;
   const { date } = req.body;
 
   if (!date) {
-    req.flash("error_msg", "Please select a date.");
-    return res.redirect("/teacher-attendance");
+    req.flash('error_msg', 'Please select a date.');
+    return res.redirect('/teacher-attendance');
   }
 
-  const submittedKeys = Object.keys(req.body).filter(k => k.startsWith("status_"));
+  const submittedKeys = Object.keys(req.body).filter(k => k.startsWith('status_'));
   if (submittedKeys.length === 0) {
-    req.flash("error_msg", "No attendance submitted.");
-    return res.redirect("/teacher-attendance");
+    req.flash('error_msg', 'No attendance submitted.');
+    return res.redirect('/teacher-attendance');
   }
 
-  // Overwrite existing records for this date to allow updates to late/early minutes
-  db.query(
-    'DELETE FROM teacher_attendance WHERE school_id = ? AND date = ?',
-    [schoolId, date],
-    (delErr) => {
-      if (delErr) {
-        console.error("Cleanup error:", delErr);
-        req.flash("error_msg", "Could not save attendance. Try again.");
-        return res.redirect("/teacher-attendance");
-      }
+  // Delete existing records for this date to allow updates
+  await supabase.from('teacher_attendance')
+    .delete()
+    .eq('school_id', schoolId)
+    .eq('date', date);
 
-      const attendanceRows = submittedKeys
-        .filter(key => req.body[key] && req.body[key].trim() !== '')
-        .map(key => {
-        const teacherId = key.split("_")[1];
-        const status = req.body[key] || 'Absent';
-        const reason = req.body[`reason_${teacherId}`] || '';
-        const excused = req.body[`excused_${teacherId}`] ? 1 : 0;
-        const lateMinutes = Number(req.body[`late_${teacherId}`]) || 0;
-        const earlyMinutes = Number(req.body[`early_${teacherId}`]) || 0;
+  const attendanceRows = submittedKeys
+    .filter(key => req.body[key] && req.body[key].trim() !== '')
+    .map(key => {
+      const teacherId = key.split('_')[1];
+      return {
+        teacher_id: teacherId,
+        school_id: schoolId,
+        date,
+        status: req.body[key] || 'Absent',
+        reason: req.body[`reason_${teacherId}`] || '',
+        excused: req.body[`excused_${teacherId}`] ? 1 : 0,
+        late_minutes: Number(req.body[`late_${teacherId}`]) || 0,
+        early_minutes: Number(req.body[`early_${teacherId}`]) || 0
+      };
+    });
 
-        return [teacherId, schoolId, date, status, reason, excused, lateMinutes, earlyMinutes];
-      });
-
-      const sql = `
-        INSERT INTO teacher_attendance (teacher_id, school_id, date, status, reason, excused, late_minutes, early_minutes)
-        VALUES ?
-      `;
-
-      db.query(sql, [attendanceRows], err => {
-        if (err) {
-          console.error("Manual insert error:", err);
-          req.flash("error_msg", "Failed to save attendance.");
-        } else {
-          req.flash("success_msg", "Attendance recorded.");
-        }
-        res.redirect("/teacher-attendance");
-      });
-    }
-  );
+  const { error } = await supabase.from('teacher_attendance').insert(attendanceRows);
+  if (error) {
+    console.error('Manual insert error:', error);
+    req.flash('error_msg', 'Failed to save attendance.');
+  } else {
+    req.flash('success_msg', 'Attendance recorded.');
+  }
+  res.redirect('/teacher-attendance');
 };
 
 /* ===========================
    4. UPLOAD CSV
 =========================== */
-exports.uploadCSV = (req, res) => {
+exports.uploadCSV = async (req, res) => {
   const schoolId = req.session.user.id;
-  const date = req.body.date; // ✅ FIXED: use form date
+  const date = req.body.date;
 
   if (!req.file) {
-    req.flash("error_msg", "No CSV file uploaded.");
-    return res.redirect("/teacher-attendance");
+    req.flash('error_msg', 'No CSV file uploaded.');
+    return res.redirect('/teacher-attendance');
   }
-
   if (!date) {
-    req.flash("error_msg", "Please select a date before uploading.");
-    return res.redirect("/teacher-attendance");
+    req.flash('error_msg', 'Please select a date before uploading.');
+    return res.redirect('/teacher-attendance');
   }
 
-  db.query(`SELECT id, teacher_id FROM teachers WHERE school_id = ?`, [schoolId], (err, teacherRows) => {
-    if (err) {
-      console.error("Teacher lookup failed:", err);
-      req.flash("error_msg", "Server error.");
-      return res.redirect("/teacher-attendance");
-    }
+  const { data: teacherRows } = await supabase
+    .from('teachers').select('id, teacher_id').eq('school_id', schoolId);
 
-    const codeToId = {};
-    teacherRows.forEach(t => {
-      if (t.teacher_id) codeToId[t.teacher_id.trim()] = t.id;
-    });
+  const codeToId = {};
+  (teacherRows || []).forEach(t => {
+    if (t.teacher_id) codeToId[t.teacher_id.trim()] = t.id;
+  });
 
-    const parsedRows = [];
+  const parsedRows = [];
 
-    // Read CSV rows
+  await new Promise((resolve, reject) => {
     fs.createReadStream(req.file.path)
       .pipe(csv())
-      .on("data", row => {
+      .on('data', row => {
         const code = row.teacher_id?.trim();
         const status = row.status?.trim();
-
         if (!code || !status) return;
-        if (!["Present", "Absent"].includes(status)) return;
-
+        if (!['Present', 'Absent'].includes(status)) return;
         const teacherDbId = codeToId[code];
-        if (!teacherDbId) {
-          console.warn(`⚠️ Unknown teacher_id: ${code}`);
-          return;
-        }
-
-        parsedRows.push([
-          teacherDbId,
-          schoolId,
+        if (!teacherDbId) { console.warn(`Unknown teacher_id: ${code}`); return; }
+        parsedRows.push({
+          teacher_id: teacherDbId,
+          school_id: schoolId,
           date,
           status,
-          row.reason ? String(row.reason).trim() : '',
-          row.excused ? 1 : 0,
-          row.late_minutes ? Number(row.late_minutes) || 0 : 0,
-          row.early_minutes ? Number(row.early_minutes) || 0 : 0
-        ]);
-      })
-      .on("end", () => {
-        if (parsedRows.length === 0) {
-          req.flash("error_msg", "No valid rows found in CSV.");
-          return res.redirect("/teacher-attendance");
-        }
-
-        const sql = `
-          INSERT INTO teacher_attendance (teacher_id, school_id, date, status, reason, excused, late_minutes, early_minutes)
-          VALUES ?
-        `;
-
-        db.query(sql, [parsedRows], err => {
-          if (err) {
-            console.error("Insert error:", err);
-            req.flash("error_msg", "Failed to upload CSV.");
-          } else {
-            req.flash("success_msg", "Teacher attendance uploaded successfully.");
-          }
-          return res.redirect("/teacher-attendance");
+          reason: row.reason ? String(row.reason).trim() : '',
+          excused: row.excused ? 1 : 0,
+          late_minutes: Number(row.late_minutes) || 0,
+          early_minutes: Number(row.early_minutes) || 0
         });
       })
-      .on("error", err => {
-        console.error("CSV read error:", err);
-        req.flash("error_msg", "Failed to read CSV file.");
-        return res.redirect("/teacher-attendance");
-      });
+      .on('end', resolve)
+      .on('error', reject);
   });
-};
 
+  if (parsedRows.length === 0) {
+    req.flash('error_msg', 'No valid rows found in CSV.');
+    return res.redirect('/teacher-attendance');
+  }
+
+  const { error } = await supabase.from('teacher_attendance').insert(parsedRows);
+  if (error) {
+    console.error('Insert error:', error);
+    req.flash('error_msg', 'Failed to upload CSV.');
+  } else {
+    req.flash('success_msg', 'Teacher attendance uploaded successfully.');
+  }
+  res.redirect('/teacher-attendance');
+};
 
 /* ===========================
    5. VIEW SESSION
 =========================== */
-exports.viewSession = (req, res) => {
+exports.viewSession = async (req, res) => {
   const schoolId = req.session.user.id;
   const date = req.params.date;
 
-  const sql = `
-    SELECT 
-      t.teacher_id AS teacherCode,
-      t.name,
-      t.email,
-      t.phone,
-      t.subject,
-      a.status,
-      a.reason,
-      a.excused,
-      a.late_minutes,
-      a.early_minutes
-    FROM teacher_attendance a
-    JOIN teachers t ON a.teacher_id = t.id
-    WHERE a.school_id = ? AND a.date = ?
-    ORDER BY t.name ASC
-  `;
+  const { data: attRows } = await supabase
+    .from('teacher_attendance').select('*')
+    .eq('school_id', schoolId)
+    .eq('date', date);
 
-  db.query(sql, [schoolId, date], (err, rows) => {
-    if (err) throw err;
+  const teacherIds = [...new Set((attRows || []).map(r => r.teacher_id))];
+  const { data: teachers } = teacherIds.length
+    ? await supabase.from('teachers').select('id, teacher_id, name, email, phone, subject').in('id', teacherIds)
+    : { data: [] };
 
-    res.render("school/teacherAttendance/view", {
-      records: rows,
-      date
-    });
-  });
+  const teacherMap = new Map((teachers || []).map(t => [t.id, t]));
+
+  const records = (attRows || []).map(a => {
+    const t = teacherMap.get(a.teacher_id) || {};
+    return {
+      teacherCode: t.teacher_id || '',
+      name: t.name || 'Unknown',
+      email: t.email || '',
+      phone: t.phone || '',
+      subject: t.subject || '',
+      status: a.status,
+      reason: a.reason,
+      excused: a.excused,
+      late_minutes: a.late_minutes,
+      early_minutes: a.early_minutes
+    };
+  }).sort((a, b) => a.name.localeCompare(b.name));
+
+  res.render('school/teacherAttendance/view', { records, date });
 };

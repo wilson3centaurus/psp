@@ -1,61 +1,62 @@
-const db = require('../../config/db');
+const { supabase } = require('../../config/db');
 
-// View grouped resource totals by subject (read-only)
-exports.listResources = (req, res) => {
-  const summarySql = `
-    SELECT
-      subject_name,
-      SUM(num_students) AS total_students,
-      SUM(num_books) AS total_books,
-      SUM(num_computers) AS total_computers,
-      COUNT(*) AS record_count,
-      COUNT(DISTINCT school_id) AS school_count
-    FROM resources
-    GROUP BY subject_name
-    ORDER BY subject_name ASC
-  `;
+// View grouped resource totals by subject (aggregated in JS)
+exports.listResources = async (req, res) => {
+  const { data: rows, error } = await supabase.from('resources').select('*');
 
-  const totalsSql = `
-    SELECT
-      COUNT(DISTINCT COALESCE(subject_name, 'Unknown')) AS subjects,
-      SUM(num_students) AS total_students,
-      SUM(num_books) AS total_books,
-      SUM(num_computers) AS total_computers,
-      COUNT(*) AS total_rows,
-      COUNT(DISTINCT school_id) AS total_schools
-    FROM resources
-  `;
+  if (error) {
+    console.error('Error fetching resources:', error);
+    req.flash('error_msg', 'Unable to load resource data right now.');
+    return res.redirect('/admin/dashboard');
+  }
 
-  db.query(summarySql, (summaryErr, summaryRows) => {
-    if (summaryErr) {
-      console.error('Error fetching resource summary:', summaryErr);
-      req.flash('error_msg', 'Unable to load resource data right now.');
-      return res.redirect('/admin/dashboard');
-    }
+  // Aggregate by subject_name in JS
+  const subjectMap = new Map();
+  const totals = { subjects: 0, totalStudents: 0, totalBooks: 0, totalComputers: 0, totalRows: 0, totalSchools: 0 };
+  const allSchoolIds = new Set();
 
-    db.query(totalsSql, (totalsErr, totalsRows) => {
-      if (totalsErr) {
-        console.error('Error fetching resource totals:', totalsErr);
-        req.flash('error_msg', 'Unable to load resource totals right now.');
-        return res.redirect('/admin/dashboard');
-      }
-
-      const totalsRow = totalsRows[0] || {};
-      const totals = {
-        subjects: totalsRow.subjects || 0,
-        totalStudents: totalsRow.total_students || 0,
-        totalBooks: totalsRow.total_books || 0,
-        totalComputers: totalsRow.total_computers || 0,
-        totalRows: totalsRow.total_rows || 0,
-        totalSchools: totalsRow.total_schools || 0
-      };
-
-      res.render('admin/resources/index', {
-        summary: summaryRows,
-        totals,
-        success_msg: req.flash('success_msg'),
-        error_msg: req.flash('error_msg')
+  for (const r of (rows || [])) {
+    const subj = r.subject_name || 'Unknown';
+    if (!subjectMap.has(subj)) {
+      subjectMap.set(subj, {
+        subject_name: subj,
+        total_students: 0, total_books: 0, total_computers: 0,
+        record_count: 0, school_ids: new Set()
       });
-    });
+    }
+    const entry = subjectMap.get(subj);
+    entry.total_students += Number(r.num_students) || 0;
+    entry.total_books += Number(r.num_books) || 0;
+    entry.total_computers += Number(r.num_computers) || 0;
+    entry.record_count++;
+    entry.school_ids.add(r.school_id);
+
+    totals.totalStudents += Number(r.num_students) || 0;
+    totals.totalBooks += Number(r.num_books) || 0;
+    totals.totalComputers += Number(r.num_computers) || 0;
+    totals.totalRows++;
+    allSchoolIds.add(r.school_id);
+  }
+
+  const summary = [...subjectMap.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([, v]) => ({
+      subject_name: v.subject_name,
+      total_students: v.total_students,
+      total_books: v.total_books,
+      total_computers: v.total_computers,
+      record_count: v.record_count,
+      school_count: v.school_ids.size
+    }));
+
+  totals.subjects = subjectMap.size;
+  totals.totalSchools = allSchoolIds.size;
+
+  res.render('admin/resources/index', {
+    summary,
+    totals,
+    success_msg: req.flash('success_msg'),
+    error_msg: req.flash('error_msg')
   });
 };
+

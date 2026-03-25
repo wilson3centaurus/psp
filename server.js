@@ -8,8 +8,6 @@ const os = require('os');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const morgan = require('morgan');
-// DB connection
-require('./config/db');
 
 // Middleware
 app.use(express.urlencoded({ extended: false }));

@@ -1,122 +1,144 @@
+-- ============================================================
 -- Primary School Performance Monitoring System
--- Database Schema
+-- PostgreSQL Schema (Supabase) — run this in the SQL Editor
+-- ============================================================
 
--- Drop tables if they exist (in reverse order of dependencies)
-DROP TABLE IF EXISTS teacher_attendance;
-DROP TABLE IF EXISTS student_attendance;
-DROP TABLE IF EXISTS resources;
-DROP TABLE IF EXISTS teachers;
-DROP TABLE IF EXISTS students;
-DROP TABLE IF EXISTS users;
+-- Drop tables in reverse dependency order
+DROP TABLE IF EXISTS teacher_attendance CASCADE;
+DROP TABLE IF EXISTS student_attendance CASCADE;
+DROP TABLE IF EXISTS resources CASCADE;
+DROP TABLE IF EXISTS teachers CASCADE;
+DROP TABLE IF EXISTS students CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+
+-- Drop custom types if they already exist
+DROP TYPE IF EXISTS user_role CASCADE;
+DROP TYPE IF EXISTS attendance_status CASCADE;
+DROP TYPE IF EXISTS gender_type CASCADE;
 
 -- =============================================
--- 1. USERS TABLE (Schools, Admins, IT Admins)
+-- Custom ENUM types
+-- =============================================
+CREATE TYPE user_role       AS ENUM ('admin', 'school', 'itadmin');
+CREATE TYPE attendance_status AS ENUM ('Present', 'Absent', 'Late', 'Excused', 'Left Early');
+CREATE TYPE gender_type     AS ENUM ('Male', 'Female', 'Other');
+
+-- =============================================
+-- 1. USERS TABLE
 -- =============================================
 CREATE TABLE users (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  username VARCHAR(100) NOT NULL UNIQUE,
-  password VARCHAR(255) NOT NULL,
-  role ENUM('admin', 'school', 'itadmin') NOT NULL DEFAULT 'school',
+  id           SERIAL PRIMARY KEY,
+  username     VARCHAR(100) NOT NULL UNIQUE,
+  password     VARCHAR(255) NOT NULL,
+  role         user_role NOT NULL DEFAULT 'school',
   display_name VARCHAR(255) DEFAULT NULL,
-  logo VARCHAR(255) DEFAULT NULL,
-  email VARCHAR(100) DEFAULT NULL,
-  phone VARCHAR(50) DEFAULT NULL,
-  address TEXT DEFAULT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  logo         VARCHAR(255) DEFAULT NULL,
+  email        VARCHAR(100) DEFAULT NULL,
+  phone        VARCHAR(50)  DEFAULT NULL,
+  address      TEXT         DEFAULT NULL,
+  created_at   TIMESTAMPTZ  DEFAULT NOW()
+);
 
 -- =============================================
 -- 2. STUDENTS TABLE
 -- =============================================
 CREATE TABLE students (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  grade VARCHAR(20) NOT NULL,
-  student_class VARCHAR(50) NOT NULL,
-  gender ENUM('Male', 'Female', 'Other') NOT NULL,
-  student_id VARCHAR(50) NOT NULL,
-  school_id INT NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (school_id) REFERENCES users(id) ON DELETE CASCADE,
-  INDEX idx_school_grade_class (school_id, grade, student_class),
-  INDEX idx_student_id (student_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  id            SERIAL PRIMARY KEY,
+  name          VARCHAR(100) NOT NULL,
+  grade         VARCHAR(20)  NOT NULL,
+  student_class VARCHAR(50)  NOT NULL,
+  gender        gender_type  NOT NULL,
+  student_id    VARCHAR(50)  NOT NULL,
+  school_id     INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at    TIMESTAMPTZ  DEFAULT NOW()
+);
+
+CREATE INDEX idx_students_school_grade_class ON students(school_id, grade, student_class);
+CREATE INDEX idx_students_student_id         ON students(student_id);
 
 -- =============================================
 -- 3. TEACHERS TABLE
 -- =============================================
 CREATE TABLE teachers (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  subject VARCHAR(100),
-  gender ENUM('Male', 'Female', 'Other') NOT NULL,
-  email VARCHAR(100),
-  phone VARCHAR(20),
-  teacher_id VARCHAR(50) NOT NULL,
-  school_id INT NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (school_id) REFERENCES users(id) ON DELETE CASCADE,
-  INDEX idx_school (school_id),
-  INDEX idx_teacher_id (teacher_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  id         SERIAL PRIMARY KEY,
+  name       VARCHAR(100) NOT NULL,
+  subject    VARCHAR(100),
+  gender     gender_type  NOT NULL,
+  email      VARCHAR(100),
+  phone      VARCHAR(20),
+  teacher_id VARCHAR(50)  NOT NULL,
+  school_id  INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ  DEFAULT NOW()
+);
+
+CREATE INDEX idx_teachers_school     ON teachers(school_id);
+CREATE INDEX idx_teachers_teacher_id ON teachers(teacher_id);
 
 -- =============================================
 -- 4. STUDENT ATTENDANCE TABLE
 -- =============================================
 CREATE TABLE student_attendance (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  student_id INT NOT NULL,
-  school_id INT NOT NULL,
-  date DATE NOT NULL,
-  status ENUM('Present', 'Absent', 'Late', 'Excused', 'Left Early') NOT NULL DEFAULT 'Present',
-  reason TEXT,
-  excused TINYINT(1) DEFAULT 0,
-  late_minutes INT DEFAULT 0,
-  early_minutes INT DEFAULT 0,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
-  FOREIGN KEY (school_id) REFERENCES users(id) ON DELETE CASCADE,
-  INDEX idx_date (date),
-  INDEX idx_school_date (school_id, date),
-  INDEX idx_student_date (student_id, date)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  id            SERIAL PRIMARY KEY,
+  student_id    INT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  school_id     INT NOT NULL REFERENCES users(id)    ON DELETE CASCADE,
+  date          DATE NOT NULL,
+  status        attendance_status NOT NULL DEFAULT 'Present',
+  reason        TEXT,
+  excused       SMALLINT DEFAULT 0,
+  late_minutes  INT      DEFAULT 0,
+  early_minutes INT      DEFAULT 0,
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_student_attendance_date        ON student_attendance(date);
+CREATE INDEX idx_student_attendance_school_date ON student_attendance(school_id, date);
+CREATE INDEX idx_student_attendance_student_date ON student_attendance(student_id, date);
 
 -- =============================================
 -- 5. TEACHER ATTENDANCE TABLE
 -- =============================================
 CREATE TABLE teacher_attendance (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  teacher_id INT NOT NULL,
-  school_id INT NOT NULL,
-  date DATE NOT NULL,
-  status ENUM('Present', 'Absent', 'Late', 'Excused', 'Left Early') NOT NULL DEFAULT 'Present',
-  reason TEXT,
-  excused TINYINT(1) DEFAULT 0,
-  late_minutes INT DEFAULT 0,
-  early_minutes INT DEFAULT 0,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (teacher_id) REFERENCES teachers(id) ON DELETE CASCADE,
-  FOREIGN KEY (school_id) REFERENCES users(id) ON DELETE CASCADE,
-  INDEX idx_date (date),
-  INDEX idx_school_date (school_id, date),
-  INDEX idx_teacher_date (teacher_id, date)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  id            SERIAL PRIMARY KEY,
+  teacher_id    INT NOT NULL REFERENCES teachers(id) ON DELETE CASCADE,
+  school_id     INT NOT NULL REFERENCES users(id)    ON DELETE CASCADE,
+  date          DATE NOT NULL,
+  status        attendance_status NOT NULL DEFAULT 'Present',
+  reason        TEXT,
+  excused       SMALLINT DEFAULT 0,
+  late_minutes  INT      DEFAULT 0,
+  early_minutes INT      DEFAULT 0,
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_teacher_attendance_date         ON teacher_attendance(date);
+CREATE INDEX idx_teacher_attendance_school_date  ON teacher_attendance(school_id, date);
+CREATE INDEX idx_teacher_attendance_teacher_date ON teacher_attendance(teacher_id, date);
 
 -- =============================================
 -- 6. RESOURCES TABLE
 -- =============================================
 CREATE TABLE resources (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  subject_id VARCHAR(50) NOT NULL,
-  subject_name VARCHAR(100) NOT NULL,
-  grade VARCHAR(20) NOT NULL,
-  num_students INT DEFAULT 0,
-  num_books INT DEFAULT 0,
+  id            SERIAL PRIMARY KEY,
+  subject_id    VARCHAR(50)  NOT NULL,
+  subject_name  VARCHAR(100) NOT NULL,
+  grade         VARCHAR(20)  NOT NULL,
+  num_students  INT DEFAULT 0,
+  num_books     INT DEFAULT 0,
   num_computers INT DEFAULT 0,
-  school_id INT NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (school_id) REFERENCES users(id) ON DELETE CASCADE,
-  INDEX idx_school (school_id),
-  INDEX idx_subject (subject_name)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  school_id     INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at    TIMESTAMPTZ DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_resources_school  ON resources(school_id);
+CREATE INDEX idx_resources_subject ON resources(subject_name);
+
+-- Auto-update updated_at on resources
+CREATE OR REPLACE FUNCTION trg_set_updated_at()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN NEW.updated_at = NOW(); RETURN NEW; END;
+$$;
+
+CREATE TRIGGER resources_set_updated_at
+  BEFORE UPDATE ON resources
+  FOR EACH ROW EXECUTE FUNCTION trg_set_updated_at();

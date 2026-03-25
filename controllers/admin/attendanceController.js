@@ -1,84 +1,82 @@
-const db = require('../../config/db');
+﻿const { supabase } = require('../../config/db');
 
-// Weekly attendance summary across all schools
-exports.listWeeklySummary = (req, res) => {
-  const weeklySql = `
-    SELECT
-      w.year_week,
-      CONCAT(
-        DATE_FORMAT(w.start_date, '%b %e'),
-        '-',
-        DATE_FORMAT(w.end_date, '%b %e')
-      ) AS week_label,
-      COALESCE(s.absent_students, 0) AS absent_students,
-      COALESCE(t.absent_teachers, 0) AS absent_teachers
-    FROM (
-      SELECT
-        year_week,
-        MIN(start_of_week) AS start_date,
-        DATE_ADD(MIN(start_of_week), INTERVAL 6 DAY) AS end_date
-      FROM (
-        SELECT
-          YEARWEEK(date, 1) AS year_week,
-          DATE_SUB(DATE(date), INTERVAL WEEKDAY(date) DAY) AS start_of_week
-        FROM (
-          SELECT date FROM student_attendance
-          UNION ALL
-          SELECT date FROM teacher_attendance
-        ) d0
-      ) d1
-      GROUP BY year_week
-    ) w
-    LEFT JOIN (
-      SELECT
-        YEARWEEK(date, 1) AS year_week,
-        SUM(CASE WHEN TRIM(LOWER(status)) = 'absent' THEN 1 ELSE 0 END) AS absent_students
-      FROM student_attendance
-      GROUP BY YEARWEEK(date, 1)
-    ) s ON s.year_week = w.year_week
-    LEFT JOIN (
-      SELECT
-        YEARWEEK(date, 1) AS year_week,
-        SUM(CASE WHEN TRIM(LOWER(status)) = 'absent' THEN 1 ELSE 0 END) AS absent_teachers
-      FROM teacher_attendance
-      GROUP BY YEARWEEK(date, 1)
-    ) t ON t.year_week = w.year_week
-    ORDER BY w.year_week DESC
-  `;
+// Weekly attendance summary across all schools (aggregated in JS)
+exports.listWeeklySummary = async (req, res) => {
+  const [stuRes, tchRes] = await Promise.all([
+    supabase.from('student_attendance').select('date, status'),
+    supabase.from('teacher_attendance').select('date, status')
+  ]);
 
-  const totalsSql = `
-    SELECT
-      (SELECT COALESCE(SUM(CASE WHEN TRIM(LOWER(status)) = 'absent' THEN 1 ELSE 0 END), 0) FROM student_attendance) AS absent_students,
-      (SELECT COALESCE(SUM(CASE WHEN TRIM(LOWER(status)) = 'absent' THEN 1 ELSE 0 END), 0) FROM teacher_attendance) AS absent_teachers
-  `;
+  if (stuRes.error || tchRes.error) {
+    console.error('Error fetching attendance:', stuRes.error || tchRes.error);
+    req.flash('error_msg', 'Unable to load attendance summary right now.');
+    return res.redirect('/admin/dashboard');
+  }
 
-  db.query(weeklySql, (weeklyErr, weeklyRows) => {
-    if (weeklyErr) {
-      console.error('Error fetching weekly attendance summary:', weeklyErr);
-      req.flash('error_msg', 'Unable to load attendance summary right now.');
-      return res.redirect('/admin/dashboard');
+  // Get ISO week start (Monday) for a date string
+  function weekStart(dateStr) {
+    const d = new Date(dateStr);
+    const day = d.getUTCDay(); // 0=Sun
+    const diff = (day === 0 ? -6 : 1 - day);
+    d.setUTCDate(d.getUTCDate() + diff);
+    return d.toISOString().slice(0, 10);
+  }
+
+  // Aggregate student absences by week
+  const stuByWeek = new Map();
+  let totalAbsentStudents = 0;
+  for (const r of (stuRes.data || [])) {
+    if (!r.date) continue;
+    const ws = weekStart(r.date);
+    if (!stuByWeek.has(ws)) stuByWeek.set(ws, 0);
+    if ((r.status || '').toLowerCase().trim() === 'absent') {
+      stuByWeek.set(ws, stuByWeek.get(ws) + 1);
+      totalAbsentStudents++;
     }
+  }
 
-    db.query(totalsSql, (totalsErr, totalsRows) => {
-      if (totalsErr) {
-        console.error('Error fetching attendance totals:', totalsErr);
-        req.flash('error_msg', 'Unable to load attendance totals right now.');
-        return res.redirect('/admin/dashboard');
-      }
+  // Aggregate teacher absences by week
+  const tchByWeek = new Map();
+  let totalAbsentTeachers = 0;
+  for (const r of (tchRes.data || [])) {
+    if (!r.date) continue;
+    const ws = weekStart(r.date);
+    if (!tchByWeek.has(ws)) tchByWeek.set(ws, 0);
+    if ((r.status || '').toLowerCase().trim() === 'absent') {
+      tchByWeek.set(ws, tchByWeek.get(ws) + 1);
+      totalAbsentTeachers++;
+    }
+  }
 
-      const totalsRow = totalsRows[0] || {};
-      const totals = {
-        weeks: weeklyRows.length,
-        absentStudents: totalsRow.absent_students || 0,
-        absentTeachers: totalsRow.absent_teachers || 0
+  // Build combined set of all weeks
+  const allWeeks = new Set([...stuByWeek.keys(), ...tchByWeek.keys()]);
+
+  const weeks = [...allWeeks]
+    .sort((a, b) => b.localeCompare(a))
+    .map(ws => {
+      const start = new Date(ws);
+      const end = new Date(ws);
+      end.setUTCDate(end.getUTCDate() + 6);
+      const fmt = d => d.toLocaleDateString('en-US', { month: 'short', day: '2-digit', timeZone: 'UTC' });
+      return {
+        week_start: ws,
+        week_label: `${fmt(start)}-${fmt(end)}`,
+        absent_students: stuByWeek.get(ws) || 0,
+        absent_teachers: tchByWeek.get(ws) || 0
       };
-
-      res.render('admin/attendance/index', {
-        weeks: weeklyRows,
-        totals,
-        success_msg: req.flash('success_msg'),
-        error_msg: req.flash('error_msg')
-      });
     });
+
+  const totals = {
+    weeks: weeks.length,
+    absentStudents: totalAbsentStudents,
+    absentTeachers: totalAbsentTeachers
+  };
+
+  res.render('admin/attendance/index', {
+    weeks,
+    totals,
+    success_msg: req.flash('success_msg'),
+    error_msg: req.flash('error_msg')
   });
 };
+

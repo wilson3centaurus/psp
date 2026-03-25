@@ -1,28 +1,25 @@
-const db = require('../config/db');
+const { supabase } = require('../config/db');
 const fs = require('fs');
 const csv = require('csv-parser');
 
 /* ===========================
    1. LIST TEACHERS
 =========================== */
-exports.listTeachers = (req, res) => {
+exports.listTeachers = async (req, res) => {
   const schoolId = req.session.user.id;
+  const { data: rows } = await supabase
+    .from('teachers')
+    .select('*')
+    .eq('school_id', schoolId)
+    .order('name');
 
-  const sql = `SELECT * FROM teachers WHERE school_id = ? ORDER BY name ASC`;
-
-  db.query(sql, [schoolId], (err, rows) => {
-    if (err) throw err;
-
-    res.render('school/teachers', {
-      teachers: rows,
-      query: "",
-      success_msg: req.flash('success_msg'),
-      error_msg: req.flash('error_msg')
-    });
+  res.render('school/teachers', {
+    teachers: rows || [],
+    query: '',
+    success_msg: req.flash('success_msg'),
+    error_msg: req.flash('error_msg')
   });
 };
-
-
 
 /* ===========================
    2. ADD TEACHER PAGE
@@ -34,32 +31,24 @@ exports.addTeacherPage = (req, res) => {
   });
 };
 
-
-
 /* ===========================
    3. ADD A TEACHER
 =========================== */
-exports.addTeacher = (req, res) => {
+exports.addTeacher = async (req, res) => {
   const { name, subject, gender, email, phone, teacher_id } = req.body;
   const schoolId = req.session.user.id;
 
-  const sql = `
-    INSERT INTO teachers (name, subject, gender, email, phone, teacher_id, school_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `;
-
-  db.query(sql, [name, subject, gender, email, phone, teacher_id, schoolId], err => {
-    if (err) {
-      req.flash('error_msg', 'Could not add teacher');
-      return res.redirect('/teacher');
-    }
-
-    req.flash('success_msg', 'Teacher added');
-    res.redirect('/teacher');
+  const { error } = await supabase.from('teachers').insert({
+    name, subject, gender, email, phone, teacher_id, school_id: schoolId
   });
+
+  if (error) {
+    req.flash('error_msg', 'Could not add teacher');
+  } else {
+    req.flash('success_msg', 'Teacher added');
+  }
+  res.redirect('/teacher');
 };
-
-
 
 /* ===========================
    4. UPLOAD CSV
@@ -77,117 +66,119 @@ exports.uploadCSV = (req, res) => {
   fs.createReadStream(req.file.path)
     .pipe(csv())
     .on('data', row => rows.push(row))
-    .on('end', () => {
+    .on('end', async () => {
       if (rows.length === 0) {
         req.flash('error_msg', 'CSV file empty');
         return res.redirect('/teacher');
       }
 
-      rows.forEach(r => {
-        // FIX: Normalize GENDER column
-        const gender =
-          r.gender ||
-          r.Gender ||
-          r.GENDER ||
-          r.sex ||
-          r.Sex ||
-          r.SEX ||
-          '';
+      const records = rows.map(r => ({
+        name: r.name || '',
+        subject: r.subject || '',
+        gender: r.gender || r.Gender || r.GENDER || r.sex || r.Sex || r.SEX || '',
+        email: r.email || '',
+        phone: r.phone || '',
+        teacher_id: r.teacher_id || '',
+        school_id: schoolId
+      }));
 
-        const sql = `
-          INSERT INTO teachers (name, subject, gender, email, phone, teacher_id, school_id)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
-        `;
-
-        db.query(sql, [
-          r.name || '',
-          r.subject || '',
-          gender,
-          r.email || '',
-          r.phone || '',
-          r.teacher_id || '',
-          schoolId
-        ]);
-      });
-
-      req.flash('success_msg', 'CSV imported successfully');
+      const { error } = await supabase.from('teachers').insert(records);
+      if (error) {
+        console.error('CSV import error:', error);
+        req.flash('error_msg', 'CSV import failed');
+      } else {
+        req.flash('success_msg', 'CSV imported successfully');
+      }
       res.redirect('/teacher');
     });
 };
 
-
-
 /* ===========================
    5. EDIT TEACHER PAGE
 =========================== */
-exports.editTeacherPage = (req, res) => {
+exports.editTeacherPage = async (req, res) => {
   const id = req.params.id;
+  const { data, error } = await supabase.from('teachers').select('*').eq('id', id).maybeSingle();
 
-  db.query('SELECT * FROM teachers WHERE id = ?', [id], (err, rows) => {
-    if (err || rows.length === 0) {
-      req.flash('error_msg', 'Teacher not found');
-      return res.redirect('/teacher');
-    }
+  if (error || !data) {
+    req.flash('error_msg', 'Teacher not found');
+    return res.redirect('/teacher');
+  }
 
-    res.render('school/editTeacher', {
-      teacher: rows[0],
-      success_msg: req.flash('success_msg'),
-      error_msg: req.flash('error_msg')
-    });
+  res.render('school/editTeacher', {
+    teacher: data,
+    success_msg: req.flash('success_msg'),
+    error_msg: req.flash('error_msg')
   });
 };
-
-
 
 /* ===========================
    6. UPDATE TEACHER
 =========================== */
-exports.updateTeacher = (req, res) => {
+exports.updateTeacher = async (req, res) => {
   const { id } = req.params;
   const { name, subject, gender, email, phone, teacher_id } = req.body;
 
-  const sql = `
-    UPDATE teachers
-    SET name=?, subject=?, gender=?, email=?, phone=?, teacher_id=?
-    WHERE id=?
-  `;
+  const { error } = await supabase.from('teachers')
+    .update({ name, subject, gender, email, phone, teacher_id })
+    .eq('id', id);
 
-  db.query(sql, [name, subject, gender, email, phone, teacher_id, id], err => {
-    if (err) {
-      req.flash('error_msg', 'Could not update teacher');
-      return res.redirect('/teacher');
-    }
-
+  if (error) {
+    req.flash('error_msg', 'Could not update teacher');
+  } else {
     req.flash('success_msg', 'Teacher updated');
-    res.redirect('/teacher');
-  });
+  }
+  res.redirect('/teacher');
 };
-
-
 
 /* ===========================
    7. DELETE TEACHER
 =========================== */
-exports.deleteTeacher = (req, res) => {
+exports.deleteTeacher = async (req, res) => {
   const id = req.params.id;
+  const { error } = await supabase.from('teachers').delete().eq('id', id);
 
-  db.query('DELETE FROM teachers WHERE id = ?', [id], err => {
-    if (err) {
-      req.flash('error_msg', 'Delete failed');
-      return res.redirect('/teacher');
-    }
-
+  if (error) {
+    req.flash('error_msg', 'Delete failed');
+  } else {
     req.flash('success_msg', 'Teacher deleted');
-    res.redirect('/teacher');
-  });
+  }
+  res.redirect('/teacher');
 };
 
+/* ===========================
+   8. SEARCH TEACHERS
+=========================== */
+exports.searchTeachers = async (req, res) => {
+  const schoolId = req.session.user.id;
+  const q = req.query.q ? req.query.q.trim() : '';
 
+  if (!q) return res.redirect('/teacher');
+
+  const w = `%${q}%`;
+  const { data: rows, error } = await supabase
+    .from('teachers')
+    .select('*')
+    .eq('school_id', schoolId)
+    .or(`name.ilike.${w},subject.ilike.${w},teacher_id.ilike.${w},email.ilike.${w},phone.ilike.${w}`)
+    .order('name');
+
+  if (error) {
+    return res.render('school/teachers', { teachers: [], query: q, error_msg: 'Search error', success_msg: null });
+  }
+
+  res.render('school/teachers', {
+    teachers: rows || [],
+    query: q,
+    success_msg: (!rows || rows.length === 0) ? 'No matches found' : null,
+    error_msg: null
+  });
+};
 
 /* ===========================
    9. BULK DELETE TEACHERS
 =========================== */
-exports.bulkDelete = (req, res) => {
+exports.bulkDelete = async (req, res) => {
   const schoolId = req.session.user.id;
   let ids = req.body.ids;
 
@@ -196,60 +187,18 @@ exports.bulkDelete = (req, res) => {
     return res.redirect('/teacher');
   }
 
-  // Ensure ids is an array
   if (!Array.isArray(ids)) ids = [ids];
 
-  db.query('DELETE FROM teachers WHERE id IN (?) AND school_id = ?', [ids, schoolId], (err, result) => {
-    if (err) {
-      console.error('Bulk delete error:', err);
-      req.flash('error_msg', 'Failed to delete teachers');
-      return res.redirect('/teacher');
-    }
-    req.flash('success_msg', `${result.affectedRows} teacher(s) deleted`);
-    res.redirect('/teacher');
-  });
-};
+  const { error, count } = await supabase
+    .from('teachers')
+    .delete({ count: 'exact' })
+    .in('id', ids.map(Number))
+    .eq('school_id', schoolId);
 
-/* ===========================
-   8. SEARCH TEACHERS
-=========================== */
-exports.searchTeachers = (req, res) => {
-  const schoolId = req.session.user.id;
-  const q = req.query.q ? req.query.q.trim() : "";
-
-  if (!q) return res.redirect('/teacher');
-
-  const wildcard = `%${q}%`;
-
-  const sql = `
-    SELECT *
-    FROM teachers
-    WHERE school_id = ?
-      AND (
-        LOWER(name) LIKE LOWER(?) OR
-        LOWER(subject) LIKE LOWER(?) OR
-        LOWER(teacher_id) LIKE LOWER(?) OR
-        LOWER(email) LIKE LOWER(?) OR
-        LOWER(phone) LIKE LOWER(?)
-      )
-    ORDER BY name ASC
-  `;
-
-  db.query(sql, [schoolId, wildcard, wildcard, wildcard, wildcard, wildcard], (err, rows) => {
-    if (err) {
-      return res.render('school/teachers', {
-        teachers: [],
-        query: q,
-        error_msg: 'Search error',
-        success_msg: null
-      });
-    }
-
-    res.render('school/teachers', {
-      teachers: rows,
-      query: q,
-      success_msg: rows.length === 0 ? 'No matches found' : null,
-      error_msg: null
-    });
-  });
+  if (error) {
+    req.flash('error_msg', 'Failed to delete teachers');
+  } else {
+    req.flash('success_msg', `${count || ids.length} teacher(s) deleted`);
+  }
+  res.redirect('/teacher');
 };
