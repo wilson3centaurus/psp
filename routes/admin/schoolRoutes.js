@@ -48,4 +48,7 @@ router.post('/delete/:id', isAuthenticated, isAdmin, schoolController.deleteScho
 // View individual school's dashboard
 router.get('/dashboard/:id', isAuthenticated, isAdmin, schoolController.viewSchoolDashboard);
 
+// Return from school preview back to admin (no isAdmin — user is temporarily school role)
+router.get('/return', isAuthenticated, schoolController.returnToAdmin);
+
 module.exports = router;

@@ -11,10 +11,11 @@ router.get('/', isAuthenticated, isSchool, (req, res) => {
 
 // School dashboard
 router.get('/dashboard', isAuthenticated, isSchool, (req, res) => {
-  res.render('school/dashboard', { 
+  res.render('school/dashboard', {
     user: req.session.user,
     schoolDisplayName: res.locals.schoolDisplayName,
-    schoolLogo: res.locals.schoolLogo
+    schoolLogo: res.locals.schoolLogo,
+    adminUser: req.session.adminUser || null
   });
 });
 

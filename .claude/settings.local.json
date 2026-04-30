@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep *)",
+      "Bash(grep -r \"viewSchoolDashboard\\\\|session.user\\\\|impersonate\" /c/Users/XO/Desktop/psp/psp --include=\"*.js\" ! -path \"*/node_modules/*\")",
+      "Bash(grep -r \"session.save\\\\|req.session.save\" /c/Users/XO/Desktop/psp/psp --include=\"*.js\" ! -path \"*/node_modules/*\")"
+    ]
+  }
+}

@@ -106,6 +106,26 @@ exports.viewSchoolDashboard = async (req, res) => {
     return res.redirect('/admin/schools');
   }
 
+  req.session.adminUser = req.session.user;
   req.session.user = { id: data.id, role: data.role, username: data.username };
-  res.redirect('/school/dashboard');
+  req.session.save((err) => {
+    if (err) {
+      req.flash('error_msg', 'Session error. Please try again.');
+      return res.redirect('/admin/schools');
+    }
+    res.redirect('/school/dashboard');
+  });
+};
+
+// 6. Return from school preview back to admin
+exports.returnToAdmin = (req, res) => {
+  if (!req.session.adminUser) {
+    return res.redirect('/login');
+  }
+  req.session.user = req.session.adminUser;
+  delete req.session.adminUser;
+  req.session.save((err) => {
+    if (err) return res.redirect('/login');
+    res.redirect('/admin/schools');
+  });
 };

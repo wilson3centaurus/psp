@@ -26,9 +26,15 @@ exports.loginUser = async (req, res) => {
   }
 
   req.session.user = user;
-  if (user.role === 'admin') return res.redirect('/admin/dashboard');
-  if (user.role === 'school') return res.redirect('/school/dashboard');
-  res.redirect('/login');
+  req.session.save((err) => {
+    if (err) {
+      req.flash('error_msg', 'Login failed. Please try again.');
+      return res.redirect('/login');
+    }
+    if (user.role === 'admin') return res.redirect('/admin/dashboard');
+    if (user.role === 'school') return res.redirect('/school/dashboard');
+    res.redirect('/login');
+  });
 };
 
 exports.logoutUser = (req, res) => req.session.destroy(() => res.redirect('/login'));
