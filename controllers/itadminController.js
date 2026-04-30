@@ -19,7 +19,9 @@ exports.registerUser = async (req, res) => {
   const hashedPassword = bcrypt.hashSync(password, 10);
   const isSchool = role === 'school';
 
-  const { error } = await supabase.from('users').insert({
+  console.log('[REGISTER] Attempting insert for username:', username, 'role:', role);
+
+  const { error, status, statusText } = await supabase.from('users').insert({
     username,
     password: hashedPassword,
     role,
@@ -29,8 +31,9 @@ exports.registerUser = async (req, res) => {
     address: isSchool && address ? address : null
   });
 
+  console.log('[REGISTER] Insert result — status:', status, statusText);
   if (error) {
-    console.error('DB insert error:', error);
+    console.error('[REGISTER] DB insert error (full):', JSON.stringify(error, null, 2));
     return res.render('admin/itadmin_register', {
       error: 'Database error or duplicate username',
       success: null
