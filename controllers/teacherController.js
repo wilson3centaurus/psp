@@ -15,9 +15,7 @@ exports.listTeachers = async (req, res) => {
 
   res.render('school/teachers', {
     teachers: rows || [],
-    query: '',
-    success_msg: req.flash('success_msg'),
-    error_msg: req.flash('error_msg')
+    query: ''
   });
 };
 
@@ -25,10 +23,7 @@ exports.listTeachers = async (req, res) => {
    2. ADD TEACHER PAGE
 =========================== */
 exports.addTeacherPage = (req, res) => {
-  res.render('school/addTeacher', {
-    success_msg: req.flash('success_msg'),
-    error_msg: req.flash('error_msg')
-  });
+  res.render('school/addTeacher');
 };
 
 /* ===========================
@@ -105,11 +100,7 @@ exports.editTeacherPage = async (req, res) => {
     return res.redirect('/teacher');
   }
 
-  res.render('school/editTeacher', {
-    teacher: data,
-    success_msg: req.flash('success_msg'),
-    error_msg: req.flash('error_msg')
-  });
+  res.render('school/editTeacher', { teacher: data });
 };
 
 /* ===========================

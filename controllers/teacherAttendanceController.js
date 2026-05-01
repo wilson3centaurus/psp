@@ -46,9 +46,7 @@ exports.listSessions = async (req, res) => {
     teachers: teacherRes.data || [],
     selectedDate: selectedMarkDate,
     schoolDisplayName,
-    schoolLogo,
-    success_msg: req.flash('success_msg'),
-    error_msg: req.flash('error_msg')
+    schoolLogo
   });
 };
 
@@ -64,9 +62,7 @@ exports.markAttendancePage = async (req, res) => {
 
   res.render('school/teacherAttendance/mark', {
     teachers: teacherRows || [],
-    selectedDate,
-    success_msg: req.flash('success_msg'),
-    error_msg: req.flash('error_msg')
+    selectedDate
   });
 };
 

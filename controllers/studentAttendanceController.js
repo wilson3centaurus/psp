@@ -64,8 +64,7 @@ exports.listSessions = async (req, res) => {
     return res.render('school/studentAttendance/sessions', {
       sessions, searchDate, allClasses, students: [],
       selectedGrade: '', selectedClass: '', selectedDate: selectedMarkDate,
-      schoolDisplayName, schoolLogo,
-      success_msg: req.flash('success_msg'), error_msg: req.flash('error_msg')
+      schoolDisplayName, schoolLogo
     });
   }
 
@@ -79,8 +78,7 @@ exports.listSessions = async (req, res) => {
   res.render('school/studentAttendance/sessions', {
     sessions, searchDate, allClasses, students: studentRows || [],
     selectedGrade, selectedClass, selectedDate: selectedMarkDate,
-    schoolDisplayName, schoolLogo,
-    success_msg: req.flash('success_msg'), error_msg: req.flash('error_msg')
+    schoolDisplayName, schoolLogo
   });
 };
 
@@ -103,8 +101,7 @@ exports.markAttendancePage = async (req, res) => {
   if (!selectedGrade || !selectedClass) {
     return res.render('school/studentAttendance/mark', {
       allClasses, students: [], selectedGrade: '', selectedClass: '', selectedDate,
-      schoolDisplayName, schoolLogo,
-      success_msg: req.flash('success_msg'), error_msg: req.flash('error_msg')
+      schoolDisplayName, schoolLogo
     });
   }
 
@@ -118,8 +115,7 @@ exports.markAttendancePage = async (req, res) => {
   res.render('school/studentAttendance/mark', {
     allClasses, students: studentRows || [],
     selectedGrade, selectedClass, selectedDate,
-    schoolDisplayName, schoolLogo,
-    success_msg: req.flash('success_msg'), error_msg: req.flash('error_msg')
+    schoolDisplayName, schoolLogo
   });
 };
 

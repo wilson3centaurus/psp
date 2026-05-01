@@ -40,7 +40,11 @@
         </div>
         <div class="nav-section">
           <div class="nav-section-title">Account</div>
-          <a class="nav-link logout" href="/logout"><i class="fas fa-right-from-bracket"></i> Logout</a>
+          <% if (typeof adminUser !== 'undefined' && adminUser) { %>
+            <a class="nav-link" href="/admin/schools/return"><i class="fas fa-arrow-left"></i> Exit Preview</a>
+          <% } else { %>
+            <a class="nav-link logout" href="/logout"><i class="fas fa-right-from-bracket"></i> Logout</a>
+          <% } %>
         </div>
       </nav>
     </aside>
@@ -58,10 +62,17 @@
             <i class="fas fa-moon"></i>
             <i class="fas fa-sun"></i>
           </button>
-          <a href="/logout" class="topbar-btn danger">
-            <i class="fas fa-sign-out-alt"></i>
-            <span>Logout</span>
-          </a>
+          <% if (typeof adminUser !== 'undefined' && adminUser) { %>
+            <a href="/admin/schools/return" class="topbar-btn warning">
+              <i class="fas fa-arrow-left"></i>
+              <span>Exit Preview</span>
+            </a>
+          <% } else { %>
+            <a href="/logout" class="topbar-btn danger">
+              <i class="fas fa-sign-out-alt"></i>
+              <span>Logout</span>
+            </a>
+          <% } %>
         </div>
       </header>
 
