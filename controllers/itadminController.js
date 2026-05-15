@@ -1,6 +1,6 @@
 // controllers/itadminController.js
 require('dotenv').config();
-const { supabase } = require('../config/db');
+const { pool } = require('../config/db');
 const bcrypt = require('bcryptjs');
 
 const ACCESS_CODE = process.env.ITADMIN_SECRET;
@@ -21,28 +21,29 @@ exports.registerUser = async (req, res) => {
 
   console.log('[REGISTER] Attempting insert for username:', username, 'role:', role);
 
-  const { error, status, statusText } = await supabase.from('users').insert({
-    username,
-    password: hashedPassword,
-    role,
-    display_name: isSchool && display_name ? display_name : null,
-    email: isSchool && email ? email : null,
-    phone: isSchool && phone ? phone : null,
-    address: isSchool && address ? address : null
-  });
-
-  console.log('[REGISTER] Insert result — status:', status, statusText);
-  if (error) {
-    console.error('[REGISTER] DB insert error (full):', JSON.stringify(error, null, 2));
+  try {
+    await pool.query(
+      'INSERT INTO users (username, password, role, display_name, email, phone, address) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [
+        username,
+        hashedPassword,
+        role,
+        isSchool && display_name ? display_name : null,
+        isSchool && email ? email : null,
+        isSchool && phone ? phone : null,
+        isSchool && address ? address : null
+      ]
+    );
+    return res.render('admin/itadmin_register', {
+      error: null,
+      success: `${isSchool ? 'School' : 'Admin'} account "${username}" created successfully!`
+    });
+  } catch (err) {
+    console.error('[REGISTER] DB insert error:', err);
     return res.render('admin/itadmin_register', {
       error: 'Database error or duplicate username',
       success: null
     });
   }
-
-  return res.render('admin/itadmin_register', {
-    error: null,
-    success: `${isSchool ? 'School' : 'Admin'} account "${username}" created successfully!`
-  });
 };
 

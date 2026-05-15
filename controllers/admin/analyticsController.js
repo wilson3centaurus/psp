@@ -1,6 +1,6 @@
-﻿const { supabase } = require('../../config/db');
+﻿const { pool } = require('../../config/db');
 
-// Admin analytics dashboard â€” all data fetched via Supabase, aggregated in JS
+// Admin analytics dashboard — all data fetched via MySQL, aggregated in JS
 exports.index = async (req, res) => {
   const lookbackDays = 30;
   const cutoff = new Date();
@@ -9,23 +9,16 @@ exports.index = async (req, res) => {
 
   try {
     const [
-      schoolsRes, studentsRes, teachersRes, resourcesRes,
-      stuAttRes, tchAttRes
+      [schools], [students], [teachers], [resources],
+      [stuAtt], [tchAtt]
     ] = await Promise.all([
-      supabase.from('users').select('id, username').eq('role', 'school').order('username'),
-      supabase.from('students').select('id, school_id'),
-      supabase.from('teachers').select('id, school_id'),
-      supabase.from('resources').select('school_id, subject_name, grade, num_students, num_books, num_computers'),
-      supabase.from('student_attendance').select('student_id, school_id, date, status, late_minutes, early_minutes').gte('date', cutoffStr),
-      supabase.from('teacher_attendance').select('teacher_id, school_id, date, status').gte('date', cutoffStr)
+      pool.query("SELECT id, username FROM users WHERE role = 'school' ORDER BY username"),
+      pool.query('SELECT id, school_id FROM students'),
+      pool.query('SELECT id, school_id FROM teachers'),
+      pool.query('SELECT school_id, subject_name, grade, num_students, num_books, num_computers FROM resources'),
+      pool.query('SELECT student_id, school_id, date, status, late_minutes, early_minutes FROM student_attendance WHERE date >= ?', [cutoffStr]),
+      pool.query('SELECT teacher_id, school_id, date, status FROM teacher_attendance WHERE date >= ?', [cutoffStr])
     ]);
-
-    const schools = schoolsRes.data || [];
-    const students = studentsRes.data || [];
-    const teachers = teachersRes.data || [];
-    const resources = resourcesRes.data || [];
-    const stuAtt = stuAttRes.data || [];
-    const tchAtt = tchAttRes.data || [];
 
     // --- Teacher-student per school ---
     const stuCountBySchool = new Map();
@@ -58,15 +51,18 @@ exports.index = async (req, res) => {
     resources.forEach(r => {
       if (!resTotalsMap.has(r.school_id)) resTotalsMap.set(r.school_id, { total_books: 0, total_computers: 0, resource_students: 0 });
       const e = resTotalsMap.get(r.school_id);
-      e.total_books += Number(r.num_books) || 0;
+      e.total_books     += Number(r.num_books)     || 0;
       e.total_computers += Number(r.num_computers) || 0;
       e.resource_students += Number(r.num_students) || 0;
     });
 
+    // Helper for date formatting (MySQL DATE columns come as Date objects or strings)
+    const toDateStr = val => (val instanceof Date ? val.toISOString() : String(val || '')).slice(0, 10);
+
     // --- Attendance trends by date ---
     const stuTrendMap = new Map();
     stuAtt.forEach(a => {
-      const d = (a.date || '').slice(0, 10);
+      const d = toDateStr(a.date);
       if (!stuTrendMap.has(d)) stuTrendMap.set(d, { date: d, present: 0, absent: 0 });
       const e = stuTrendMap.get(d);
       if ((a.status || '').toLowerCase() === 'present') e.present++;
@@ -76,7 +72,7 @@ exports.index = async (req, res) => {
 
     const tchTrendMap = new Map();
     tchAtt.forEach(a => {
-      const d = (a.date || '').slice(0, 10);
+      const d = toDateStr(a.date);
       if (!tchTrendMap.has(d)) tchTrendMap.set(d, { date: d, present: 0, absent: 0 });
       const e = tchTrendMap.get(d);
       if ((a.status || '').toLowerCase() === 'present') e.present++;
@@ -86,9 +82,9 @@ exports.index = async (req, res) => {
 
     // --- Attendance rates ---
     const stuPresent = stuAtt.filter(a => (a.status || '').toLowerCase() === 'present').length;
-    const stuTotal = stuAtt.length;
+    const stuTotal   = stuAtt.length;
     const tchPresent = tchAtt.filter(a => (a.status || '').toLowerCase() === 'present').length;
-    const tchTotal = tchAtt.length;
+    const tchTotal   = tchAtt.length;
 
     const attendanceRates = {
       students: stuTotal ? Math.round((stuPresent / stuTotal) * 1000) / 10 : 0,
@@ -103,10 +99,10 @@ exports.index = async (req, res) => {
     const heatmap = [0, 1, 2, 3, 4].map(d => ({ weekday: d, total_late: 0, total_early: 0 }));
     stuAtt.forEach(a => {
       if (!a.date) return;
-      const dow = new Date(a.date).getUTCDay(); // 0=Sun
-      const idx = dow === 0 ? 6 : dow - 1; // Mon=0 .. Sun=6
+      const dow = new Date(toDateStr(a.date)).getUTCDay();
+      const idx = dow === 0 ? 6 : dow - 1;
       if (idx >= 0 && idx < 5) {
-        heatmap[idx].total_late += Number(a.late_minutes) || 0;
+        heatmap[idx].total_late  += Number(a.late_minutes)  || 0;
         heatmap[idx].total_early += Number(a.early_minutes) || 0;
       }
     });
@@ -115,8 +111,7 @@ exports.index = async (req, res) => {
     const absByStudent = new Map();
     stuAtt.forEach(a => {
       if ((a.status || '').toLowerCase() !== 'absent') return;
-      if (!absByStudent.has(a.student_id)) absByStudent.set(a.student_id, 0);
-      absByStudent.set(a.student_id, absByStudent.get(a.student_id) + 1);
+      absByStudent.set(a.student_id, (absByStudent.get(a.student_id) || 0) + 1);
     });
     const chronicIds = [...absByStudent.entries()]
       .filter(([, count]) => count >= 3)
@@ -126,10 +121,11 @@ exports.index = async (req, res) => {
 
     let chronicAbsentees = [];
     if (chronicIds.length > 0) {
-      const { data: chronicStudents } = await supabase
-        .from('students').select('id, name, grade, student_class, school_id').in('id', chronicIds);
-
-      chronicAbsentees = (chronicStudents || []).map(s => {
+      const [chronicStudents] = await pool.query(
+        'SELECT id, name, grade, student_class, school_id FROM students WHERE id IN (?)',
+        [chronicIds]
+      );
+      chronicAbsentees = chronicStudents.map(s => {
         const school = schools.find(sc => sc.id === s.school_id);
         return {
           name: s.name,
@@ -158,7 +154,7 @@ exports.index = async (req, res) => {
       if ((a.status || '').toLowerCase() === 'present') e.present++;
     });
 
-    // --- Performance features for ML ---
+    // --- Performance features ---
     const performanceFeatures = teacherStudentRows.map(row => {
       const schoolId = row.id;
       const resTotals = resTotalsMap.get(schoolId) || {};
@@ -194,4 +190,4 @@ exports.index = async (req, res) => {
     req.flash('error_msg', 'Unable to load analytics right now.');
     return res.redirect('/admin/dashboard');
   }
-};
+};

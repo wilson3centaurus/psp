@@ -1,51 +1,60 @@
-﻿const { supabase } = require('../../config/db');
+﻿const { pool } = require('../../config/db');
 const PDFDocument = require('pdfkit');
 
-// Fetch filtered teachers with school names (joined in JS)
+// Fetch filtered teachers with school names
 async function fetchFiltered(query) {
   const search = query.q ? query.q.trim() : '';
   const filterSchoolId = query.schoolId && query.schoolId !== 'all' ? query.schoolId : null;
 
-  let q = supabase.from('teachers').select('*').order('name');
-  if (filterSchoolId) q = q.eq('school_id', filterSchoolId);
+  let sql = 'SELECT * FROM teachers WHERE 1=1';
+  const params = [];
+
+  if (filterSchoolId) { sql += ' AND school_id = ?'; params.push(filterSchoolId); }
   if (search) {
     const w = `%${search}%`;
-    q = q.or(`name.ilike.${w},subject.ilike.${w},email.ilike.${w},phone.ilike.${w},teacher_id.ilike.${w}`);
+    sql += ' AND (name LIKE ? OR subject LIKE ? OR email LIKE ? OR phone LIKE ? OR teacher_id LIKE ?)';
+    params.push(w, w, w, w, w);
   }
+  sql += ' ORDER BY name';
 
-  const { data: rows } = await q;
-  const schoolIds = [...new Set((rows || []).map(t => t.school_id))];
-  const { data: schools } = schoolIds.length
-    ? await supabase.from('users').select('id, username').in('id', schoolIds)
-    : { data: [] };
-  const schoolMap = new Map((schools || []).map(s => [s.id, s.username]));
-
-  return (rows || []).map(t => ({
-    ...t,
-    school_name: schoolMap.get(t.school_id) || `School #${t.school_id}`
-  }));
+  const [rows] = await pool.query(sql, params);
+  const schoolIds = [...new Set(rows.map(t => t.school_id))];
+  let schools = [];
+  if (schoolIds.length > 0) {
+    [schools] = await pool.query('SELECT id, username FROM users WHERE id IN (?)', [schoolIds]);
+  }
+  const schoolMap = new Map(schools.map(s => [s.id, s.username]));
+  return rows.map(t => ({ ...t, school_name: schoolMap.get(t.school_id) || `School #${t.school_id}` }));
 }
 
 // View all teachers
 exports.listTeachers = async (req, res) => {
   const search = req.query.q ? req.query.q.trim() : '';
-  const filterSchoolId = req.query.schoolId && req.query.schoolId !== 'all' ? req.query.schoolId : null;
 
-  const [totalRes, schoolRes] = await Promise.all([
-    supabase.from('teachers').select('*', { count: 'exact', head: true }),
-    supabase.from('users').select('id, username').eq('role', 'school').order('username')
-  ]);
+  try {
+    const [[[{ count: totalTeachers }]], [schools], teachers] = await Promise.all([
+      pool.query('SELECT COUNT(*) AS count FROM teachers'),
+      pool.query("SELECT id, username FROM users WHERE role = 'school' ORDER BY username"),
+      fetchFiltered(req.query)
+    ]);
 
-  const teachers = await fetchFiltered(req.query);
-
-  res.render('admin/teachers/index', {
-    teachers,
-    schools: schoolRes.data || [],
-    filters: { search, schoolId: req.query.schoolId || 'all' },
-    totalTeachers: totalRes.count || 0,
-    success_msg: req.flash('success_msg'),
-    error_msg: req.flash('error_msg')
-  });
+    res.render('admin/teachers/index', {
+      teachers,
+      schools,
+      filters: { search, schoolId: req.query.schoolId || 'all' },
+      totalTeachers,
+      success_msg: req.flash('success_msg'),
+      error_msg: req.flash('error_msg')
+    });
+  } catch (err) {
+    console.error('[admin/teachers] list error:', err);
+    res.render('admin/teachers/index', {
+      teachers: [], schools: [],
+      filters: { search, schoolId: 'all' },
+      totalTeachers: 0,
+      success_msg: null, error_msg: 'Failed to load teachers.'
+    });
+  }
 };
 
 // Export filtered list to CSV
@@ -95,5 +104,4 @@ exports.exportPDF = async (req, res) => {
     });
   }
   doc.end();
-};
-
+};

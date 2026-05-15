@@ -1,19 +1,23 @@
-const { supabase } = require('../config/db');
+const { pool } = require('../config/db');
 
 exports.analyticsPage = async (req, res) => {
-  const [schoolsRes, studentsRes, teachersRes, resourcesRes] = await Promise.all([
-    supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'school'),
-    supabase.from('students').select('*', { count: 'exact', head: true }),
-    supabase.from('teachers').select('*', { count: 'exact', head: true }),
-    supabase.from('resources').select('*', { count: 'exact', head: true })
-  ]);
-
-  res.render('admin/analytics', {
-    stats: {
-      schools: schoolsRes.count || 0,
-      students: studentsRes.count || 0,
-      teachers: teachersRes.count || 0,
-      resources: resourcesRes.count || 0
-    }
-  });
+  try {
+    const [[[schools]], [[students]], [[teachers]], [[resources]]] = await Promise.all([
+      pool.query("SELECT COUNT(*) AS count FROM users WHERE role = 'school'"),
+      pool.query('SELECT COUNT(*) AS count FROM students'),
+      pool.query('SELECT COUNT(*) AS count FROM teachers'),
+      pool.query('SELECT COUNT(*) AS count FROM resources')
+    ]);
+    res.render('admin/analytics', {
+      stats: {
+        schools:   schools.count   || 0,
+        students:  students.count  || 0,
+        teachers:  teachers.count  || 0,
+        resources: resources.count || 0
+      }
+    });
+  } catch (err) {
+    console.error('[analytics] error:', err);
+    res.render('admin/analytics', { stats: { schools: 0, students: 0, teachers: 0, resources: 0 } });
+  }
 };

@@ -1,4 +1,4 @@
-const { supabase } = require('../config/db');
+const { pool } = require('../config/db');
 const bcrypt = require('bcryptjs');
 
 exports.loginPage = (req, res) => res.render('login');
@@ -9,44 +9,46 @@ exports.loginUser = async (req, res) => {
 
   console.log('[LOGIN] Attempt for username:', safeUser);
 
-  const { data: users, error: dbError, status, statusText } = await supabase
-    .from('users')
-    .select('*')
-    .ilike('username', safeUser)
-    .limit(1);
+  try {
+    const [users] = await pool.query(
+      'SELECT * FROM users WHERE LOWER(username) = LOWER(?) LIMIT 1',
+      [safeUser]
+    );
+    console.log('[LOGIN] Rows returned:', users.length);
 
-  console.log('[LOGIN] DB query result — status:', status, statusText);
-  if (dbError) console.error('[LOGIN] DB error:', dbError);
-  console.log('[LOGIN] Rows returned:', users ? users.length : 'null');
-
-  if (!users || users.length === 0) {
-    console.log('[LOGIN] No matching user found');
-    req.flash('error_msg', 'Invalid username or password');
-    return res.redirect('/login');
-  }
-
-  const user = users[0];
-  console.log('[LOGIN] User found — id:', user.id, 'role:', user.role);
-
-  const match = await bcrypt.compare(password, user.password);
-  console.log('[LOGIN] Password match:', match);
-  if (!match) {
-    req.flash('error_msg', 'Invalid username or password');
-    return res.redirect('/login');
-  }
-
-  req.session.user = user;
-  req.session.save((err) => {
-    if (err) {
-      console.error('[LOGIN] Session save error:', err);
-      req.flash('error_msg', 'Login failed. Please try again.');
+    if (!users || users.length === 0) {
+      console.log('[LOGIN] No matching user found');
+      req.flash('error_msg', 'Invalid username or password');
       return res.redirect('/login');
     }
-    console.log('[LOGIN] Session saved, redirecting role:', user.role);
-    if (user.role === 'admin') return res.redirect('/admin/dashboard');
-    if (user.role === 'school') return res.redirect('/school/dashboard');
+
+    const user = users[0];
+    console.log('[LOGIN] User found — id:', user.id, 'role:', user.role);
+
+    const match = await bcrypt.compare(password, user.password);
+    console.log('[LOGIN] Password match:', match);
+    if (!match) {
+      req.flash('error_msg', 'Invalid username or password');
+      return res.redirect('/login');
+    }
+
+    req.session.user = user;
+    req.session.save((err) => {
+      if (err) {
+        console.error('[LOGIN] Session save error:', err);
+        req.flash('error_msg', 'Login failed. Please try again.');
+        return res.redirect('/login');
+      }
+      console.log('[LOGIN] Session saved, redirecting role:', user.role);
+      if (user.role === 'admin') return res.redirect('/admin/dashboard');
+      if (user.role === 'school') return res.redirect('/school/dashboard');
+      res.redirect('/login');
+    });
+  } catch (err) {
+    console.error('[LOGIN] DB error:', err);
+    req.flash('error_msg', 'Login failed. Please try again.');
     res.redirect('/login');
-  });
+  }
 };
 
 exports.logoutUser = (req, res) => req.session.destroy(() => res.redirect('/login'));

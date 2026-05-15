@@ -1,4 +1,4 @@
-const { supabase } = require('../config/db');
+const { pool } = require('../config/db');
 const fs = require('fs');
 const csv = require('csv-parser');
 
@@ -7,16 +7,13 @@ const csv = require('csv-parser');
 =========================== */
 exports.listTeachers = async (req, res) => {
   const schoolId = req.session.user.id;
-  const { data: rows } = await supabase
-    .from('teachers')
-    .select('*')
-    .eq('school_id', schoolId)
-    .order('name');
-
-  res.render('school/teachers', {
-    teachers: rows || [],
-    query: ''
-  });
+  try {
+    const [rows] = await pool.query('SELECT * FROM teachers WHERE school_id = ? ORDER BY name', [schoolId]);
+    res.render('school/teachers', { teachers: rows, query: '' });
+  } catch (err) {
+    console.error('[teachers] list error:', err);
+    res.render('school/teachers', { teachers: [], query: '' });
+  }
 };
 
 /* ===========================
@@ -33,14 +30,15 @@ exports.addTeacher = async (req, res) => {
   const { name, subject, gender, email, phone, teacher_id } = req.body;
   const schoolId = req.session.user.id;
 
-  const { error } = await supabase.from('teachers').insert({
-    name, subject, gender, email, phone, teacher_id, school_id: schoolId
-  });
-
-  if (error) {
-    req.flash('error_msg', 'Could not add teacher');
-  } else {
+  try {
+    await pool.query(
+      'INSERT INTO teachers (name, subject, gender, email, phone, teacher_id, school_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [name, subject, gender, email, phone, teacher_id, schoolId]
+    );
     req.flash('success_msg', 'Teacher added');
+  } catch (err) {
+    console.error('[teachers] insert error:', err);
+    req.flash('error_msg', 'Could not add teacher');
   }
   res.redirect('/teacher');
 };
@@ -67,22 +65,25 @@ exports.uploadCSV = (req, res) => {
         return res.redirect('/teacher');
       }
 
-      const records = rows.map(r => ({
-        name: r.name || '',
-        subject: r.subject || '',
-        gender: r.gender || r.Gender || r.GENDER || r.sex || r.Sex || r.SEX || '',
-        email: r.email || '',
-        phone: r.phone || '',
-        teacher_id: r.teacher_id || '',
-        school_id: schoolId
-      }));
-
-      const { error } = await supabase.from('teachers').insert(records);
-      if (error) {
-        console.error('CSV import error:', error);
-        req.flash('error_msg', 'CSV import failed');
-      } else {
+      try {
+        for (const r of rows) {
+          await pool.query(
+            'INSERT INTO teachers (name, subject, gender, email, phone, teacher_id, school_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [
+              r.name || '',
+              r.subject || '',
+              r.gender || r.Gender || r.GENDER || r.sex || r.Sex || r.SEX || '',
+              r.email || '',
+              r.phone || '',
+              r.teacher_id || '',
+              schoolId
+            ]
+          );
+        }
         req.flash('success_msg', 'CSV imported successfully');
+      } catch (err) {
+        console.error('CSV import error:', err);
+        req.flash('error_msg', 'CSV import failed');
       }
       res.redirect('/teacher');
     });
@@ -93,14 +94,17 @@ exports.uploadCSV = (req, res) => {
 =========================== */
 exports.editTeacherPage = async (req, res) => {
   const id = req.params.id;
-  const { data, error } = await supabase.from('teachers').select('*').eq('id', id).maybeSingle();
-
-  if (error || !data) {
+  try {
+    const [rows] = await pool.query('SELECT * FROM teachers WHERE id = ? LIMIT 1', [id]);
+    if (!rows.length) {
+      req.flash('error_msg', 'Teacher not found');
+      return res.redirect('/teacher');
+    }
+    res.render('school/editTeacher', { teacher: rows[0] });
+  } catch (err) {
     req.flash('error_msg', 'Teacher not found');
     return res.redirect('/teacher');
   }
-
-  res.render('school/editTeacher', { teacher: data });
 };
 
 /* ===========================
@@ -110,14 +114,15 @@ exports.updateTeacher = async (req, res) => {
   const { id } = req.params;
   const { name, subject, gender, email, phone, teacher_id } = req.body;
 
-  const { error } = await supabase.from('teachers')
-    .update({ name, subject, gender, email, phone, teacher_id })
-    .eq('id', id);
-
-  if (error) {
-    req.flash('error_msg', 'Could not update teacher');
-  } else {
+  try {
+    await pool.query(
+      'UPDATE teachers SET name=?, subject=?, gender=?, email=?, phone=?, teacher_id=? WHERE id=?',
+      [name, subject, gender, email, phone, teacher_id, id]
+    );
     req.flash('success_msg', 'Teacher updated');
+  } catch (err) {
+    console.error('[teachers] update error:', err);
+    req.flash('error_msg', 'Could not update teacher');
   }
   res.redirect('/teacher');
 };
@@ -127,12 +132,12 @@ exports.updateTeacher = async (req, res) => {
 =========================== */
 exports.deleteTeacher = async (req, res) => {
   const id = req.params.id;
-  const { error } = await supabase.from('teachers').delete().eq('id', id);
-
-  if (error) {
-    req.flash('error_msg', 'Delete failed');
-  } else {
+  try {
+    await pool.query('DELETE FROM teachers WHERE id=?', [id]);
     req.flash('success_msg', 'Teacher deleted');
+  } catch (err) {
+    console.error('[teachers] delete error:', err);
+    req.flash('error_msg', 'Delete failed');
   }
   res.redirect('/teacher');
 };
@@ -147,23 +152,20 @@ exports.searchTeachers = async (req, res) => {
   if (!q) return res.redirect('/teacher');
 
   const w = `%${q}%`;
-  const { data: rows, error } = await supabase
-    .from('teachers')
-    .select('*')
-    .eq('school_id', schoolId)
-    .or(`name.ilike.${w},subject.ilike.${w},teacher_id.ilike.${w},email.ilike.${w},phone.ilike.${w}`)
-    .order('name');
-
-  if (error) {
+  try {
+    const [rows] = await pool.query(
+      'SELECT * FROM teachers WHERE school_id = ? AND (name LIKE ? OR subject LIKE ? OR teacher_id LIKE ? OR email LIKE ? OR phone LIKE ?) ORDER BY name',
+      [schoolId, w, w, w, w, w]
+    );
+    res.render('school/teachers', {
+      teachers: rows,
+      query: q,
+      success_msg: rows.length === 0 ? 'No matches found' : null,
+      error_msg: null
+    });
+  } catch (err) {
     return res.render('school/teachers', { teachers: [], query: q, error_msg: 'Search error', success_msg: null });
   }
-
-  res.render('school/teachers', {
-    teachers: rows || [],
-    query: q,
-    success_msg: (!rows || rows.length === 0) ? 'No matches found' : null,
-    error_msg: null
-  });
 };
 
 /* ===========================
@@ -180,16 +182,15 @@ exports.bulkDelete = async (req, res) => {
 
   if (!Array.isArray(ids)) ids = [ids];
 
-  const { error, count } = await supabase
-    .from('teachers')
-    .delete({ count: 'exact' })
-    .in('id', ids.map(Number))
-    .eq('school_id', schoolId);
-
-  if (error) {
+  try {
+    await pool.query(
+      'DELETE FROM teachers WHERE id IN (?) AND school_id = ?',
+      [ids.map(Number), schoolId]
+    );
+    req.flash('success_msg', `${ids.length} teacher(s) deleted`);
+  } catch (err) {
+    console.error('[teachers] bulk delete error:', err);
     req.flash('error_msg', 'Failed to delete teachers');
-  } else {
-    req.flash('success_msg', `${count || ids.length} teacher(s) deleted`);
   }
   res.redirect('/teacher');
-};
+};

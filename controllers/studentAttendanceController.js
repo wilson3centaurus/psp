@@ -1,43 +1,26 @@
-﻿const { supabase } = require('../config/db');
+﻿const { pool } = require('../config/db');
 const fs = require('fs');
 const csv = require('csv-parser');
 
-// Helper: get distinct attendance dates for a school (deduplicated in JS)
+// Helper: get distinct attendance dates for a school
 async function getAttendanceDates(schoolId, searchDate) {
-  let query = supabase
-    .from('student_attendance')
-    .select('date')
-    .eq('school_id', schoolId)
-    .order('date', { ascending: false });
-
-  if (searchDate) query = query.eq('date', searchDate);
-
-  const { data } = await query;
-  const seen = new Set();
-  const sessions = [];
-  for (const r of (data || [])) {
-    const d = (r.date || '').slice(0, 10);
-    if (d && !seen.has(d)) { seen.add(d); sessions.push({ date: d }); }
+  let sql = 'SELECT DISTINCT date FROM student_attendance WHERE school_id = ? ORDER BY date DESC';
+  const params = [schoolId];
+  if (searchDate) {
+    sql = 'SELECT DISTINCT date FROM student_attendance WHERE school_id = ? AND date = ? ORDER BY date DESC';
+    params.push(searchDate);
   }
-  return sessions;
+  const [rows] = await pool.query(sql, params);
+  return rows.map(r => ({ date: (r.date instanceof Date ? r.date.toISOString() : String(r.date)).slice(0, 10) }));
 }
 
-// Helper: get classes with counts from students table (grouped in JS)
+// Helper: get classes with counts from students table
 async function getClasses(schoolId) {
-  const { data } = await supabase
-    .from('students')
-    .select('grade, student_class')
-    .eq('school_id', schoolId)
-    .order('grade')
-    .order('student_class');
-
-  const map = new Map();
-  for (const s of (data || [])) {
-    const key = `${s.grade}|${s.student_class}`;
-    if (!map.has(key)) map.set(key, { grade: s.grade, student_class: s.student_class, count: 0 });
-    map.get(key).count++;
-  }
-  return Array.from(map.values());
+  const [rows] = await pool.query(
+    'SELECT grade, student_class, COUNT(*) as count FROM students WHERE school_id = ? GROUP BY grade, student_class ORDER BY grade, student_class',
+    [schoolId]
+  );
+  return rows;
 }
 
 /* ===========================
@@ -50,36 +33,42 @@ exports.listSessions = async (req, res) => {
   const selectedClass = req.query.class || '';
   const selectedMarkDate = req.query.markDate || '';
 
-  const { data: schoolInfo } = await supabase
-    .from('users').select('display_name, logo').eq('id', schoolId).maybeSingle();
-  const schoolDisplayName = schoolInfo?.display_name || null;
-  const schoolLogo = schoolInfo?.logo || null;
+  try {
+    const [[schoolInfo]] = await pool.query('SELECT display_name, logo FROM users WHERE id = ? LIMIT 1', [schoolId]);
+    const schoolDisplayName = schoolInfo?.display_name || null;
+    const schoolLogo = schoolInfo?.logo || null;
 
-  const [sessions, allClasses] = await Promise.all([
-    getAttendanceDates(schoolId, searchDate),
-    getClasses(schoolId)
-  ]);
+    const [sessions, allClasses] = await Promise.all([
+      getAttendanceDates(schoolId, searchDate),
+      getClasses(schoolId)
+    ]);
 
-  if (!selectedGrade || !selectedClass) {
-    return res.render('school/studentAttendance/sessions', {
-      sessions, searchDate, allClasses, students: [],
-      selectedGrade: '', selectedClass: '', selectedDate: selectedMarkDate,
+    if (!selectedGrade || !selectedClass) {
+      return res.render('school/studentAttendance/sessions', {
+        sessions, searchDate, allClasses, students: [],
+        selectedGrade: '', selectedClass: '', selectedDate: selectedMarkDate,
+        schoolDisplayName, schoolLogo
+      });
+    }
+
+    const [studentRows] = await pool.query(
+      'SELECT * FROM students WHERE school_id = ? AND grade = ? AND student_class = ? ORDER BY name',
+      [schoolId, selectedGrade, selectedClass]
+    );
+
+    res.render('school/studentAttendance/sessions', {
+      sessions, searchDate, allClasses, students: studentRows,
+      selectedGrade, selectedClass, selectedDate: selectedMarkDate,
       schoolDisplayName, schoolLogo
     });
+  } catch (err) {
+    console.error('[studentAttendance] listSessions error:', err);
+    res.render('school/studentAttendance/sessions', {
+      sessions: [], searchDate, allClasses: [], students: [],
+      selectedGrade: '', selectedClass: '', selectedDate: selectedMarkDate,
+      schoolDisplayName: null, schoolLogo: null
+    });
   }
-
-  const { data: studentRows } = await supabase
-    .from('students').select('*')
-    .eq('school_id', schoolId)
-    .eq('grade', selectedGrade)
-    .eq('student_class', selectedClass)
-    .order('name');
-
-  res.render('school/studentAttendance/sessions', {
-    sessions, searchDate, allClasses, students: studentRows || [],
-    selectedGrade, selectedClass, selectedDate: selectedMarkDate,
-    schoolDisplayName, schoolLogo
-  });
 };
 
 /* ===========================
@@ -91,32 +80,37 @@ exports.markAttendancePage = async (req, res) => {
   const selectedClass = req.query.class || '';
   const selectedDate = req.query.date || '';
 
-  const { data: schoolInfo } = await supabase
-    .from('users').select('display_name, logo').eq('id', schoolId).maybeSingle();
-  const schoolDisplayName = schoolInfo?.display_name || null;
-  const schoolLogo = schoolInfo?.logo || null;
+  try {
+    const [[schoolInfo]] = await pool.query('SELECT display_name, logo FROM users WHERE id = ? LIMIT 1', [schoolId]);
+    const schoolDisplayName = schoolInfo?.display_name || null;
+    const schoolLogo = schoolInfo?.logo || null;
 
-  const allClasses = await getClasses(schoolId);
+    const allClasses = await getClasses(schoolId);
 
-  if (!selectedGrade || !selectedClass) {
-    return res.render('school/studentAttendance/mark', {
-      allClasses, students: [], selectedGrade: '', selectedClass: '', selectedDate,
+    if (!selectedGrade || !selectedClass) {
+      return res.render('school/studentAttendance/mark', {
+        allClasses, students: [], selectedGrade: '', selectedClass: '', selectedDate,
+        schoolDisplayName, schoolLogo
+      });
+    }
+
+    const [studentRows] = await pool.query(
+      'SELECT * FROM students WHERE school_id = ? AND grade = ? AND student_class = ? ORDER BY name',
+      [schoolId, selectedGrade, selectedClass]
+    );
+
+    res.render('school/studentAttendance/mark', {
+      allClasses, students: studentRows,
+      selectedGrade, selectedClass, selectedDate,
       schoolDisplayName, schoolLogo
     });
+  } catch (err) {
+    console.error('[studentAttendance] markPage error:', err);
+    res.render('school/studentAttendance/mark', {
+      allClasses: [], students: [], selectedGrade: '', selectedClass: '', selectedDate,
+      schoolDisplayName: null, schoolLogo: null
+    });
   }
-
-  const { data: studentRows } = await supabase
-    .from('students').select('*')
-    .eq('school_id', schoolId)
-    .eq('grade', selectedGrade)
-    .eq('student_class', selectedClass)
-    .order('name');
-
-  res.render('school/studentAttendance/mark', {
-    allClasses, students: studentRows || [],
-    selectedGrade, selectedClass, selectedDate,
-    schoolDisplayName, schoolLogo
-  });
 };
 
 /* ===========================
@@ -131,34 +125,36 @@ exports.submitAttendance = async (req, res) => {
     return res.redirect('/student-attendance');
   }
 
-  const { data: students } = await supabase
-    .from('students').select('id')
-    .eq('school_id', schoolId)
-    .eq('grade', grade)
-    .eq('student_class', student_class);
+  try {
+    const [students] = await pool.query(
+      'SELECT id FROM students WHERE school_id = ? AND grade = ? AND student_class = ?',
+      [schoolId, grade, student_class]
+    );
 
-  if (!students || students.length === 0) {
-    req.flash('error_msg', 'No students found for this class.');
-    return res.redirect('/student-attendance');
-  }
+    if (!students || students.length === 0) {
+      req.flash('error_msg', 'No students found for this class.');
+      return res.redirect('/student-attendance');
+    }
 
-  const attendanceData = (students || []).map(s => ({
-    student_id: s.id,
-    school_id: schoolId,
-    date,
-    status: req.body[`status_${s.id}`] || 'Absent',
-    reason: req.body[`reason_${s.id}`] || '',
-    excused: req.body[`excused_${s.id}`] ? 1 : 0,
-    late_minutes: req.body[`status_${s.id}`] === 'Late' ? 1 : (Number(req.body[`late_${s.id}`]) || 0),
-    early_minutes: Number(req.body[`early_${s.id}`]) || 0
-  }));
-
-  const { error } = await supabase.from('student_attendance').insert(attendanceData);
-  if (error) {
-    console.error(error);
-    req.flash('error_msg', 'Failed to record attendance.');
-  } else {
+    for (const s of students) {
+      await pool.query(
+        'INSERT INTO student_attendance (student_id, school_id, date, status, reason, excused, late_minutes, early_minutes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          s.id,
+          schoolId,
+          date,
+          req.body[`status_${s.id}`] || 'Absent',
+          req.body[`reason_${s.id}`] || '',
+          req.body[`excused_${s.id}`] ? 1 : 0,
+          req.body[`status_${s.id}`] === 'Late' ? 1 : (Number(req.body[`late_${s.id}`]) || 0),
+          Number(req.body[`early_${s.id}`]) || 0
+        ]
+      );
+    }
     req.flash('success_msg', 'Attendance saved successfully.');
+  } catch (err) {
+    console.error('[studentAttendance] submit error:', err);
+    req.flash('error_msg', 'Failed to record attendance.');
   }
   res.redirect('/student-attendance');
 };
@@ -194,12 +190,17 @@ exports.uploadCSV = (req, res) => {
       }
     })
     .on('end', async () => {
-      const { error } = await supabase.from('student_attendance').insert(attendanceRows);
-      if (error) {
-        console.error(error);
-        req.flash('error_msg', 'CSV upload failed.');
-      } else {
+      try {
+        for (const r of attendanceRows) {
+          await pool.query(
+            'INSERT INTO student_attendance (student_id, school_id, date, status, reason, excused, late_minutes, early_minutes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [r.student_id, r.school_id, r.date, r.status, r.reason, r.excused, r.late_minutes, r.early_minutes]
+          );
+        }
         req.flash('success_msg', 'CSV attendance imported.');
+      } catch (err) {
+        console.error('[studentAttendance] CSV upload error:', err);
+        req.flash('error_msg', 'CSV upload failed.');
       }
       res.redirect('/student-attendance');
     });
@@ -212,31 +213,39 @@ exports.viewSession = async (req, res) => {
   const schoolId = req.session.user.id;
   const date = req.params.date;
 
-  const { data: attRows } = await supabase
-    .from('student_attendance').select('*')
-    .eq('school_id', schoolId)
-    .eq('date', date);
+  try {
+    const [attRows] = await pool.query(
+      'SELECT * FROM student_attendance WHERE school_id = ? AND date = ?',
+      [schoolId, date]
+    );
 
-  const studentIds = [...new Set((attRows || []).map(r => r.student_id))];
-  const { data: students } = studentIds.length
-    ? await supabase.from('students').select('id, name, grade, student_class').in('id', studentIds)
-    : { data: [] };
+    const studentIds = [...new Set(attRows.map(r => r.student_id))];
+    let students = [];
+    if (studentIds.length > 0) {
+      [students] = await pool.query(
+        'SELECT id, name, grade, student_class FROM students WHERE id IN (?)',
+        [studentIds]
+      );
+    }
 
-  const studentMap = new Map((students || []).map(s => [s.id, s]));
+    const studentMap = new Map(students.map(s => [s.id, s]));
 
-  const records = (attRows || []).map(a => ({
-    name: studentMap.get(a.student_id)?.name || 'Unknown',
-    grade: studentMap.get(a.student_id)?.grade || '',
-    student_class: studentMap.get(a.student_id)?.student_class || '',
-    status: a.status,
-    reason: a.reason,
-    excused: a.excused,
-    late_minutes: a.late_minutes,
-    early_minutes: a.early_minutes
-  })).sort((a, b) =>
-    (a.grade + a.student_class + a.name).localeCompare(b.grade + b.student_class + b.name)
-  );
+    const records = attRows.map(a => ({
+      name: studentMap.get(a.student_id)?.name || 'Unknown',
+      grade: studentMap.get(a.student_id)?.grade || '',
+      student_class: studentMap.get(a.student_id)?.student_class || '',
+      status: a.status,
+      reason: a.reason,
+      excused: a.excused,
+      late_minutes: a.late_minutes,
+      early_minutes: a.early_minutes
+    })).sort((a, b) =>
+      (a.grade + a.student_class + a.name).localeCompare(b.grade + b.student_class + b.name)
+    );
 
-  res.render('school/studentAttendance/view', { records, date });
-};
-
+    res.render('school/studentAttendance/view', { records, date });
+  } catch (err) {
+    console.error('[studentAttendance] viewSession error:', err);
+    res.render('school/studentAttendance/view', { records: [], date });
+  }
+};

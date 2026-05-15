@@ -1,25 +1,17 @@
-﻿const { supabase } = require('../config/db');
+﻿const { pool } = require('../config/db');
 const fs = require('fs');
 const csv = require('csv-parser');
 
 // Helper: get distinct teacher attendance dates for a school
 async function getAttendanceDates(schoolId, searchDate) {
-  let query = supabase
-    .from('teacher_attendance')
-    .select('date')
-    .eq('school_id', schoolId)
-    .order('date', { ascending: false });
-
-  if (searchDate) query = query.eq('date', searchDate);
-
-  const { data } = await query;
-  const seen = new Set();
-  const sessions = [];
-  for (const r of (data || [])) {
-    const d = (r.date || '').slice(0, 10);
-    if (d && !seen.has(d)) { seen.add(d); sessions.push({ date: d }); }
+  let sql = 'SELECT DISTINCT date FROM teacher_attendance WHERE school_id = ? ORDER BY date DESC';
+  const params = [schoolId];
+  if (searchDate) {
+    sql = 'SELECT DISTINCT date FROM teacher_attendance WHERE school_id = ? AND date = ? ORDER BY date DESC';
+    params.push(searchDate);
   }
-  return sessions;
+  const [rows] = await pool.query(sql, params);
+  return rows.map(r => ({ date: (r.date instanceof Date ? r.date.toISOString() : String(r.date)).slice(0, 10) }));
 }
 
 /* ===========================
@@ -30,24 +22,31 @@ exports.listSessions = async (req, res) => {
   const searchDate = req.query.searchDate || '';
   const selectedMarkDate = req.query.markDate || '';
 
-  const { data: schoolInfo } = await supabase
-    .from('users').select('display_name, logo').eq('id', schoolId).maybeSingle();
-  const schoolDisplayName = schoolInfo?.display_name || null;
-  const schoolLogo = schoolInfo?.logo || null;
+  try {
+    const [[schoolInfo]] = await pool.query('SELECT display_name, logo FROM users WHERE id = ? LIMIT 1', [schoolId]);
+    const schoolDisplayName = schoolInfo?.display_name || null;
+    const schoolLogo = schoolInfo?.logo || null;
 
-  const [sessions, teacherRes] = await Promise.all([
-    getAttendanceDates(schoolId, searchDate),
-    supabase.from('teachers').select('*').eq('school_id', schoolId).order('name')
-  ]);
+    const [sessions, [teachers]] = await Promise.all([
+      getAttendanceDates(schoolId, searchDate),
+      pool.query('SELECT * FROM teachers WHERE school_id = ? ORDER BY name', [schoolId])
+    ]);
 
-  res.render('school/teacherAttendance/sessions', {
-    sessions,
-    searchDate,
-    teachers: teacherRes.data || [],
-    selectedDate: selectedMarkDate,
-    schoolDisplayName,
-    schoolLogo
-  });
+    res.render('school/teacherAttendance/sessions', {
+      sessions,
+      searchDate,
+      teachers,
+      selectedDate: selectedMarkDate,
+      schoolDisplayName,
+      schoolLogo
+    });
+  } catch (err) {
+    console.error('[teacherAttendance] listSessions error:', err);
+    res.render('school/teacherAttendance/sessions', {
+      sessions: [], searchDate, teachers: [], selectedDate: selectedMarkDate,
+      schoolDisplayName: null, schoolLogo: null
+    });
+  }
 };
 
 /* ===========================
@@ -57,13 +56,13 @@ exports.markAttendancePage = async (req, res) => {
   const schoolId = req.session.user.id;
   const selectedDate = req.query.date || '';
 
-  const { data: teacherRows } = await supabase
-    .from('teachers').select('*').eq('school_id', schoolId).order('name');
-
-  res.render('school/teacherAttendance/mark', {
-    teachers: teacherRows || [],
-    selectedDate
-  });
+  try {
+    const [teacherRows] = await pool.query('SELECT * FROM teachers WHERE school_id = ? ORDER BY name', [schoolId]);
+    res.render('school/teacherAttendance/mark', { teachers: teacherRows, selectedDate });
+  } catch (err) {
+    console.error('[teacherAttendance] markPage error:', err);
+    res.render('school/teacherAttendance/mark', { teachers: [], selectedDate });
+  }
 };
 
 /* ===========================
@@ -84,34 +83,31 @@ exports.submitAttendance = async (req, res) => {
     return res.redirect('/teacher-attendance');
   }
 
-  // Delete existing records for this date to allow updates
-  await supabase.from('teacher_attendance')
-    .delete()
-    .eq('school_id', schoolId)
-    .eq('date', date);
+  try {
+    // Delete existing records for this date to allow updates
+    await pool.query('DELETE FROM teacher_attendance WHERE school_id = ? AND date = ?', [schoolId, date]);
 
-  const attendanceRows = submittedKeys
-    .filter(key => req.body[key] && req.body[key].trim() !== '')
-    .map(key => {
+    const validKeys = submittedKeys.filter(key => req.body[key] && req.body[key].trim() !== '');
+    for (const key of validKeys) {
       const teacherId = key.split('_')[1];
-      return {
-        teacher_id: teacherId,
-        school_id: schoolId,
-        date,
-        status: req.body[key] || 'Absent',
-        reason: req.body[`reason_${teacherId}`] || '',
-        excused: req.body[`excused_${teacherId}`] ? 1 : 0,
-        late_minutes: Number(req.body[`late_${teacherId}`]) || 0,
-        early_minutes: Number(req.body[`early_${teacherId}`]) || 0
-      };
-    });
-
-  const { error } = await supabase.from('teacher_attendance').insert(attendanceRows);
-  if (error) {
-    console.error('Manual insert error:', error);
-    req.flash('error_msg', 'Failed to save attendance.');
-  } else {
+      await pool.query(
+        'INSERT INTO teacher_attendance (teacher_id, school_id, date, status, reason, excused, late_minutes, early_minutes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          teacherId,
+          schoolId,
+          date,
+          req.body[key] || 'Absent',
+          req.body[`reason_${teacherId}`] || '',
+          req.body[`excused_${teacherId}`] ? 1 : 0,
+          Number(req.body[`late_${teacherId}`]) || 0,
+          Number(req.body[`early_${teacherId}`]) || 0
+        ]
+      );
+    }
     req.flash('success_msg', 'Attendance recorded.');
+  } catch (err) {
+    console.error('[teacherAttendance] submit error:', err);
+    req.flash('error_msg', 'Failed to save attendance.');
   }
   res.redirect('/teacher-attendance');
 };
@@ -132,52 +128,52 @@ exports.uploadCSV = async (req, res) => {
     return res.redirect('/teacher-attendance');
   }
 
-  const { data: teacherRows } = await supabase
-    .from('teachers').select('id, teacher_id').eq('school_id', schoolId);
+  try {
+    const [teacherRows] = await pool.query('SELECT id, teacher_id FROM teachers WHERE school_id = ?', [schoolId]);
+    const codeToId = {};
+    teacherRows.forEach(t => { if (t.teacher_id) codeToId[t.teacher_id.trim()] = t.id; });
 
-  const codeToId = {};
-  (teacherRows || []).forEach(t => {
-    if (t.teacher_id) codeToId[t.teacher_id.trim()] = t.id;
-  });
+    const parsedRows = await new Promise((resolve, reject) => {
+      const results = [];
+      fs.createReadStream(req.file.path)
+        .pipe(csv())
+        .on('data', row => {
+          const code = row.teacher_id?.trim();
+          const status = row.status?.trim();
+          if (!code || !status) return;
+          if (!['Present', 'Absent'].includes(status)) return;
+          const teacherDbId = codeToId[code];
+          if (!teacherDbId) { console.warn(`Unknown teacher_id: ${code}`); return; }
+          results.push({
+            teacher_id: teacherDbId,
+            school_id: schoolId,
+            date,
+            status,
+            reason: row.reason ? String(row.reason).trim() : '',
+            excused: row.excused ? 1 : 0,
+            late_minutes: Number(row.late_minutes) || 0,
+            early_minutes: Number(row.early_minutes) || 0
+          });
+        })
+        .on('end', () => resolve(results))
+        .on('error', reject);
+    });
 
-  const parsedRows = [];
+    if (parsedRows.length === 0) {
+      req.flash('error_msg', 'No valid rows found in CSV.');
+      return res.redirect('/teacher-attendance');
+    }
 
-  await new Promise((resolve, reject) => {
-    fs.createReadStream(req.file.path)
-      .pipe(csv())
-      .on('data', row => {
-        const code = row.teacher_id?.trim();
-        const status = row.status?.trim();
-        if (!code || !status) return;
-        if (!['Present', 'Absent'].includes(status)) return;
-        const teacherDbId = codeToId[code];
-        if (!teacherDbId) { console.warn(`Unknown teacher_id: ${code}`); return; }
-        parsedRows.push({
-          teacher_id: teacherDbId,
-          school_id: schoolId,
-          date,
-          status,
-          reason: row.reason ? String(row.reason).trim() : '',
-          excused: row.excused ? 1 : 0,
-          late_minutes: Number(row.late_minutes) || 0,
-          early_minutes: Number(row.early_minutes) || 0
-        });
-      })
-      .on('end', resolve)
-      .on('error', reject);
-  });
-
-  if (parsedRows.length === 0) {
-    req.flash('error_msg', 'No valid rows found in CSV.');
-    return res.redirect('/teacher-attendance');
-  }
-
-  const { error } = await supabase.from('teacher_attendance').insert(parsedRows);
-  if (error) {
-    console.error('Insert error:', error);
-    req.flash('error_msg', 'Failed to upload CSV.');
-  } else {
+    for (const r of parsedRows) {
+      await pool.query(
+        'INSERT INTO teacher_attendance (teacher_id, school_id, date, status, reason, excused, late_minutes, early_minutes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [r.teacher_id, r.school_id, r.date, r.status, r.reason, r.excused, r.late_minutes, r.early_minutes]
+      );
+    }
     req.flash('success_msg', 'Teacher attendance uploaded successfully.');
+  } catch (err) {
+    console.error('[teacherAttendance] CSV upload error:', err);
+    req.flash('error_msg', 'Failed to upload CSV.');
   }
   res.redirect('/teacher-attendance');
 };
@@ -189,33 +185,42 @@ exports.viewSession = async (req, res) => {
   const schoolId = req.session.user.id;
   const date = req.params.date;
 
-  const { data: attRows } = await supabase
-    .from('teacher_attendance').select('*')
-    .eq('school_id', schoolId)
-    .eq('date', date);
+  try {
+    const [attRows] = await pool.query(
+      'SELECT * FROM teacher_attendance WHERE school_id = ? AND date = ?',
+      [schoolId, date]
+    );
 
-  const teacherIds = [...new Set((attRows || []).map(r => r.teacher_id))];
-  const { data: teachers } = teacherIds.length
-    ? await supabase.from('teachers').select('id, teacher_id, name, email, phone, subject').in('id', teacherIds)
-    : { data: [] };
+    const teacherIds = [...new Set(attRows.map(r => r.teacher_id))];
+    let teachers = [];
+    if (teacherIds.length > 0) {
+      [teachers] = await pool.query(
+        'SELECT id, teacher_id, name, email, phone, subject FROM teachers WHERE id IN (?)',
+        [teacherIds]
+      );
+    }
 
-  const teacherMap = new Map((teachers || []).map(t => [t.id, t]));
+    const teacherMap = new Map(teachers.map(t => [t.id, t]));
 
-  const records = (attRows || []).map(a => {
-    const t = teacherMap.get(a.teacher_id) || {};
-    return {
-      teacherCode: t.teacher_id || '',
-      name: t.name || 'Unknown',
-      email: t.email || '',
-      phone: t.phone || '',
-      subject: t.subject || '',
-      status: a.status,
-      reason: a.reason,
-      excused: a.excused,
-      late_minutes: a.late_minutes,
-      early_minutes: a.early_minutes
-    };
-  }).sort((a, b) => a.name.localeCompare(b.name));
+    const records = attRows.map(a => {
+      const t = teacherMap.get(a.teacher_id) || {};
+      return {
+        teacherCode: t.teacher_id || '',
+        name: t.name || 'Unknown',
+        email: t.email || '',
+        phone: t.phone || '',
+        subject: t.subject || '',
+        status: a.status,
+        reason: a.reason,
+        excused: a.excused,
+        late_minutes: a.late_minutes,
+        early_minutes: a.early_minutes
+      };
+    }).sort((a, b) => a.name.localeCompare(b.name));
 
-  res.render('school/teacherAttendance/view', { records, date });
-};
+    res.render('school/teacherAttendance/view', { records, date });
+  } catch (err) {
+    console.error('[teacherAttendance] viewSession error:', err);
+    res.render('school/teacherAttendance/view', { records: [], date });
+  }
+};

@@ -1,20 +1,18 @@
-const { supabase } = require('../config/db');
+const { pool } = require('../config/db');
 
-/**
- * Middleware to inject school information (logo, display_name)
- * into res.locals for all school-related pages
- */
 const injectSchoolInfo = async (req, res, next) => {
   if (req.session && req.session.user && req.session.user.role === 'school') {
-    const { data } = await supabase
-      .from('users')
-      .select('display_name, logo')
-      .eq('id', req.session.user.id)
-      .maybeSingle();
-
-    if (data) {
-      res.locals.schoolDisplayName = data.display_name;
-      res.locals.schoolLogo = data.logo;
+    try {
+      const [rows] = await pool.query(
+        'SELECT display_name, logo FROM users WHERE id = ? LIMIT 1',
+        [req.session.user.id]
+      );
+      if (rows.length > 0) {
+        res.locals.schoolDisplayName = rows[0].display_name;
+        res.locals.schoolLogo = rows[0].logo;
+      }
+    } catch (err) {
+      console.error('[injectSchoolInfo] error:', err);
     }
   }
   next();

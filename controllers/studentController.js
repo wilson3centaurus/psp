@@ -1,24 +1,18 @@
-const { supabase } = require('../config/db');
+const { pool } = require('../config/db');
 const fs = require('fs');
 const csv = require('csv-parser');
 
 // View all students
 exports.listStudents = async (req, res) => {
   const schoolId = req.session.user.id;
-  const { data: rows, error } = await supabase
-    .from('students')
-    .select('*')
-    .eq('school_id', schoolId);
-
-  if (error) {
-    console.error('[students] list error:', error);
+  try {
+    const [rows] = await pool.query('SELECT * FROM students WHERE school_id = ?', [schoolId]);
+    res.render('school/students', { students: rows, query: '' });
+  } catch (err) {
+    console.error('[students] list error:', err);
     req.flash('error_msg', 'Failed to load students.');
+    res.render('school/students', { students: [], query: '' });
   }
-
-  res.render('school/students', {
-    students: rows || [],
-    query: ''
-  });
 };
 
 // Show add student form
@@ -29,16 +23,20 @@ exports.addStudent = async (req, res) => {
   const { name, grade, student_class, gender, student_id } = req.body;
   const schoolId = req.session.user.id;
 
-  const { error } = await supabase.from('students').insert({ name, grade, student_class, gender, student_id, school_id: schoolId });
-  if (error) {
-    console.error('[students] insert error:', error);
-    req.flash('error_msg', `Failed to add student: ${error.message}`);
-  } else {
+  try {
+    await pool.query(
+      'INSERT INTO students (name, grade, student_class, gender, student_id, school_id) VALUES (?, ?, ?, ?, ?, ?)',
+      [name, grade, student_class, gender, student_id, schoolId]
+    );
     req.flash('success_msg', 'Student added successfully.');
+  } catch (err) {
+    console.error('[students] insert error:', err);
+    req.flash('error_msg', `Failed to add student: ${err.message}`);
   }
   res.redirect('/student');
 };
 
+// Bulk CSV upload
 // Bulk CSV upload
 exports.uploadCSV = (req, res) => {
   if (!req.file) {
@@ -57,20 +55,17 @@ exports.uploadCSV = (req, res) => {
         req.flash('error_msg', 'CSV file is empty.');
         return res.redirect('/student');
       }
-      const rows = results.map(row => ({
-        name: row.name,
-        grade: row.grade,
-        student_class: row.student_class,
-        gender: row.gender,
-        student_id: row.student_id,
-        school_id: schoolId
-      }));
-      const { error } = await supabase.from('students').insert(rows);
-      if (error) {
-        console.error('[students] CSV insert error:', error);
-        req.flash('error_msg', `CSV upload failed: ${error.message}`);
-      } else {
-        req.flash('success_msg', `${rows.length} student(s) uploaded successfully.`);
+      try {
+        for (const row of results) {
+          await pool.query(
+            'INSERT INTO students (name, grade, student_class, gender, student_id, school_id) VALUES (?, ?, ?, ?, ?, ?)',
+            [row.name, row.grade, row.student_class, row.gender, row.student_id, schoolId]
+          );
+        }
+        req.flash('success_msg', `${results.length} student(s) uploaded successfully.`);
+      } catch (err) {
+        console.error('[students] CSV insert error:', err);
+        req.flash('error_msg', `CSV upload failed: ${err.message}`);
       }
       res.redirect('/student');
     })
@@ -84,21 +79,28 @@ exports.uploadCSV = (req, res) => {
 // Edit page
 exports.editStudentPage = async (req, res) => {
   const { id } = req.params;
-  const { data } = await supabase.from('students').select('*').eq('id', id).maybeSingle();
-  if (!data) return res.redirect('/student');
-  res.render('school/editStudent', { student: data });
+  try {
+    const [rows] = await pool.query('SELECT * FROM students WHERE id = ? LIMIT 1', [id]);
+    if (!rows.length) return res.redirect('/student');
+    res.render('school/editStudent', { student: rows[0] });
+  } catch (err) {
+    return res.redirect('/student');
+  }
 };
 
 // Update student
 exports.updateStudent = async (req, res) => {
   const { id } = req.params;
   const { name, grade, student_class, gender, student_id } = req.body;
-  const { error } = await supabase.from('students').update({ name, grade, student_class, gender, student_id }).eq('id', id);
-  if (error) {
-    console.error('[students] update error:', error);
-    req.flash('error_msg', `Failed to update student: ${error.message}`);
-  } else {
+  try {
+    await pool.query(
+      'UPDATE students SET name=?, grade=?, student_class=?, gender=?, student_id=? WHERE id=?',
+      [name, grade, student_class, gender, student_id, id]
+    );
     req.flash('success_msg', 'Student updated successfully.');
+  } catch (err) {
+    console.error('[students] update error:', err);
+    req.flash('error_msg', `Failed to update student: ${err.message}`);
   }
   res.redirect('/student');
 };
@@ -106,12 +108,12 @@ exports.updateStudent = async (req, res) => {
 // Delete student
 exports.deleteStudent = async (req, res) => {
   const { id } = req.params;
-  const { error } = await supabase.from('students').delete().eq('id', id);
-  if (error) {
-    console.error('[students] delete error:', error);
-    req.flash('error_msg', `Failed to delete student: ${error.message}`);
-  } else {
+  try {
+    await pool.query('DELETE FROM students WHERE id=?', [id]);
     req.flash('success_msg', 'Student deleted successfully.');
+  } catch (err) {
+    console.error('[students] delete error:', err);
+    req.flash('error_msg', `Failed to delete student: ${err.message}`);
   }
   res.redirect('/student');
 };
@@ -128,16 +130,15 @@ exports.bulkDelete = async (req, res) => {
 
   if (!Array.isArray(ids)) ids = [ids];
 
-  const { error, count } = await supabase
-    .from('students')
-    .delete({ count: 'exact' })
-    .in('id', ids.map(Number))
-    .eq('school_id', schoolId);
-
-  if (error) {
+  try {
+    await pool.query(
+      'DELETE FROM students WHERE id IN (?) AND school_id = ?',
+      [ids.map(Number), schoolId]
+    );
+    req.flash('success_msg', `${ids.length} student(s) deleted`);
+  } catch (err) {
+    console.error('[students] bulk delete error:', err);
     req.flash('error_msg', 'Failed to delete students');
-  } else {
-    req.flash('success_msg', `${count || ids.length} student(s) deleted`);
   }
   res.redirect('/student');
 };
@@ -150,21 +151,19 @@ exports.searchStudents = async (req, res) => {
   if (!query) return res.redirect('/student');
 
   const w = `%${query}%`;
-  const { data: rows, error } = await supabase
-    .from('students')
-    .select('*')
-    .eq('school_id', schoolId)
-    .or(`name.ilike.${w},student_class.ilike.${w},student_id.ilike.${w},grade.ilike.${w}`);
-
-  if (error) {
+  try {
+    const [rows] = await pool.query(
+      'SELECT * FROM students WHERE school_id = ? AND (name LIKE ? OR student_class LIKE ? OR student_id LIKE ? OR grade LIKE ?)',
+      [schoolId, w, w, w, w]
+    );
+    res.render('school/students', {
+      students: rows,
+      success_msg: rows.length === 0 ? 'No matching students found.' : null,
+      error_msg: null,
+      query
+    });
+  } catch (err) {
     return res.status(500).render('error', { message: 'Search failed. Try again.' });
   }
-
-  res.render('school/students', {
-    students: rows || [],
-    success_msg: (!rows || rows.length === 0) ? 'No matching students found.' : null,
-    error_msg: null,
-    query
-  });
 };
 

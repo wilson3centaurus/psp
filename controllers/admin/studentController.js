@@ -1,73 +1,69 @@
-﻿const { supabase } = require('../../config/db');
+﻿const { pool } = require('../../config/db');
 const PDFDocument = require('pdfkit');
 
-// View all students with school names (joined in JS)
-exports.listStudents = async (req, res) => {
-  const search = req.query.q ? req.query.q.trim() : '';
-  const filterSchoolId = req.query.schoolId && req.query.schoolId !== 'all' ? req.query.schoolId : null;
-  const filterGrade = req.query.grade && req.query.grade !== 'all' ? req.query.grade : null;
-
-  const [totalRes, schoolRes, gradeRes, studentRes] = await Promise.all([
-    supabase.from('students').select('*', { count: 'exact', head: true }),
-    supabase.from('users').select('id, username').eq('role', 'school').order('username'),
-    supabase.from('students').select('grade').order('grade'),
-    (() => {
-      let q = supabase.from('students').select('*').order('name');
-      if (filterSchoolId) q = q.eq('school_id', filterSchoolId);
-      if (filterGrade) q = q.eq('grade', filterGrade);
-      if (search) {
-        const w = `%${search}%`;
-        q = q.or(`name.ilike.${w},student_id.ilike.${w},student_class.ilike.${w},gender.ilike.${w}`);
-      }
-      return q;
-    })()
-  ]);
-
-  const schoolMap = new Map((schoolRes.data || []).map(s => [s.id, s.username]));
-  const students = (studentRes.data || []).map(s => ({
-    ...s,
-    school_name: schoolMap.get(s.school_id) || `School #${s.school_id}`
-  }));
-
-  const grades = [...new Set((gradeRes.data || []).map(g => g.grade).filter(Boolean))];
-
-  res.render('admin/students/index', {
-    students,
-    schools: schoolRes.data || [],
-    grades,
-    filters: { search, schoolId: req.query.schoolId || 'all', grade: req.query.grade || 'all' },
-    totalStudents: totalRes.count || 0,
-    success_msg: req.flash('success_msg'),
-    error_msg: req.flash('error_msg')
-  });
-};
-
-// Fetch filtered students helper
+// Fetch filtered students with school names
 async function fetchFiltered(query) {
   const search = query.q ? query.q.trim() : '';
   const filterSchoolId = query.schoolId && query.schoolId !== 'all' ? query.schoolId : null;
   const filterGrade = query.grade && query.grade !== 'all' ? query.grade : null;
 
-  let q = supabase.from('students').select('*').order('name');
-  if (filterSchoolId) q = q.eq('school_id', filterSchoolId);
-  if (filterGrade) q = q.eq('grade', filterGrade);
+  let sql = 'SELECT * FROM students WHERE 1=1';
+  const params = [];
+
+  if (filterSchoolId) { sql += ' AND school_id = ?'; params.push(filterSchoolId); }
+  if (filterGrade)    { sql += ' AND grade = ?';     params.push(filterGrade); }
   if (search) {
     const w = `%${search}%`;
-    q = q.or(`name.ilike.${w},student_id.ilike.${w},student_class.ilike.${w},gender.ilike.${w}`);
+    sql += ' AND (name LIKE ? OR student_id LIKE ? OR student_class LIKE ? OR gender LIKE ?)';
+    params.push(w, w, w, w);
   }
+  sql += ' ORDER BY name';
 
-  const { data: rows } = await q;
-  const schoolIds = [...new Set((rows || []).map(s => s.school_id))];
-  const { data: schools } = schoolIds.length
-    ? await supabase.from('users').select('id, username').in('id', schoolIds)
-    : { data: [] };
-  const schoolMap = new Map((schools || []).map(s => [s.id, s.username]));
-
-  return (rows || []).map(s => ({
-    ...s,
-    school_name: schoolMap.get(s.school_id) || `School #${s.school_id}`
-  }));
+  const [rows] = await pool.query(sql, params);
+  const schoolIds = [...new Set(rows.map(s => s.school_id))];
+  let schools = [];
+  if (schoolIds.length > 0) {
+    [schools] = await pool.query('SELECT id, username FROM users WHERE id IN (?)', [schoolIds]);
+  }
+  const schoolMap = new Map(schools.map(s => [s.id, s.username]));
+  return rows.map(s => ({ ...s, school_name: schoolMap.get(s.school_id) || `School #${s.school_id}` }));
 }
+
+// View all students with school names
+exports.listStudents = async (req, res) => {
+  const search = req.query.q ? req.query.q.trim() : '';
+  const filterSchoolId = req.query.schoolId && req.query.schoolId !== 'all' ? req.query.schoolId : null;
+  const filterGrade = req.query.grade && req.query.grade !== 'all' ? req.query.grade : null;
+
+  try {
+    const [[[{ count: totalStudents }]], [schools], [gradesRaw], students] = await Promise.all([
+      pool.query('SELECT COUNT(*) AS count FROM students'),
+      pool.query("SELECT id, username FROM users WHERE role = 'school' ORDER BY username"),
+      pool.query('SELECT DISTINCT grade FROM students ORDER BY grade'),
+      fetchFiltered(req.query)
+    ]);
+
+    const grades = gradesRaw.map(g => g.grade).filter(Boolean);
+
+    res.render('admin/students/index', {
+      students,
+      schools,
+      grades,
+      filters: { search, schoolId: req.query.schoolId || 'all', grade: req.query.grade || 'all' },
+      totalStudents,
+      success_msg: req.flash('success_msg'),
+      error_msg: req.flash('error_msg')
+    });
+  } catch (err) {
+    console.error('[admin/students] listStudents error:', err);
+    res.render('admin/students/index', {
+      students: [], schools: [], grades: [],
+      filters: { search, schoolId: 'all', grade: 'all' },
+      totalStudents: 0,
+      success_msg: null, error_msg: 'Failed to load students.'
+    });
+  }
+};
 
 // Export filtered list to CSV
 exports.exportCSV = async (req, res) => {
@@ -116,4 +112,4 @@ exports.exportPDF = async (req, res) => {
     });
   }
   doc.end();
-};
+};

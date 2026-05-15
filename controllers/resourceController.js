@@ -1,21 +1,21 @@
-const { supabase } = require('../config/db');
+const { pool } = require('../config/db');
 const fs = require('fs');
 const csv = require('csv-parser');
 
 // 1. List all resources
 exports.listResources = async (req, res) => {
   const schoolId = req.session.user.id;
-  const { data: rows } = await supabase
-    .from('resources')
-    .select('*')
-    .eq('school_id', schoolId)
-    .order('subject_name');
-
-  res.render('school/resources/index', {
-    resources: rows || [],
-    success_msg: req.flash('success_msg'),
-    error_msg: req.flash('error_msg')
-  });
+  try {
+    const [rows] = await pool.query('SELECT * FROM resources WHERE school_id = ? ORDER BY subject_name', [schoolId]);
+    res.render('school/resources/index', {
+      resources: rows,
+      success_msg: req.flash('success_msg'),
+      error_msg: req.flash('error_msg')
+    });
+  } catch (err) {
+    console.error('[resources] list error:', err);
+    res.render('school/resources/index', { resources: [], success_msg: null, error_msg: 'Failed to load resources.' });
+  }
 };
 
 // 2. Show Add Resource Form
@@ -26,21 +26,15 @@ exports.addResource = async (req, res) => {
   const { subject_id, subject_name, grade, num_students, num_books, num_computers } = req.body;
   const schoolId = req.session.user.id;
 
-  const { error } = await supabase.from('resources').insert({
-    subject_id,
-    subject_name,
-    grade,
-    num_students: parseInt(num_students) || 0,
-    num_books: parseInt(num_books) || 0,
-    num_computers: parseInt(num_computers) || 0,
-    school_id: schoolId
-  });
-
-  if (error) {
-    console.error(error);
-    req.flash('error_msg', 'Failed to add resource.');
-  } else {
+  try {
+    await pool.query(
+      'INSERT INTO resources (subject_id, subject_name, grade, num_students, num_books, num_computers, school_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [subject_id, subject_name, grade, parseInt(num_students) || 0, parseInt(num_books) || 0, parseInt(num_computers) || 0, schoolId]
+    );
     req.flash('success_msg', 'Resource added successfully.');
+  } catch (err) {
+    console.error('[resources] insert error:', err);
+    req.flash('error_msg', 'Failed to add resource.');
   }
   res.redirect('/resources');
 };
@@ -48,13 +42,17 @@ exports.addResource = async (req, res) => {
 // 4. Show Edit Resource Page
 exports.editResourcePage = async (req, res) => {
   const id = req.params.id;
-  const { data, error } = await supabase.from('resources').select('*').eq('id', id).maybeSingle();
-
-  if (error || !data) {
+  try {
+    const [rows] = await pool.query('SELECT * FROM resources WHERE id = ? LIMIT 1', [id]);
+    if (!rows.length) {
+      req.flash('error_msg', 'Resource not found.');
+      return res.redirect('/resources');
+    }
+    res.render('school/resources/edit', { resource: rows[0] });
+  } catch (err) {
     req.flash('error_msg', 'Resource not found.');
     return res.redirect('/resources');
   }
-  res.render('school/resources/edit', { resource: data });
 };
 
 // 5. Submit Resource Update
@@ -62,20 +60,15 @@ exports.editResource = async (req, res) => {
   const id = req.params.id;
   const { subject_id, subject_name, grade, num_students, num_books, num_computers } = req.body;
 
-  const { error } = await supabase.from('resources').update({
-    subject_id,
-    subject_name,
-    grade,
-    num_students: parseInt(num_students) || 0,
-    num_books: parseInt(num_books) || 0,
-    num_computers: parseInt(num_computers) || 0
-  }).eq('id', id);
-
-  if (error) {
-    console.error(error);
-    req.flash('error_msg', 'Failed to update resource.');
-  } else {
+  try {
+    await pool.query(
+      'UPDATE resources SET subject_id=?, subject_name=?, grade=?, num_students=?, num_books=?, num_computers=? WHERE id=?',
+      [subject_id, subject_name, grade, parseInt(num_students) || 0, parseInt(num_books) || 0, parseInt(num_computers) || 0, id]
+    );
     req.flash('success_msg', 'Resource updated successfully.');
+  } catch (err) {
+    console.error('[resources] update error:', err);
+    req.flash('error_msg', 'Failed to update resource.');
   }
   res.redirect('/resources');
 };
@@ -96,32 +89,37 @@ exports.uploadCSV = (req, res) => {
     .on('data', row => {
       const { subject_id, subject_name, grade, num_students, num_books, num_computers } = row;
       if (!subject_id || !subject_name || !grade) return;
-      parsedRows.push({
-        subject_id: subject_id.trim(),
-        subject_name: subject_name.trim(),
-        grade: grade.trim(),
-        num_students: parseInt(num_students) || 0,
-        num_books: parseInt(num_books) || 0,
-        num_computers: parseInt(num_computers) || 0,
-        school_id: schoolId
-      });
+      parsedRows.push([
+        subject_id.trim(),
+        subject_name.trim(),
+        grade.trim(),
+        parseInt(num_students) || 0,
+        parseInt(num_books) || 0,
+        parseInt(num_computers) || 0,
+        schoolId
+      ]);
     })
     .on('end', async () => {
       if (parsedRows.length === 0) {
         req.flash('error_msg', 'No valid rows found in CSV.');
         return res.redirect('/resources');
       }
-      const { error } = await supabase.from('resources').insert(parsedRows);
-      if (error) {
-        console.error('CSV Insert Error:', error);
-        req.flash('error_msg', 'Failed to upload CSV.');
-      } else {
+      try {
+        for (const r of parsedRows) {
+          await pool.query(
+            'INSERT INTO resources (subject_id, subject_name, grade, num_students, num_books, num_computers, school_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            r
+          );
+        }
         req.flash('success_msg', 'CSV uploaded successfully.');
+      } catch (err) {
+        console.error('[resources] CSV insert error:', err);
+        req.flash('error_msg', 'Failed to upload CSV.');
       }
       res.redirect('/resources');
     })
     .on('error', err => {
-      console.error('CSV Read Error:', err);
+      console.error('[resources] CSV read error:', err);
       req.flash('error_msg', 'Error reading CSV.');
       res.redirect('/resources');
     });
@@ -130,13 +128,13 @@ exports.uploadCSV = (req, res) => {
 // 7. Delete Resource
 exports.deleteResource = async (req, res) => {
   const id = req.params.id;
-  const { error } = await supabase.from('resources').delete().eq('id', id);
-  if (error) {
-    console.error('Delete Error:', error);
-    req.flash('error_msg', 'Failed to delete resource.');
-  } else {
+  try {
+    await pool.query('DELETE FROM resources WHERE id=?', [id]);
     req.flash('success_msg', 'Resource deleted successfully.');
+  } catch (err) {
+    console.error('[resources] delete error:', err);
+    req.flash('error_msg', 'Failed to delete resource.');
   }
   res.redirect('/resources');
 };
-
+

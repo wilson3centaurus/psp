@@ -1,4 +1,4 @@
-﻿const { supabase } = require('../../config/db');
+﻿const { pool } = require('../../config/db');
 const PDFDocument = require('pdfkit');
 
 // AI-like recommendation generator based on data analysis
@@ -90,14 +90,17 @@ function generateAIRecommendations(data) {
 
 // Render reports page with school list
 exports.index = async (req, res) => {
-  const { data: schools } = await supabase
-    .from('users').select('id, username').eq('role', 'school').order('username');
-
-  res.render('admin/reports/index', {
-    schools: schools || [],
-    success_msg: req.flash('success_msg'),
-    error_msg: req.flash('error_msg')
-  });
+  try {
+    const [schools] = await pool.query("SELECT id, username FROM users WHERE role = 'school' ORDER BY username");
+    res.render('admin/reports/index', {
+      schools,
+      success_msg: req.flash('success_msg'),
+      error_msg: req.flash('error_msg')
+    });
+  } catch (err) {
+    console.error('[admin/reports] index error:', err);
+    res.render('admin/reports/index', { schools: [], success_msg: null, error_msg: 'Failed to load schools.' });
+  }
 };
 
 // Generate PDF report for a school
@@ -110,36 +113,41 @@ exports.generate = async (req, res) => {
   }
 
   try {
-    const { data: school } = await supabase
-      .from('users').select('id, username').eq('id', schoolId).eq('role', 'school').maybeSingle();
-
-    if (!school) {
+    const [schoolRows] = await pool.query("SELECT id, username FROM users WHERE id = ? AND role = 'school' LIMIT 1", [schoolId]);
+    if (!schoolRows.length) {
       req.flash('error_msg', 'School not found.');
       return res.redirect('/admin/reports');
     }
+    const school = schoolRows[0];
 
     const sid = Number(schoolId);
 
-    const [stuCountRes, tchCountRes, resourceRes, stuAttRes, tchAttRes] = await Promise.all([
-      supabase.from('students').select('*', { count: 'exact', head: true }).eq('school_id', sid),
-      supabase.from('teachers').select('*', { count: 'exact', head: true }).eq('school_id', sid),
-      supabase.from('resources').select('subject_name, grade, num_students, num_books, num_computers').eq('school_id', sid),
-      supabase.from('student_attendance').select('date, status').eq('school_id', sid),
-      supabase.from('teacher_attendance').select('date, status').eq('school_id', sid)
+    const toDateStr = val => (val instanceof Date ? val.toISOString() : String(val || '')).slice(0, 10);
+
+    const [
+      [[{ count: totalStudents }]],
+      [[{ count: totalTeachers }]],
+      [resourceData],
+      [stuAttData],
+      [tchAttData]
+    ] = await Promise.all([
+      pool.query('SELECT COUNT(*) AS count FROM students WHERE school_id = ?', [sid]),
+      pool.query('SELECT COUNT(*) AS count FROM teachers WHERE school_id = ?', [sid]),
+      pool.query('SELECT subject_name, grade, num_students, num_books, num_computers FROM resources WHERE school_id = ?', [sid]),
+      pool.query('SELECT date, status FROM student_attendance WHERE school_id = ?', [sid]),
+      pool.query('SELECT date, status FROM teacher_attendance WHERE school_id = ?', [sid])
     ]);
 
-    const totalStudents = stuCountRes.count || 0;
-    const totalTeachers = tchCountRes.count || 0;
     const teacherStudentRatio = totalTeachers > 0 ? totalStudents / totalTeachers : null;
 
     // Aggregate resources by subject+grade
     const resMap = new Map();
-    for (const r of (resourceRes.data || [])) {
+    for (const r of resourceData) {
       const key = `${r.subject_name}|${r.grade}`;
       if (!resMap.has(key)) resMap.set(key, { subject_name: r.subject_name, grade: r.grade, total_students: 0, total_books: 0, total_computers: 0 });
       const e = resMap.get(key);
-      e.total_students += Number(r.num_students) || 0;
-      e.total_books += Number(r.num_books) || 0;
+      e.total_students  += Number(r.num_students)  || 0;
+      e.total_books     += Number(r.num_books)     || 0;
       e.total_computers += Number(r.num_computers) || 0;
     }
     const resourceRows = [...resMap.values()].sort((a, b) =>
@@ -155,16 +163,16 @@ exports.generate = async (req, res) => {
     }
 
     const stuWeeks = new Map();
-    for (const r of (stuAttRes.data || [])) {
+    for (const r of stuAttData) {
       if (!r.date) continue;
-      const ws = weekStart(r.date);
+      const ws = weekStart(toDateStr(r.date));
       if (!stuWeeks.has(ws)) stuWeeks.set(ws, 0);
       if ((r.status || '').toLowerCase() === 'absent') stuWeeks.set(ws, stuWeeks.get(ws) + 1);
     }
     const tchWeeks = new Map();
-    for (const r of (tchAttRes.data || [])) {
+    for (const r of tchAttData) {
       if (!r.date) continue;
-      const ws = weekStart(r.date);
+      const ws = weekStart(toDateStr(r.date));
       if (!tchWeeks.has(ws)) tchWeeks.set(ws, 0);
       if ((r.status || '').toLowerCase() === 'absent') tchWeeks.set(ws, tchWeeks.get(ws) + 1);
     }
@@ -195,37 +203,37 @@ exports.generate = async (req, res) => {
     doc.strokeColor('#2563eb').lineWidth(2).moveTo(40, doc.y).lineTo(555, doc.y).stroke();
     doc.moveDown();
 
-    doc.fontSize(14).font('Helvetica-Bold').fillColor('#2563eb').text('ðŸ“Š Summary');
+    doc.fontSize(14).font('Helvetica-Bold').fillColor('#2563eb').text('Summary');
     doc.fillColor('black').font('Helvetica').fontSize(11);
-    doc.text(`â€¢ Total Students: ${totalStudents}`);
-    doc.text(`â€¢ Total Teachers: ${totalTeachers}`);
-    doc.text(`â€¢ Teacher-Student Ratio: ${teacherStudentRatio !== null ? '1:' + teacherStudentRatio.toFixed(1) : 'N/A'}`);
-    doc.text(`â€¢ Total Computers/Devices: ${totalComputers}`);
-    doc.text(`â€¢ Average Weekly Student Absences: ${avgAbsentStudents.toFixed(1)}`);
-    doc.text(`â€¢ Average Weekly Teacher Absences: ${avgAbsentTeachers.toFixed(1)}`);
+    doc.text(`- Total Students: ${totalStudents}`);
+    doc.text(`- Total Teachers: ${totalTeachers}`);
+    doc.text(`- Teacher-Student Ratio: ${teacherStudentRatio !== null ? '1:' + teacherStudentRatio.toFixed(1) : 'N/A'}`);
+    doc.text(`- Total Computers/Devices: ${totalComputers}`);
+    doc.text(`- Average Weekly Student Absences: ${avgAbsentStudents.toFixed(1)}`);
+    doc.text(`- Average Weekly Teacher Absences: ${avgAbsentTeachers.toFixed(1)}`);
     doc.moveDown();
 
-    doc.fontSize(14).font('Helvetica-Bold').fillColor('#2563eb').text('ðŸ“š Resource Analysis by Subject');
+    doc.fontSize(14).font('Helvetica-Bold').fillColor('#2563eb').text('Resource Analysis by Subject');
     doc.fillColor('black').font('Helvetica').fontSize(10);
     if (!resourceRows.length) {
       doc.text('No resource data available for this school.');
     } else {
       resourceRows.forEach(r => {
         const bookRatio = r.total_books > 0 ? (r.total_students / r.total_books).toFixed(1) : 'No books';
-        const status = r.total_books > 0 && r.total_students / r.total_books <= 3 ? 'âœ“' : 'âš ';
+        const status = r.total_books > 0 && r.total_students / r.total_books <= 3 ? '[OK]' : '[!]';
         doc.text(`${status} ${r.subject_name || 'Unknown'} | Grade ${r.grade || '-'} | Students: ${r.total_students || 0} | Books: ${r.total_books || 0} | Ratio: ${bookRatio}:1`);
       });
     }
     doc.moveDown();
 
-    doc.fontSize(14).font('Helvetica-Bold').fillColor('#2563eb').text('ðŸ¤– AI-Powered Recommendations');
+    doc.fontSize(14).font('Helvetica-Bold').fillColor('#2563eb').text('AI-Powered Recommendations');
     doc.moveDown(0.5);
     doc.fillColor('black').font('Helvetica').fontSize(10);
     aiRecommendations.forEach((rec, index) => {
-      const sym = rec.priority === 'critical' ? 'ðŸ”´' : rec.priority === 'warning' ? 'ðŸŸ¡' : 'ðŸŸ¢';
+      const sym = rec.priority === 'critical' ? '[CRITICAL]' : rec.priority === 'warning' ? '[WARNING]' : '[GOOD]';
       doc.font('Helvetica-Bold').text(`${sym} ${rec.category}: ${rec.title}`);
       doc.font('Helvetica').text(`   ${rec.description}`);
-      doc.font('Helvetica-Oblique').fillColor('#666666').text(`   â†’ Action: ${rec.action}`);
+      doc.font('Helvetica-Oblique').fillColor('#666666').text(`   -> Action: ${rec.action}`);
       doc.fillColor('black');
       if (index < aiRecommendations.length - 1) doc.moveDown(0.5);
     });
