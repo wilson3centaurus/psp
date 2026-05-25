@@ -1,0 +1,168 @@
+================================================================
+PRIMARY SCHOOL PERFORMANCE (PSP) SYSTEM
+Tech Stack & System Operations Overview
+================================================================
+
+----------------------------------------------------------------
+TECH STACK
+----------------------------------------------------------------
+
+Layer              | Technology               | Why It Was Chosen
+-------------------|--------------------------|------------------------------------------
+Runtime            | Node.js                  | Lightweight, fast I/O, large ecosystem
+Web Framework      | Express.js               | Minimal, flexible routing and middleware
+Templating         | EJS                      | Server-rendered HTML, no build step needed
+Database           | MySQL (via mysql2)        | Relational data fits school hierarchy well
+Authentication     | express-session + bcrypt | Session cookies + safe password hashing
+Flash Messages     | connect-flash            | One-shot success/error messages on redirect
+File Uploads       | multer                   | Handles CSV imports and school logo uploads
+CSV Parsing        | csv-parser               | Streams uploaded CSV files row-by-row
+Report Export      | pdfkit + exceljs         | PDF and Excel report downloads
+Charting           | chart.js                 | Client-side analytics charts in browser
+Logging            | morgan                   | Logs every HTTP request for debugging
+Deployment         | Vercel (@vercel/node)    | Zero-config serverless deployment
+
+
+----------------------------------------------------------------
+APPLICATION STRUCTURE (MVC PATTERN)
+----------------------------------------------------------------
+
+server.js           - App entry point, middleware wiring, route mounting
+config/             - DB connection pool
+routes/             - Route definitions (delegate to controllers)
+  admin/            - Sub-routes for the admin panel
+controllers/        - All business logic
+  admin/            - Controllers scoped to the admin panel
+views/              - EJS templates (server-rendered HTML)
+  admin/            - Admin UI pages
+  school/           - School UI pages
+  partials/         - Shared headers, navbars, flash messages
+middlewares/        - Auth guards and role checks
+public/             - CSS, JS, images
+uploads/            - Logo files and uploaded CSVs
+
+
+----------------------------------------------------------------
+USER ROLES
+----------------------------------------------------------------
+
+All roles are stored in the 'users' table (role column).
+Teachers and students are DATA RECORDS, not login accounts.
+
+Role      | Who                  | Access
+----------|----------------------|---------------------------------------
+itadmin   | IT Administrator     | Creates school and admin accounts
+admin     | System Administrator | Manages all schools, analytics, reports
+school    | Individual School    | Manages own students, teachers, attendance
+
+
+----------------------------------------------------------------
+AUTHENTICATION FLOW
+----------------------------------------------------------------
+
+1. GET  /login  -> renders the login page
+2. POST /login  -> looks up username (case-insensitive)
+                -> bcrypt compares password
+                -> sets req.session.user
+                -> redirects based on role:
+                     admin  -> /admin/dashboard
+                     school -> /school/dashboard
+3. GET  /logout -> destroys session -> redirects to /login
+
+Every protected route runs:
+  - isAuthenticated middleware (checks session exists)
+  - isAdmin / isSchool middleware (checks correct role)
+
+
+----------------------------------------------------------------
+HOW TO CREATE A NEW SCHOOL
+----------------------------------------------------------------
+
+1. Navigate to /itadmin (no login required, but protected by
+   a secret access code set in .env as ITADMIN_SECRET)
+
+2. Fill in the registration form:
+   - Username    : the school's login username
+   - Password    : will be hashed with bcrypt before storage
+   - Role        : select "school"
+   - Access Code : must match ITADMIN_SECRET in .env
+   - Display Name, Email, Phone, Address (optional)
+
+3. Submit the form
+   -> POST /itadmin -> itadminController.registerUser
+   -> Validates access code
+   -> Hashes password with bcrypt
+   -> Inserts new row into users table with role = 'school'
+
+4. The school can now log in at /login with those credentials.
+
+
+----------------------------------------------------------------
+HOW TO CREATE A NEW ADMIN
+----------------------------------------------------------------
+
+Same process as creating a school:
+
+1. Navigate to /itadmin
+2. Fill in the form with Role = "admin"
+3. Submit -> inserts a users row with role = 'admin'
+   (school-specific fields like address are left null)
+
+
+----------------------------------------------------------------
+HOW A SCHOOL MANAGES ITS DATA (after login)
+----------------------------------------------------------------
+
+Students    - Add individually via form (POST /student/add)
+              OR bulk-import a CSV file (POST /student/upload)
+
+Teachers    - Same pattern: individual form or CSV upload
+
+Attendance  - Mark student/teacher attendance by date
+              via dedicated attendance routes
+
+Resources   - Log resource counts per subject/grade
+
+Reports     - Download student/teacher lists as PDF or Excel
+
+
+----------------------------------------------------------------
+HOW THE ADMIN PANEL WORKS
+----------------------------------------------------------------
+
+The admin role has a system-wide view:
+
+- Schools    : View all schools, edit details, upload logos, delete
+- Students   : View student records across all schools
+- Teachers   : View teacher records across all schools
+- Analytics  : Charts and stats across all schools (Chart.js)
+- Reports    : Export system-wide data to PDF or Excel
+
+
+----------------------------------------------------------------
+CSV IMPORT
+----------------------------------------------------------------
+
+Sample templates are in: uploads/sample-templates/
+
+Expected columns for students:
+  name, grade, section, gender, date of birth, etc.
+
+Upload via the school dashboard -> server streams the file
+through csv-parser and bulk-inserts rows for that school.
+
+
+----------------------------------------------------------------
+DEPLOYMENT NOTE
+----------------------------------------------------------------
+
+The app is configured for Vercel (vercel.json routes all
+traffic to server.js).
+
+Sessions use in-memory storage, which works for single-instance
+development but will lose sessions across serverless restarts.
+
+For production: a persistent session store (e.g., Redis or a
+DB-backed store) should be used.
+
+================================================================

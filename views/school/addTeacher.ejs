@@ -27,15 +27,20 @@
     <% } %>
 
     <div class="card form-card">
-      <form action="/teacher/add" method="POST">
+      <form action="/teacher/add" method="POST" id="addTeacherForm" novalidate>
+
         <div class="form-group">
-          <label for="name"><i class="fas fa-user"></i> Full Name</label>
-          <input type="text" id="name" name="name" class="form-input" placeholder="Enter teacher's full name" required>
+          <label for="name"><i class="fas fa-user"></i> Full Name <span class="required">*</span></label>
+          <input type="text" id="name" name="name" class="form-input"
+            placeholder="e.g. Mr. John Banda" required minlength="2" maxlength="100"
+            pattern="[A-Za-z\s'\-\.]+" autocomplete="off">
+          <small class="form-hint">Letters, spaces, hyphens, and apostrophes only.</small>
+          <span class="field-error" id="err-name"></span>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label for="subject"><i class="fas fa-book"></i> Subject</label>
+            <label for="subject"><i class="fas fa-book"></i> Subject <span class="required">*</span></label>
             <select id="subject" name="subject" class="form-input" required>
               <option value="">Select Subject</option>
               <option value="Mathematics">Mathematics</option>
@@ -45,33 +50,42 @@
               <option value="Physical Education and Arts">Physical Education and Arts</option>
               <option value="Science and Technology">Science and Technology</option>
             </select>
+            <span class="field-error" id="err-subject"></span>
           </div>
           <div class="form-group">
-            <label for="gender"><i class="fas fa-venus-mars"></i> Gender</label>
+            <label for="gender"><i class="fas fa-venus-mars"></i> Gender <span class="required">*</span></label>
             <select id="gender" name="gender" class="form-input" required>
               <option value="">Select Gender</option>
               <option value="Male">Male</option>
               <option value="Female">Female</option>
               <option value="Other">Other</option>
             </select>
+            <span class="field-error" id="err-gender"></span>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label for="phone"><i class="fas fa-phone"></i> Phone</label>
-            <input type="text" id="phone" name="phone" class="form-input" placeholder="Phone number">
+            <label for="phone"><i class="fas fa-phone"></i> Phone <span class="optional-label">(optional)</span></label>
+            <input type="tel" id="phone" name="phone" class="form-input"
+              placeholder="e.g. +263712345678" maxlength="30">
+            <small class="form-hint">Format: +263712345678 or 0712345678</small>
+            <span class="field-error" id="err-phone"></span>
           </div>
           <div class="form-group">
-            <label for="email"><i class="fas fa-envelope"></i> Email</label>
-            <input type="email" id="email" name="email" class="form-input" placeholder="Email address">
+            <label for="email"><i class="fas fa-envelope"></i> Email <span class="optional-label">(optional)</span></label>
+            <input type="email" id="email" name="email" class="form-input"
+              placeholder="e.g. teacher@school.ac.zw" maxlength="100">
+            <span class="field-error" id="err-email"></span>
           </div>
         </div>
 
         <div class="form-group">
-          <label for="teacher_id"><i class="fas fa-id-badge"></i> EC Number</label>
-          <input type="text" id="teacher_id" name="teacher_id" class="form-input" placeholder="e.g. 5207039Z" required>
-          <small class="form-hint"><i class="fas fa-info-circle"></i> Employee Code Number assigned by the ministry</small>
+          <label for="teacher_id"><i class="fas fa-id-badge"></i> EC Number <span class="required">*</span></label>
+          <input type="text" id="teacher_id" name="teacher_id" class="form-input"
+            placeholder="e.g. 5207039Z" required minlength="4" maxlength="20" autocomplete="off">
+          <small class="form-hint"><i class="fas fa-info-circle"></i> Employee Code Number assigned by the Ministry of Education (e.g. 5207039Z)</small>
+          <span class="field-error" id="err-ec"></span>
         </div>
 
         <div class="form-actions">
@@ -83,5 +97,72 @@
   </div>
 
   <script src="/js/main.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const form = document.getElementById('addTeacherForm');
+    if (!form) return;
+
+    function showErr(id, msg) {
+      const el = document.getElementById(id);
+      if (el) { el.textContent = msg; el.style.display = msg ? 'block' : 'none'; }
+    }
+    function clearErr(id) { showErr(id, ''); }
+
+    function validateForm() {
+      let ok = true;
+
+      const name = form.name.value.trim();
+      if (!name) { showErr('err-name', 'Full name is required.'); ok = false; }
+      else if (name.length < 2) { showErr('err-name', 'Name must be at least 2 characters.'); ok = false; }
+      else if (!/^[A-Za-z\s'\-\.]+$/.test(name)) { showErr('err-name', 'Name may only contain letters, spaces, hyphens, and apostrophes.'); ok = false; }
+      else clearErr('err-name');
+
+      if (!form.subject.value) { showErr('err-subject', 'Please select a subject.'); ok = false; }
+      else clearErr('err-subject');
+
+      if (!form.gender.value) { showErr('err-gender', 'Please select a gender.'); ok = false; }
+      else clearErr('err-gender');
+
+      const ec = form.teacher_id.value.trim();
+      if (!ec) { showErr('err-ec', 'EC Number is required.'); ok = false; }
+      else if (ec.length < 4) { showErr('err-ec', 'EC Number must be at least 4 characters.'); ok = false; }
+      else if (!/^[A-Za-z0-9]+$/.test(ec)) { showErr('err-ec', 'EC Number may only contain letters and numbers.'); ok = false; }
+      else clearErr('err-ec');
+
+      const phone = form.phone.value.trim();
+      if (phone) {
+        const digits = phone.replace(/[\s\-\(\)\.]/g, '');
+        if (!/^\+?[0-9]{7,15}$/.test(digits)) { showErr('err-phone', 'Enter a valid phone number, e.g. +263712345678.'); ok = false; }
+        else clearErr('err-phone');
+      } else clearErr('err-phone');
+
+      const email = form.email.value.trim();
+      if (email) {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { showErr('err-email', 'Enter a valid email address.'); ok = false; }
+        else clearErr('err-email');
+      } else clearErr('err-email');
+
+      return ok;
+    }
+
+    form.addEventListener('submit', function (e) {
+      if (!validateForm()) {
+        e.preventDefault();
+        const firstErr = form.querySelector('.field-error[style*="block"]');
+        if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+  })();
+  </script>
+  <style>
+    .required { color: var(--error, #e53e3e); margin-left: 2px; }
+    .optional-label { font-size: 0.78rem; color: var(--text-muted); font-weight: 400; margin-left: 4px; }
+    .field-error {
+      display: none; color: var(--error, #e53e3e);
+      font-size: 0.78rem; margin-top: 0.25rem; font-weight: 500;
+    }
+    .field-error::before { content: '\f071  '; font-family: 'Font Awesome 6 Free'; font-weight: 900; margin-right: 3px; }
+  </style>
 </body>
 </html>

@@ -70,62 +70,62 @@ INSERT INTO resources (subject_id, subject_name, grade, num_students, num_books,
 -- =============================================
 INSERT INTO student_attendance (student_id, school_id, date, status, reason, excused, late_minutes, early_minutes) VALUES
 -- 4 days ago
-(1, 3, CURRENT_DATE - INTERVAL '4 days', 'Present', NULL, 0, 0,  0),
-(2, 3, CURRENT_DATE - INTERVAL '4 days', 'Present', NULL, 0, 0,  0),
-(3, 3, CURRENT_DATE - INTERVAL '4 days', 'Late',    NULL, 0, 15, 0),
-(4, 3, CURRENT_DATE - INTERVAL '4 days', 'Present', NULL, 0, 0,  0),
-(5, 3, CURRENT_DATE - INTERVAL '4 days', 'Absent',  'Sick', 1, 0, 0),
+(1, 3, CURRENT_DATE - INTERVAL 4 DAY, 'Present', NULL, 0, 0,  0),
+(2, 3, CURRENT_DATE - INTERVAL 4 DAY, 'Present', NULL, 0, 0,  0),
+(3, 3, CURRENT_DATE - INTERVAL 4 DAY, 'Late',    NULL, 0, 15, 0),
+(4, 3, CURRENT_DATE - INTERVAL 4 DAY, 'Present', NULL, 0, 0,  0),
+(5, 3, CURRENT_DATE - INTERVAL 4 DAY, 'Absent',  'Sick', 1, 0, 0),
 -- 3 days ago
-(1, 3, CURRENT_DATE - INTERVAL '3 days', 'Present', NULL, 0, 0,  0),
-(2, 3, CURRENT_DATE - INTERVAL '3 days', 'Present', NULL, 0, 0,  0),
-(3, 3, CURRENT_DATE - INTERVAL '3 days', 'Present', NULL, 0, 0,  0),
-(4, 3, CURRENT_DATE - INTERVAL '3 days', 'Late',    NULL, 0, 10, 0),
-(5, 3, CURRENT_DATE - INTERVAL '3 days', 'Present', NULL, 0, 0,  0),
+(1, 3, CURRENT_DATE - INTERVAL 3 DAY, 'Present', NULL, 0, 0,  0),
+(2, 3, CURRENT_DATE - INTERVAL 3 DAY, 'Present', NULL, 0, 0,  0),
+(3, 3, CURRENT_DATE - INTERVAL 3 DAY, 'Present', NULL, 0, 0,  0),
+(4, 3, CURRENT_DATE - INTERVAL 3 DAY, 'Late',    NULL, 0, 10, 0),
+(5, 3, CURRENT_DATE - INTERVAL 3 DAY, 'Present', NULL, 0, 0,  0),
 -- 2 days ago
-(1, 3, CURRENT_DATE - INTERVAL '2 days', 'Present', NULL, 0, 0, 0),
-(2, 3, CURRENT_DATE - INTERVAL '2 days', 'Present', NULL, 0, 0, 0),
-(3, 3, CURRENT_DATE - INTERVAL '2 days', 'Present', NULL, 0, 0, 0),
-(4, 3, CURRENT_DATE - INTERVAL '2 days', 'Present', NULL, 0, 0, 0),
-(5, 3, CURRENT_DATE - INTERVAL '2 days', 'Present', NULL, 0, 0, 0),
+(1, 3, CURRENT_DATE - INTERVAL 2 DAY, 'Present', NULL, 0, 0, 0),
+(2, 3, CURRENT_DATE - INTERVAL 2 DAY, 'Present', NULL, 0, 0, 0),
+(3, 3, CURRENT_DATE - INTERVAL 2 DAY, 'Present', NULL, 0, 0, 0),
+(4, 3, CURRENT_DATE - INTERVAL 2 DAY, 'Present', NULL, 0, 0, 0),
+(5, 3, CURRENT_DATE - INTERVAL 2 DAY, 'Present', NULL, 0, 0, 0),
 -- yesterday
-(1, 3, CURRENT_DATE - INTERVAL '1 day',  'Present', NULL, 0, 0, 0),
-(2, 3, CURRENT_DATE - INTERVAL '1 day',  'Absent',  'Flu', 1, 0, 0),
-(3, 3, CURRENT_DATE - INTERVAL '1 day',  'Present', NULL, 0, 0, 0),
-(4, 3, CURRENT_DATE - INTERVAL '1 day',  'Present', NULL, 0, 0, 0),
-(5, 3, CURRENT_DATE - INTERVAL '1 day',  'Late',    NULL, 0, 5, 0);
+(1, 3, CURRENT_DATE - INTERVAL 1 DAY, 'Present', NULL, 0, 0, 0),
+(2, 3, CURRENT_DATE - INTERVAL 1 DAY, 'Absent',  'Flu', 1, 0, 0),
+(3, 3, CURRENT_DATE - INTERVAL 1 DAY, 'Present', NULL, 0, 0, 0),
+(4, 3, CURRENT_DATE - INTERVAL 1 DAY, 'Present', NULL, 0, 0, 0),
+(5, 3, CURRENT_DATE - INTERVAL 1 DAY, 'Late',    NULL, 0, 5, 0);
 
 -- =============================================
 -- 6. TEACHER ATTENDANCE  (last 4 days)
 -- =============================================
 INSERT INTO teacher_attendance (teacher_id, school_id, date, status, reason, excused, late_minutes, early_minutes) VALUES
 -- 4 days ago
-(1, 3, CURRENT_DATE - INTERVAL '4 days', 'Present', NULL, 0, 0,  0),
-(2, 3, CURRENT_DATE - INTERVAL '4 days', 'Present', NULL, 0, 0,  0),
-(3, 3, CURRENT_DATE - INTERVAL '4 days', 'Present', NULL, 0, 0,  0),
-(4, 3, CURRENT_DATE - INTERVAL '4 days', 'Late',    NULL, 0, 20, 0),
-(5, 3, CURRENT_DATE - INTERVAL '4 days', 'Present', NULL, 0, 0,  0),
-(6, 3, CURRENT_DATE - INTERVAL '4 days', 'Present', NULL, 0, 0,  0),
+(1, 3, CURRENT_DATE - INTERVAL 4 DAY, 'Present', NULL, 0, 0,  0),
+(2, 3, CURRENT_DATE - INTERVAL 4 DAY, 'Present', NULL, 0, 0,  0),
+(3, 3, CURRENT_DATE - INTERVAL 4 DAY, 'Present', NULL, 0, 0,  0),
+(4, 3, CURRENT_DATE - INTERVAL 4 DAY, 'Late',    NULL, 0, 20, 0),
+(5, 3, CURRENT_DATE - INTERVAL 4 DAY, 'Present', NULL, 0, 0,  0),
+(6, 3, CURRENT_DATE - INTERVAL 4 DAY, 'Present', NULL, 0, 0,  0),
 -- 3 days ago
-(1, 3, CURRENT_DATE - INTERVAL '3 days', 'Present', NULL, 0, 0, 0),
-(2, 3, CURRENT_DATE - INTERVAL '3 days', 'Present', NULL, 0, 0, 0),
-(3, 3, CURRENT_DATE - INTERVAL '3 days', 'Absent',  'Medical Appointment', 1, 0, 0),
-(4, 3, CURRENT_DATE - INTERVAL '3 days', 'Present', NULL, 0, 0, 0),
-(5, 3, CURRENT_DATE - INTERVAL '3 days', 'Present', NULL, 0, 0, 0),
-(6, 3, CURRENT_DATE - INTERVAL '3 days', 'Present', NULL, 0, 0, 0),
+(1, 3, CURRENT_DATE - INTERVAL 3 DAY, 'Present', NULL, 0, 0, 0),
+(2, 3, CURRENT_DATE - INTERVAL 3 DAY, 'Present', NULL, 0, 0, 0),
+(3, 3, CURRENT_DATE - INTERVAL 3 DAY, 'Absent',  'Medical Appointment', 1, 0, 0),
+(4, 3, CURRENT_DATE - INTERVAL 3 DAY, 'Present', NULL, 0, 0, 0),
+(5, 3, CURRENT_DATE - INTERVAL 3 DAY, 'Present', NULL, 0, 0, 0),
+(6, 3, CURRENT_DATE - INTERVAL 3 DAY, 'Present', NULL, 0, 0, 0),
 -- 2 days ago
-(1, 3, CURRENT_DATE - INTERVAL '2 days', 'Present', NULL, 0, 0,  0),
-(2, 3, CURRENT_DATE - INTERVAL '2 days', 'Late',    NULL, 0, 10, 0),
-(3, 3, CURRENT_DATE - INTERVAL '2 days', 'Present', NULL, 0, 0,  0),
-(4, 3, CURRENT_DATE - INTERVAL '2 days', 'Present', NULL, 0, 0,  0),
-(5, 3, CURRENT_DATE - INTERVAL '2 days', 'Present', NULL, 0, 0,  0),
-(6, 3, CURRENT_DATE - INTERVAL '2 days', 'Present', NULL, 0, 0,  0),
+(1, 3, CURRENT_DATE - INTERVAL 2 DAY, 'Present', NULL, 0, 0,  0),
+(2, 3, CURRENT_DATE - INTERVAL 2 DAY, 'Late',    NULL, 0, 10, 0),
+(3, 3, CURRENT_DATE - INTERVAL 2 DAY, 'Present', NULL, 0, 0,  0),
+(4, 3, CURRENT_DATE - INTERVAL 2 DAY, 'Present', NULL, 0, 0,  0),
+(5, 3, CURRENT_DATE - INTERVAL 2 DAY, 'Present', NULL, 0, 0,  0),
+(6, 3, CURRENT_DATE - INTERVAL 2 DAY, 'Present', NULL, 0, 0,  0),
 -- yesterday
-(1, 3, CURRENT_DATE - INTERVAL '1 day',  'Present', NULL, 0, 0, 0),
-(2, 3, CURRENT_DATE - INTERVAL '1 day',  'Present', NULL, 0, 0, 0),
-(3, 3, CURRENT_DATE - INTERVAL '1 day',  'Present', NULL, 0, 0, 0),
-(4, 3, CURRENT_DATE - INTERVAL '1 day',  'Present', NULL, 0, 0, 0),
-(5, 3, CURRENT_DATE - INTERVAL '1 day',  'Absent',  'Family Emergency', 1, 0, 0),
-(6, 3, CURRENT_DATE - INTERVAL '1 day',  'Present', NULL, 0, 0, 0);
+(1, 3, CURRENT_DATE - INTERVAL 1 DAY, 'Present', NULL, 0, 0, 0),
+(2, 3, CURRENT_DATE - INTERVAL 1 DAY, 'Present', NULL, 0, 0, 0),
+(3, 3, CURRENT_DATE - INTERVAL 1 DAY, 'Present', NULL, 0, 0, 0),
+(4, 3, CURRENT_DATE - INTERVAL 1 DAY, 'Present', NULL, 0, 0, 0),
+(5, 3, CURRENT_DATE - INTERVAL 1 DAY, 'Absent',  'Family Emergency', 1, 0, 0),
+(6, 3, CURRENT_DATE - INTERVAL 1 DAY, 'Present', NULL, 0, 0, 0);
 
 -- =============================================
 -- NOTES
@@ -137,3 +137,20 @@ INSERT INTO teacher_attendance (teacher_id, school_id, date, status, reason, exc
 -- Schools  : greenfield_primary | riverside_academy | sunshine_school
 --
 -- Sequence: run schema.sql first, then seed.sql
+
+
+
+
+
+
+
+-- To run the system open VSCode then open Termimal and run this command:
+
+-- npm start
+
+-- This will start the server and you can access the system at: http://localhost:3000
+
+
+-- Admin    : admin
+-- Schools  : greenfield_primary | riverside_academy | sunshine_school
+-- Default password for all accounts: password123

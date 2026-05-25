@@ -4,21 +4,33 @@ const bcrypt = require('bcryptjs');
 exports.loginPage = (req, res) => res.render('login');
 
 exports.loginUser = async (req, res) => {
-  const { username, password } = req.body;
-  const safeUser = (username || '').trim();
+  const username = (req.body.username || '').trim();
+  const password = req.body.password || '';
 
-  console.log('[LOGIN] Attempt for username:', safeUser);
+  // Basic presence check — keep error vague to avoid user enumeration
+  if (!username || !password) {
+    req.flash('error_msg', 'Please enter your username and password.');
+    return res.redirect('/login');
+  }
+
+  // Reject obviously oversized inputs before hitting the DB
+  if (username.length > 100 || password.length > 256) {
+    req.flash('error_msg', 'Invalid username or password.');
+    return res.redirect('/login');
+  }
+
+  console.log('[LOGIN] Attempt for username:', username);
 
   try {
     const [users] = await pool.query(
       'SELECT * FROM users WHERE LOWER(username) = LOWER(?) LIMIT 1',
-      [safeUser]
+      [username]
     );
     console.log('[LOGIN] Rows returned:', users.length);
 
     if (!users || users.length === 0) {
       console.log('[LOGIN] No matching user found');
-      req.flash('error_msg', 'Invalid username or password');
+      req.flash('error_msg', 'Invalid username or password.');
       return res.redirect('/login');
     }
 
@@ -28,7 +40,7 @@ exports.loginUser = async (req, res) => {
     const match = await bcrypt.compare(password, user.password);
     console.log('[LOGIN] Password match:', match);
     if (!match) {
-      req.flash('error_msg', 'Invalid username or password');
+      req.flash('error_msg', 'Invalid username or password.');
       return res.redirect('/login');
     }
 

@@ -7,7 +7,254 @@
   <link href="/css/style.css" rel="stylesheet">
   <link rel="icon" type="image/png" href="/assets/logo.png">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <style>
+    .field-error { display:none; color:#e53e3e; font-size:0.78rem; margin-top:0.25rem; font-weight:500; }
+    .field-error::before { content:'\f071  '; font-family:'Font Awesome 6 Free'; font-weight:900; margin-right:3px; }
+    .pw-strength-bar { height: 6px; border-radius: 3px; background: #e2e8f0; margin-top: 6px; overflow:hidden; }
+    .pw-strength-fill { height:100%; border-radius:3px; width:0; transition: width .3s, background .3s; }
+    .pw-checklist { list-style:none; padding:0; margin:6px 0 0; display:flex; flex-wrap:wrap; gap:4px 12px; }
+    .pw-checklist li { font-size:0.75rem; color: var(--text-muted); display:flex; align-items:center; gap:4px; }
+    .pw-checklist li.pass { color: #38a169; }
+    .pw-checklist li i { font-size:0.7rem; }
+    .form-hint-small { font-size:0.75rem; color:var(--text-muted); margin-top:3px; }
+    .required { color:#e53e3e; margin-left:2px; }
+  </style>
 </head>
+<body>
+  <div class="erp-shell">
+    <aside class="erp-sidebar">
+      <div class="sidebar-brand">
+        <img src="/assets/logo.png" alt="System Logo" class="logo">
+        <div class="brand-text">Primary School Performance</div>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="sidebar-link active" href="/itadmin"><i class="fas fa-user-shield"></i> IT Admin</a>
+        <a class="sidebar-link" href="/admin/dashboard"><i class="fas fa-gauge"></i> Admin Dashboard</a>
+        <a class="sidebar-link" href="/login"><i class="fas fa-sign-in-alt"></i> Login</a>
+      </nav>
+    </aside>
+
+    <div class="erp-main">
+      <header class="erp-topbar">
+        <div class="title">IT Admin · Create User</div>
+        <div class="nav-actions">
+          <a class="nav-link" href="/login"><i class="fas fa-sign-in-alt"></i> Go to Login</a>
+        </div>
+      </header>
+
+      <section class="erp-content">
+        <div class="page-header">
+          <div>
+            <h2><i class="fas fa-user-shield"></i> Provision Accounts</h2>
+            <p class="subhead">Use the IT admin access code to create school or admin users.</p>
+          </div>
+        </div>
+
+        <% if (error) { %>
+          <div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> <%= error %></div>
+        <% } %>
+        <% if (success) { %>
+          <div class="alert alert-success"><i class="fas fa-check-circle"></i> <%= success %></div>
+        <% } %>
+
+        <div class="card" style="max-width: 540px;">
+          <form method="POST" action="/itadmin" id="registerForm" novalidate class="actions-row" style="flex-direction: column; gap: 0.9rem;">
+
+            <div style="width: 100%;">
+              <label>Access Code <span class="required">*</span></label>
+              <input type="password" name="accessCode" id="accessCode" placeholder="Enter IT admin access code" required autocomplete="off">
+              <span class="field-error" id="err-code"></span>
+            </div>
+
+            <div style="width: 100%;">
+              <label>Username (Login ID) <span class="required">*</span></label>
+              <input type="text" name="username" id="usernameInput" placeholder="e.g. baring_primary" required
+                minlength="4" maxlength="50" autocomplete="off">
+              <p class="form-hint-small">4–50 characters. Letters, numbers, underscores, hyphens, and periods allowed.</p>
+              <span class="field-error" id="err-username"></span>
+            </div>
+
+            <div style="width: 100%;">
+              <label>Password <span class="required">*</span></label>
+              <div class="password-field">
+                <input type="password" name="password" id="passwordInput" placeholder="Set a secure password" required autocomplete="new-password">
+                <button type="button" class="password-toggle" id="togglePassword" aria-label="Show or hide password">
+                  <i class="fas fa-eye"></i>
+                </button>
+              </div>
+              <div class="pw-strength-bar"><div class="pw-strength-fill" id="pwStrengthFill"></div></div>
+              <ul class="pw-checklist" id="pwChecklist">
+                <li id="chk-len"><i class="fas fa-circle"></i> 8+ characters</li>
+                <li id="chk-upper"><i class="fas fa-circle"></i> Uppercase letter</li>
+                <li id="chk-lower"><i class="fas fa-circle"></i> Lowercase letter</li>
+                <li id="chk-digit"><i class="fas fa-circle"></i> Number</li>
+                <li id="chk-special"><i class="fas fa-circle"></i> Special character</li>
+              </ul>
+              <span class="field-error" id="err-password"></span>
+            </div>
+
+            <div style="width: 100%;">
+              <label>Role <span class="required">*</span></label>
+              <select name="role" id="roleSelect" required onchange="toggleSchoolFields()">
+                <option value="">Select role</option>
+                <option value="school">School</option>
+                <option value="admin">Admin</option>
+              </select>
+              <span class="field-error" id="err-role"></span>
+            </div>
+
+            <!-- School-specific fields (shown when role = school) -->
+            <div id="schoolFields" style="display: none; width: 100%;">
+              <div style="border: 1px dashed var(--border); border-radius: var(--radius); padding: 1rem; margin-top: 0.25rem; background: var(--bg-secondary);">
+                <h4 style="margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem; color: var(--text-primary);"><i class="fas fa-school" style="color: var(--primary);"></i> School Details</h4>
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                  <div>
+                    <label>Display Name</label>
+                    <input type="text" name="display_name" placeholder="e.g. Baring Primary School" maxlength="150">
+                  </div>
+                  <div>
+                    <label>Email Address</label>
+                    <input type="email" name="email" placeholder="e.g. admin@baringprimary.co.zw" maxlength="100">
+                    <span class="field-error" id="err-school-email"></span>
+                  </div>
+                  <div>
+                    <label>Phone Number</label>
+                    <input type="tel" name="phone" placeholder="e.g. +263712345678" maxlength="30">
+                    <p class="form-hint-small">Format: +263712345678 or 0712345678</p>
+                    <span class="field-error" id="err-school-phone"></span>
+                  </div>
+                  <div>
+                    <label>Address</label>
+                    <input type="text" name="address" placeholder="e.g. 123 Main Rd, Harare" maxlength="200">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button class="btn btn-primary" type="submit" style="width: 100%; margin-top: 0.2rem;">
+              <i class="fas fa-user-plus"></i> Create Account
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <p>&copy; 2026 Primary School Performance System | made with <i class="fas fa-heart"></i> by Memory Nikisi</p>
+      </footer>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    'use strict';
+
+    // --- Password visibility toggle ---
+    const pwInput = document.getElementById('passwordInput');
+    const toggleBtn = document.getElementById('togglePassword');
+    if (toggleBtn && pwInput) {
+      toggleBtn.addEventListener('click', function () {
+        const isHidden = pwInput.type === 'password';
+        pwInput.type = isHidden ? 'text' : 'password';
+        toggleBtn.innerHTML = isHidden ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+      });
+    }
+
+    // --- Password strength meter ---
+    const fill = document.getElementById('pwStrengthFill');
+    const checks = {
+      len:     { el: document.getElementById('chk-len'),     fn: v => v.length >= 8 },
+      upper:   { el: document.getElementById('chk-upper'),   fn: v => /[A-Z]/.test(v) },
+      lower:   { el: document.getElementById('chk-lower'),   fn: v => /[a-z]/.test(v) },
+      digit:   { el: document.getElementById('chk-digit'),   fn: v => /[0-9]/.test(v) },
+      special: { el: document.getElementById('chk-special'), fn: v => /[^A-Za-z0-9]/.test(v) }
+    };
+    const strengthColors = ['', '#e53e3e', '#dd6b20', '#d69e2e', '#38a169', '#276749'];
+
+    if (pwInput && fill) {
+      pwInput.addEventListener('input', function () {
+        const val = pwInput.value;
+        let score = 0;
+        Object.values(checks).forEach(function (c) {
+          const pass = c.fn(val);
+          if (pass) score++;
+          if (c.el) {
+            c.el.className = pass ? 'pass' : '';
+            c.el.querySelector('i').className = pass ? 'fas fa-check-circle' : 'fas fa-circle';
+          }
+        });
+        fill.style.width = (score * 20) + '%';
+        fill.style.background = strengthColors[score] || '#e2e8f0';
+      });
+    }
+
+    // --- Form validation ---
+    function showErr(id, msg) {
+      const el = document.getElementById(id);
+      if (el) { el.textContent = msg; el.style.display = msg ? 'block' : 'none'; }
+    }
+    function clearErr(id) { showErr(id, ''); }
+
+    document.getElementById('registerForm').addEventListener('submit', function (e) {
+      let ok = true;
+
+      const code = document.getElementById('accessCode').value.trim();
+      if (!code) { showErr('err-code', 'Access code is required.'); ok = false; }
+      else clearErr('err-code');
+
+      const username = document.getElementById('usernameInput').value.trim();
+      if (!username) { showErr('err-username', 'Username is required.'); ok = false; }
+      else if (username.length < 4) { showErr('err-username', 'Username must be at least 4 characters.'); ok = false; }
+      else if (!/^[A-Za-z0-9._\-]+$/.test(username)) { showErr('err-username', 'Only letters, numbers, underscores, hyphens, and periods are allowed.'); ok = false; }
+      else clearErr('err-username');
+
+      const pw = pwInput ? pwInput.value : '';
+      if (!pw) { showErr('err-password', 'Password is required.'); ok = false; }
+      else if (pw.length < 8) { showErr('err-password', 'Password must be at least 8 characters.'); ok = false; }
+      else if (!/[A-Z]/.test(pw)) { showErr('err-password', 'Password must include at least one uppercase letter.'); ok = false; }
+      else if (!/[a-z]/.test(pw)) { showErr('err-password', 'Password must include at least one lowercase letter.'); ok = false; }
+      else if (!/[0-9]/.test(pw)) { showErr('err-password', 'Password must include at least one number.'); ok = false; }
+      else if (!/[^A-Za-z0-9]/.test(pw)) { showErr('err-password', 'Password must include at least one special character.'); ok = false; }
+      else clearErr('err-password');
+
+      const role = document.getElementById('roleSelect').value;
+      if (!role) { showErr('err-role', 'Please select a role.'); ok = false; }
+      else clearErr('err-role');
+
+      if (role === 'school') {
+        const schoolEmail = document.querySelector('[name="email"]');
+        const schoolPhone = document.querySelector('[name="phone"]');
+        if (schoolEmail && schoolEmail.value.trim()) {
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(schoolEmail.value.trim())) {
+            showErr('err-school-email', 'Enter a valid email address.'); ok = false;
+          } else clearErr('err-school-email');
+        } else clearErr('err-school-email');
+
+        if (schoolPhone && schoolPhone.value.trim()) {
+          const digits = schoolPhone.value.trim().replace(/[\s\-\(\)\.]/g, '');
+          if (!/^\+?[0-9]{7,15}$/.test(digits)) {
+            showErr('err-school-phone', 'Enter a valid phone number, e.g. +263712345678.'); ok = false;
+          } else clearErr('err-school-phone');
+        } else clearErr('err-school-phone');
+      }
+
+      if (!ok) {
+        e.preventDefault();
+        const firstErr = document.querySelector('.field-error[style*="block"]');
+        if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+  })();
+
+  function toggleSchoolFields() {
+    const role = document.getElementById('roleSelect').value;
+    const schoolFields = document.getElementById('schoolFields');
+    if (schoolFields) {
+      schoolFields.style.display = role === 'school' ? 'block' : 'none';
+    }
+  }
+  </script>
+</body>
+</html>
 <body>
   <div class="erp-shell">
     <aside class="erp-sidebar">

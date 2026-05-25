@@ -1,6 +1,19 @@
 const { pool } = require('../config/db');
 const fs = require('fs');
 const csv = require('csv-parser');
+const v = require('../utils/validate');
+
+// ─── Shared field validation ──────────────────────────────────────────────────
+function validateTeacherFields(body) {
+  return v.runAll([
+    v.validateName(body.name, 'Full name'),
+    v.validateSubject(body.subject),
+    v.validateGender(body.gender),
+    v.validateECNumber(body.teacher_id),
+    v.validatePhone(body.phone, 'Phone number', false),
+    v.validateEmail(body.email, 'Email', false),
+  ]);
+}
 
 /* ===========================
    1. LIST TEACHERS
@@ -30,17 +43,34 @@ exports.addTeacher = async (req, res) => {
   const { name, subject, gender, email, phone, teacher_id } = req.body;
   const schoolId = req.session.user.id;
 
+  const result = validateTeacherFields(req.body);
+  if (!result.valid) {
+    req.flash('error_msg', result.message);
+    return res.redirect('/teacher/add');
+  }
+
   try {
     await pool.query(
       'INSERT INTO teachers (name, subject, gender, email, phone, teacher_id, school_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [name, subject, gender, email, phone, teacher_id, schoolId]
+      [
+        name.trim(), subject, gender,
+        (email || '').trim() || null,
+        (phone || '').trim() || null,
+        teacher_id.trim().toUpperCase(),
+        schoolId
+      ]
     );
-    req.flash('success_msg', 'Teacher added');
+    req.flash('success_msg', 'Teacher added successfully.');
+    res.redirect('/teacher');
   } catch (err) {
     console.error('[teachers] insert error:', err);
-    req.flash('error_msg', 'Could not add teacher');
+    if (err.code === 'ER_DUP_ENTRY') {
+      req.flash('error_msg', `A teacher with EC Number "${teacher_id}" already exists in this school.`);
+    } else {
+      req.flash('error_msg', `Could not add teacher: ${err.message}`);
+    }
+    res.redirect('/teacher/add');
   }
-  res.redirect('/teacher');
 };
 
 /* ===========================
@@ -65,26 +95,59 @@ exports.uploadCSV = (req, res) => {
         return res.redirect('/teacher');
       }
 
-      try {
-        for (const r of rows) {
+      let inserted = 0;
+      const rowErrors = [];
+
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        const rowNum = i + 2;
+        const gender = r.gender || r.Gender || r.GENDER || r.sex || r.Sex || r.SEX || '';
+
+        const check = validateTeacherFields({
+          name: r.name,
+          subject: r.subject,
+          gender,
+          teacher_id: r.teacher_id,
+          phone: r.phone,
+          email: r.email,
+        });
+
+        if (!check.valid) {
+          rowErrors.push(`Row ${rowNum} (${r.name || 'unnamed'}): ${check.message}`);
+          continue;
+        }
+
+        try {
           await pool.query(
             'INSERT INTO teachers (name, subject, gender, email, phone, teacher_id, school_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
             [
-              r.name || '',
-              r.subject || '',
-              r.gender || r.Gender || r.GENDER || r.sex || r.Sex || r.SEX || '',
-              r.email || '',
-              r.phone || '',
-              r.teacher_id || '',
+              r.name.trim(), r.subject, gender,
+              (r.email || '').trim() || null,
+              (r.phone || '').trim() || null,
+              r.teacher_id.trim().toUpperCase(),
               schoolId
             ]
           );
+          inserted++;
+        } catch (dbErr) {
+          const msg = dbErr.code === 'ER_DUP_ENTRY'
+            ? `Duplicate EC Number "${r.teacher_id}"`
+            : dbErr.message;
+          rowErrors.push(`Row ${rowNum}: ${msg}`);
         }
-        req.flash('success_msg', 'CSV imported successfully');
-      } catch (err) {
-        console.error('CSV import error:', err);
-        req.flash('error_msg', 'CSV import failed');
       }
+
+      if (rowErrors.length > 0) {
+        req.flash('error_msg', `${rowErrors.length} row(s) skipped — ${rowErrors.slice(0, 3).join('; ')}${rowErrors.length > 3 ? '…' : ''}`);
+      }
+      if (inserted > 0) {
+        req.flash('success_msg', `${inserted} teacher(s) imported successfully.`);
+      }
+      res.redirect('/teacher');
+    })
+    .on('error', err => {
+      console.error('[teachers] CSV read error:', err);
+      req.flash('error_msg', 'Error reading CSV file.');
       res.redirect('/teacher');
     });
 };
@@ -114,15 +177,27 @@ exports.updateTeacher = async (req, res) => {
   const { id } = req.params;
   const { name, subject, gender, email, phone, teacher_id } = req.body;
 
+  const result = validateTeacherFields(req.body);
+  if (!result.valid) {
+    req.flash('error_msg', result.message);
+    return res.redirect(`/teacher/edit/${id}`);
+  }
+
   try {
     await pool.query(
       'UPDATE teachers SET name=?, subject=?, gender=?, email=?, phone=?, teacher_id=? WHERE id=?',
-      [name, subject, gender, email, phone, teacher_id, id]
+      [
+        name.trim(), subject, gender,
+        (email || '').trim() || null,
+        (phone || '').trim() || null,
+        teacher_id.trim().toUpperCase(),
+        id
+      ]
     );
-    req.flash('success_msg', 'Teacher updated');
+    req.flash('success_msg', 'Teacher updated successfully.');
   } catch (err) {
     console.error('[teachers] update error:', err);
-    req.flash('error_msg', 'Could not update teacher');
+    req.flash('error_msg', `Could not update teacher: ${err.message}`);
   }
   res.redirect('/teacher');
 };
@@ -193,4 +268,4 @@ exports.bulkDelete = async (req, res) => {
     req.flash('error_msg', 'Failed to delete teachers');
   }
   res.redirect('/teacher');
-};
+};

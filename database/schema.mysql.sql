@@ -36,14 +36,20 @@ CREATE TABLE users (
 -- 2. STUDENTS TABLE
 -- =============================================
 CREATE TABLE students (
-  id            INT AUTO_INCREMENT PRIMARY KEY,
-  name          VARCHAR(100) NOT NULL,
-  grade         VARCHAR(20)  NOT NULL,
-  student_class VARCHAR(50)  NOT NULL,
-  gender        ENUM('Male', 'Female', 'Other') NOT NULL,
-  student_id    VARCHAR(50)  NOT NULL,
-  school_id     INT NOT NULL,
-  created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+  id              INT AUTO_INCREMENT PRIMARY KEY,
+  name            VARCHAR(100) NOT NULL,
+  grade           VARCHAR(20)  NOT NULL,
+  student_class   VARCHAR(50)  NOT NULL,
+  gender          ENUM('Male', 'Female', 'Other') NOT NULL,
+  student_id      VARCHAR(50)  NOT NULL,
+  dob             DATE         NOT NULL,
+  enrollment_date DATE         NOT NULL,
+  parent_name     VARCHAR(150) DEFAULT NULL,
+  parent_phone    VARCHAR(30)  DEFAULT NULL,
+  parent_email    VARCHAR(100) DEFAULT NULL,
+  medical_notes   TEXT         DEFAULT NULL,
+  school_id       INT NOT NULL,
+  created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (school_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
