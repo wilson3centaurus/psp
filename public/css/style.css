@@ -135,6 +135,13 @@ p { color: var(--text-secondary); }
 .input-wrapper input::placeholder { color: #6b7280; }
 .password-toggle { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #6b7280; cursor: pointer; padding: 4px; transition: var(--transition); }
 .password-toggle:hover { color: #94a3b8; }
+/* password-field wrapper used on forms outside the login page (e.g. itadmin) */
+.password-field { position: relative; display: flex; align-items: center; }
+.password-field input { flex: 1; padding-right: 2.75rem !important; }
+.password-field .password-toggle { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #6b7280; cursor: pointer; padding: 6px; font-size: 1rem; display: flex; align-items: center; z-index: 2; }
+.password-field .password-toggle:hover { color: var(--primary, #6366f1); }
+/* read-only display fields */
+.read-only-field { padding: 0.6rem 0.875rem; border-radius: var(--radius); border: 1px solid var(--border); display: flex; align-items: center; min-height: 2.4rem; }
 .login-btn {
   margin-top: 0.5rem; padding: 0.7rem 1.25rem;
   background: var(--gradient-brand); color: white;

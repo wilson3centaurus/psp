@@ -91,14 +91,25 @@ exports.listSessions = async (req, res) => {
       });
     }
 
+    const markDate = normalizeDateInput(selectedMarkDate) || new Date().toISOString().slice(0, 10);
     const [studentRows] = await pool.query(
-      'SELECT * FROM students WHERE school_id = ? AND grade = ? AND student_class = ? ORDER BY name',
-      [schoolId, selectedGrade, selectedClass]
+      `SELECT
+         s.*,
+         sa.status AS attendance_status,
+         sa.reason AS attendance_reason
+       FROM students s
+       LEFT JOIN student_attendance sa
+         ON sa.student_id = s.id
+        AND sa.school_id = s.school_id
+        AND sa.date = ?
+       WHERE s.school_id = ? AND s.grade = ? AND s.student_class = ?
+       ORDER BY s.name`,
+      [markDate, schoolId, selectedGrade, selectedClass]
     );
 
     res.render('school/studentAttendance/sessions', {
       sessions, searchDate, allClasses, students: studentRows,
-      selectedGrade, selectedClass, selectedDate: selectedMarkDate,
+      selectedGrade, selectedClass, selectedDate: markDate,
       schoolDisplayName, schoolLogo
     });
   } catch (err) {

@@ -83,11 +83,11 @@
             <span class="field-error" id="err-gender"></span>
           </div>
           <div class="form-group">
-            <label for="student_id"><i class="fas fa-id-card"></i> Student ID <span class="required">*</span></label>
-            <input type="text" id="student_id" name="student_id" class="form-input"
-              placeholder="e.g. STU001" required maxlength="50" autocomplete="off">
-            <small class="form-hint">Alphanumeric, hyphens, and underscores only.</small>
-            <span class="field-error" id="err-student-id"></span>
+            <label><i class="fas fa-id-card"></i> Student ID</label>
+            <div class="form-input read-only-field" style="background:var(--bg-secondary);color:var(--text-muted);cursor:default;">
+              <i class="fas fa-magic" style="margin-right:6px;font-size:0.8em;"></i>Auto-generated on save
+            </div>
+            <small class="form-hint">A unique ID (e.g. PSP-2026-XK9F2M) is assigned automatically.</small>
           </div>
         </div>
 
@@ -217,12 +217,6 @@
       // Gender
       if (!form.elements.gender.value) { showErr('err-gender', 'Please select a gender.'); ok = false; }
       else clearErr('err-gender');
-
-      // Student ID
-      const sid = (form.elements.student_id ? form.elements.student_id.value : '').trim();
-      if (!sid) { showErr('err-student-id', 'Student ID is required.'); ok = false; }
-      else if (!/^[A-Za-z0-9\-_\/]+$/.test(sid)) { showErr('err-student-id', 'Student ID may only contain letters, numbers, hyphens, and underscores.'); ok = false; }
-      else clearErr('err-student-id');
 
       // DOB + age
       const dob = form.elements.dob ? form.elements.dob.value : '';

@@ -4,89 +4,328 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login | Primary School Performance</title>
-  <script>
-    // Set theme immediately to prevent flash
-    (function() {
-      const theme = localStorage.getItem('psp-theme') || 'dark';
-      document.documentElement.setAttribute('data-theme', theme);
-    })();
-  </script>
-  <link rel="stylesheet" href="/css/style.css">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <link rel="icon" type="image/png" href="/assets/logo.png">
-</head>
-<body class="login-page">
-  <!-- Theme Toggle -->
-  <button class="theme-toggle-login" aria-label="Toggle theme">
-    <i class="fas fa-moon"></i>
-    <i class="fas fa-sun"></i>
-  </button>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  <div class="login-container">
-    <div class="login-card">
-      <div class="login-header">
-        <img src="/assets/logo.png" alt="PSP Logo" class="login-logo">
-        <h1 class="login-title">Welcome Back</h1>
-        <p class="login-subtitle">Sign in to Primary School Performance</p>
+    body {
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+      overflow: hidden;
+      background: #06091a;
+    }
+
+    /* ─── Animated gradient bg ─────────────────────────────── */
+    .bg-wrap {
+      position: fixed; inset: 0; z-index: 0;
+      background: radial-gradient(ellipse at 20% 20%, #1a1060 0%, transparent 55%),
+                  radial-gradient(ellipse at 80% 80%, #0e2060 0%, transparent 55%),
+                  radial-gradient(ellipse at 60% 10%, #1a0840 0%, transparent 45%),
+                  #06091a;
+      animation: bg-breathe 12s ease-in-out infinite alternate;
+    }
+    @keyframes bg-breathe {
+      0%   { filter: brightness(1) saturate(1); }
+      100% { filter: brightness(1.18) saturate(1.3); }
+    }
+
+    /* ─── Floating school icons ────────────────────────────── */
+    .float-layer {
+      position: fixed; inset: 0; z-index: 1;
+      overflow: hidden; pointer-events: none;
+    }
+    .fi {
+      position: absolute; bottom: -80px;
+      animation: rise linear infinite;
+      user-select: none;
+    }
+    @keyframes rise {
+      0%   { transform: translateY(0) rotate(0deg);   opacity: 0; }
+      6%   { opacity: 1; }
+      94%  { opacity: 1; }
+      100% { transform: translateY(calc(-100vh - 120px)) rotate(var(--spin, 240deg)); opacity: 0; }
+    }
+
+    /* ─── Page center ──────────────────────────────────────── */
+    .pg-center {
+      position: fixed; inset: 0; z-index: 10;
+      display: flex; align-items: center; justify-content: center;
+      padding: 1rem;
+    }
+
+    /* ─── Card ─────────────────────────────────────────────── */
+    .login-glass {
+      width: 100%; max-width: 440px;
+      background: rgba(10, 15, 45, 0.78);
+      backdrop-filter: blur(40px) saturate(1.5);
+      -webkit-backdrop-filter: blur(40px) saturate(1.5);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 26px;
+      padding: 2.75rem 2.5rem 2.25rem;
+      box-shadow:
+        0 40px 80px rgba(0,0,0,0.55),
+        0 0 0 1px rgba(255,255,255,0.04) inset,
+        0 1px 0 rgba(255,255,255,0.12) inset;
+      animation: card-in 0.55s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    @keyframes card-in {
+      from { opacity: 0; transform: translateY(28px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0)   scale(1); }
+    }
+
+    /* ─── Header ───────────────────────────────────────────── */
+    .logo-ring {
+      width: 76px; height: 76px; margin: 0 auto 1.1rem;
+      border-radius: 22px;
+      box-shadow: 0 0 0 4px rgba(99,102,241,0.25), 0 12px 40px rgba(99,102,241,0.3);
+      overflow: hidden;
+      animation: logo-glow 3s ease-in-out infinite alternate;
+    }
+    @keyframes logo-glow {
+      from { box-shadow: 0 0 0 4px rgba(99,102,241,0.2), 0 8px 30px rgba(99,102,241,0.2); }
+      to   { box-shadow: 0 0 0 6px rgba(99,102,241,0.4), 0 16px 50px rgba(99,102,241,0.4); }
+    }
+    .logo-ring img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .login-hd { text-align: center; margin-bottom: 2rem; }
+    .login-hd-title {
+      font-size: 1.6rem; font-weight: 800; color: #fff;
+      letter-spacing: -0.4px; margin-bottom: 0.35rem;
+    }
+    .login-hd-sub { font-size: 0.8rem; color: #7080a0; font-weight: 400; }
+
+    /* ─── Fields ───────────────────────────────────────────── */
+    .lf-field { margin-bottom: 1.1rem; }
+    .lf-label {
+      display: block; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.7px;
+      text-transform: uppercase; color: #606c88; margin-bottom: 0.45rem;
+    }
+    .lf-wrap { position: relative; }
+    .lf-icon {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      color: #3d4a68; font-size: 0.85rem; pointer-events: none; z-index: 2;
+      transition: color 0.2s;
+    }
+    .lf-input {
+      width: 100%; padding: 0.78rem 1rem 0.78rem 2.65rem;
+      background: rgba(255,255,255,0.055);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      color: #e8eaf6; font-size: 0.9rem;
+      outline: none; transition: all 0.22s;
+      box-sizing: border-box;
+    }
+    .lf-input::placeholder { color: #3d4a68; }
+    .lf-input:focus {
+      border-color: rgba(99,102,241,0.65);
+      background: rgba(99,102,241,0.075);
+      box-shadow: 0 0 0 4px rgba(99,102,241,0.13);
+    }
+    .lf-wrap:focus-within .lf-icon { color: #818cf8; }
+    .lf-input.with-eye { padding-right: 3.2rem; }
+
+    /* ─── Eye toggle ────────────────────────────────────────── */
+    .lf-eye {
+      position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; color: #3d4a68; cursor: pointer;
+      padding: 5px 7px; font-size: 0.88rem; z-index: 2;
+      display: flex; align-items: center;
+      transition: color 0.2s;
+    }
+    .lf-eye:hover { color: #818cf8; }
+
+    /* ─── Submit button ─────────────────────────────────────── */
+    .lf-btn {
+      width: 100%; margin-top: 1.4rem; padding: 0.88rem;
+      background: linear-gradient(135deg, #5b5ef4 0%, #8b5cf6 50%, #6366f1 100%);
+      border: none; border-radius: 14px;
+      color: #fff; font-size: 0.95rem; font-weight: 700;
+      cursor: pointer; letter-spacing: 0.15px;
+      transition: all 0.3s;
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+      position: relative; overflow: hidden;
+    }
+    .lf-btn::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 55%);
+      opacity: 0; transition: opacity 0.25s;
+    }
+    .lf-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 35px rgba(99,102,241,0.45); }
+    .lf-btn:hover::after { opacity: 1; }
+    .lf-btn:active { transform: translateY(0); box-shadow: none; }
+
+    /* ─── Footer ────────────────────────────────────────────── */
+    .lf-foot {
+      text-align: center; margin-top: 1.6rem;
+      font-size: 0.7rem; color: #3d4a68; line-height: 1.6;
+    }
+
+    /* ─── Theme pill ────────────────────────────────────────── */
+    .theme-pill {
+      position: fixed; top: 1.1rem; right: 1.1rem; z-index: 20;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px; padding: 0.5rem 0.65rem;
+      color: #7080a0; cursor: pointer; font-size: 0.9rem;
+      transition: all 0.2s; display: flex; align-items: center;
+    }
+    .theme-pill:hover { background: rgba(255,255,255,0.14); color: #fff; }
+
+    /* SweetAlert2 custom */
+    .swal2-popup.psp-swal {
+      border-radius: 20px !important;
+      border: 1px solid rgba(255,255,255,0.1) !important;
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-wrap"></div>
+<div class="float-layer" id="floatLayer"></div>
+
+<div class="pg-center">
+  <div class="login-glass">
+    <div class="login-hd">
+      <div class="logo-ring">
+        <img src="/assets/logo.png" alt="PSP Logo">
+      </div>
+      <h1 class="login-hd-title">Welcome Back</h1>
+      <p class="login-hd-sub">Sign in to Primary School Performance System</p>
+    </div>
+
+    <form action="/login" method="POST" id="loginForm">
+      <div class="lf-field">
+        <label class="lf-label" for="username">Username</label>
+        <div class="lf-wrap">
+          <input class="lf-input" type="text" id="username" name="username"
+            placeholder="Enter your username"
+            value="<%= typeof username !== 'undefined' ? username : '' %>"
+            required autocomplete="username">
+          <i class="fas fa-user lf-icon"></i>
+        </div>
       </div>
 
-     
-
-      <% if (typeof error_msg !== 'undefined' && error_msg && String(error_msg).trim() !== "") { %>
-        <div class="alert error" style="margin-bottom: 1rem; padding: 0.875rem 1rem; border-radius: var(--radius); background: var(--error-light); color: var(--error); border: 1px solid var(--error); font-weight: 500; text-align: center; animation: shake 0.4s ease-out; display: flex; align-items: center; gap: 0.5rem; justify-content: center;">
-          <i class="fas fa-exclamation-circle"></i> <%= error_msg %>
+      <div class="lf-field">
+        <label class="lf-label" for="password">Password</label>
+        <div class="lf-wrap">
+          <input class="lf-input with-eye" type="password" id="password" name="password"
+            placeholder="Enter your password" required autocomplete="current-password">
+          <i class="fas fa-lock lf-icon"></i>
+          <button type="button" class="lf-eye" id="eyeBtn" aria-label="Show/hide password">
+            <i class="fas fa-eye" id="eyeIcon"></i>
+          </button>
         </div>
-      <% } %>
-      <% if (typeof success_msg !== 'undefined' && success_msg && String(success_msg).trim() !== "") { %>
-        <div class="alert success" style="margin-bottom: 1rem; padding: 0.875rem 1rem; border-radius: var(--radius); background: var(--success-light); color: var(--success); border: 1px solid var(--success); font-weight: 500; text-align: center; display: flex; align-items: center; gap: 0.5rem; justify-content: center;">
-          <i class="fas fa-check-circle"></i> <%= success_msg %>
-        </div>
-      <% } %>
+      </div>
 
-      <form action="/login" method="POST" class="login-form">
-        <div class="form-group">
-          <label for="username">Username</label>
-          <div class="input-wrapper">
-            <input 
-              type="text" 
-              id="username"
-              name="username" 
-              placeholder="Enter your username"
-              value="<%= typeof username !== 'undefined' ? username : '' %>"
-              required 
-              autocomplete="username"
-            >
-            <i class="fas fa-user input-icon"></i>
-          </div>
-        </div>
+      <button type="submit" class="lf-btn">
+        <i class="fas fa-sign-in-alt"></i> Sign In
+      </button>
+    </form>
 
-        <div class="form-group">
-          <label for="password">Password</label>
-          <div class="input-wrapper">
-            <input 
-              type="password" 
-              id="password"
-              name="password" 
-              placeholder="Enter your password"
-              required 
-              autocomplete="current-password"
-            >
-            <i class="fas fa-lock input-icon"></i>
-            <button type="button" class="password-toggle" aria-label="Toggle password visibility">
-              <i class="fas fa-eye"></i>
-            </button>
-          </div>
-        </div>
-
-        <button type="submit" class="login-btn">
-          <i class="fas fa-sign-in-alt"></i>
-          Sign In
-        </button>
-      </form>
-    </div>
+    <p class="lf-foot">
+      Primary School Performance System &mdash; &copy; 2026<br>
+      Managed by IT Administration
+    </p>
   </div>
+</div>
 
-  <script src="/js/main.js"></script>
+<button class="theme-pill" id="themeBtn" aria-label="Toggle theme">
+  <i class="fas fa-moon" id="themeIco"></i>
+</button>
+
+<script>
+// ── Floating icons ──────────────────────────────────────────────
+(function () {
+  var icons = [
+    'fa-book','fa-graduation-cap','fa-pencil','fa-star','fa-apple',
+    'fa-calculator','fa-globe','fa-flask','fa-music','fa-palette',
+    'fa-ruler','fa-pen','fa-bookmark','fa-award','fa-lightbulb',
+    'fa-school','fa-brain','fa-atom','fa-microscope','fa-chess',
+    'fa-trophy','fa-rocket'
+  ];
+  var layer = document.getElementById('floatLayer');
+  if (!layer) return;
+  for (var i = 0; i < 24; i++) {
+    var ic = document.createElement('i');
+    ic.className = 'fas ' + icons[i % icons.length] + ' fi';
+    var size    = 12 + Math.random() * 24;
+    var left    = 1  + Math.random() * 96;
+    var dur     = 20 + Math.random() * 22;
+    var delay   = -(Math.random() * dur);
+    var opacity = 0.045 + Math.random() * 0.09;
+    var spin    = (Math.random() > 0.5 ? '' : '-') + (180 + Math.floor(Math.random() * 200)) + 'deg';
+    ic.style.cssText =
+      'left:' + left + '%;font-size:' + size + 'px;' +
+      'animation-duration:' + dur + 's;animation-delay:' + delay + 's;' +
+      'color:rgba(160,170,255,' + opacity + ');--spin:' + spin + ';';
+    layer.appendChild(ic);
+  }
+})();
+
+// ── Eye toggle ──────────────────────────────────────────────────
+(function () {
+  var inp = document.getElementById('password');
+  var btn = document.getElementById('eyeBtn');
+  var ico = document.getElementById('eyeIcon');
+  if (!inp || !btn || !ico) return;
+  btn.addEventListener('click', function () {
+    var hidden = inp.type === 'password';
+    inp.type = hidden ? 'text' : 'password';
+    ico.className = hidden ? 'fas fa-eye-slash' : 'fas fa-eye';
+  });
+})();
+
+// ── Theme toggle ────────────────────────────────────────────────
+(function () {
+  var btn = document.getElementById('themeBtn');
+  var ico = document.getElementById('themeIco');
+  if (!btn) return;
+  var stored = localStorage.getItem('psp-theme') || 'dark';
+  if (stored === 'light') ico.className = 'fas fa-sun';
+  btn.addEventListener('click', function () {
+    var cur = document.documentElement.getAttribute('data-theme') || 'dark';
+    var next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('psp-theme', next);
+    ico.className = next === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+  });
+})();
+
+// ── SweetAlert2 flash messages ──────────────────────────────────
+<% if (typeof error_msg !== 'undefined' && error_msg && String(error_msg).trim() !== '') { %>
+document.addEventListener('DOMContentLoaded', function () {
+  Swal.fire({
+    icon: 'error',
+    title: 'Login Failed',
+    text: <%- JSON.stringify(String(error_msg)) %>,
+    background: '#0b1030',
+    color: '#e2e8f0',
+    iconColor: '#fc8181',
+    confirmButtonColor: '#6366f1',
+    confirmButtonText: 'Try Again',
+    customClass: { popup: 'psp-swal' },
+    backdrop: 'rgba(6,9,26,0.75)'
+  });
+});
+<% } else if (typeof success_msg !== 'undefined' && success_msg && String(success_msg).trim() !== '') { %>
+document.addEventListener('DOMContentLoaded', function () {
+  Swal.fire({
+    icon: 'success',
+    title: 'Success!',
+    text: <%- JSON.stringify(String(success_msg)) %>,
+    background: '#0b1030',
+    color: '#e2e8f0',
+    iconColor: '#68d391',
+    confirmButtonColor: '#6366f1',
+    confirmButtonText: 'Continue',
+    customClass: { popup: 'psp-swal' },
+    backdrop: 'rgba(6,9,26,0.75)'
+  });
+});
+<% } %>
+</script>
+
 </body>
 </html>
-

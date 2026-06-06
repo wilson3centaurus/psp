@@ -8,277 +8,90 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
   <link rel="icon" type="image/png" href="<%= typeof schoolLogo !== 'undefined' && schoolLogo ? '/uploads/' + schoolLogo : '/assets/logo.png' %>">
   <style>
-    /* Attendance Page Specific Styles */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-    }
-    .stat-card {
-      background: var(--surface);
-      border: 2px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 1.25rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-    .stat-card.total { border-color: var(--primary); background: rgba(var(--primary-rgb), 0.05); }
-    .stat-card.present { border-color: #22c55e; background: rgba(34, 197, 94, 0.05); }
-    .stat-card.absent { border-color: #ef4444; background: rgba(239, 68, 68, 0.05); }
-    .stat-card.late { border-color: #f59e0b; background: rgba(245, 158, 11, 0.05); }
-    .stat-card .stat-label {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-    }
-    .stat-card .stat-label i { font-size: 1rem; }
-    .stat-card.total .stat-label i { color: var(--primary); }
-    .stat-card.present .stat-label i { color: #22c55e; }
-    .stat-card.absent .stat-label i { color: #ef4444; }
-    .stat-card.late .stat-label i { color: #f59e0b; }
-    .stat-card .stat-value {
-      font-size: 2rem;
-      font-weight: 700;
-      color: var(--text-primary);
-    }
-    .stat-card.present .stat-value { color: #22c55e; }
-    .stat-card.absent .stat-value { color: #ef4444; }
-    .stat-card.late .stat-value { color: #f59e0b; }
+    /* ── Stats row ─────────────────────────────────────────── */
+    .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:.75rem; margin-bottom:1.25rem; }
+    @media(max-width:700px){ .stats-grid{ grid-template-columns:repeat(2,1fr); } }
+    .stat-card { background:var(--surface); border:2px solid var(--border); border-radius:var(--radius-lg);
+      padding:1rem; display:flex; flex-direction:column; gap:.35rem; }
+    .stat-card.present { border-color:#22c55e; background:rgba(34,197,94,.06); }
+    .stat-card.absent  { border-color:#ef4444; background:rgba(239,68,68,.06); }
+    .stat-card.late    { border-color:#f59e0b; background:rgba(245,158,11,.06); }
+    .stat-label { font-size:.78rem; color:var(--text-secondary); display:flex; align-items:center; gap:.4rem; }
+    .stat-value { font-size:1.9rem; font-weight:800; color:var(--text-primary); line-height:1; }
+    .stat-card.present .stat-value { color:#22c55e; }
+    .stat-card.absent  .stat-value { color:#ef4444; }
+    .stat-card.late    .stat-value { color:#f59e0b; }
 
-    .attendance-controls {
-      display: flex;
-      gap: 1rem;
-      align-items: flex-end;
-      flex-wrap: wrap;
-      margin-bottom: 1rem;
-    }
-    .attendance-controls .form-group { flex: 1; min-width: 200px; }
-    .attendance-controls .form-group label { font-size: 0.8rem; margin-bottom: 0.25rem; }
+    /* ── Controls bar ──────────────────────────────────────── */
+    .att-controls { display:flex; gap:.75rem; align-items:flex-end; flex-wrap:wrap; margin-bottom:1rem; }
+    .att-controls .form-group { flex:1; min-width:180px; }
+    .att-controls label { font-size:.78rem; margin-bottom:.25rem; display:block; }
 
-    .progress-section {
-      margin-bottom: 1rem;
-    }
-    .progress-header {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.85rem;
-      margin-bottom: 0.5rem;
-      color: var(--text-secondary);
-    }
-    .progress-bar {
-      height: 8px;
-      background: var(--bg-secondary);
-      border-radius: 100px;
-      overflow: hidden;
-    }
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #22c55e, #4ade80);
-      border-radius: 100px;
-      transition: width 0.3s ease;
-    }
+    /* ── Main two-column layout ────────────────────────────── */
+    .att-layout { display:grid; grid-template-columns:minmax(280px,420px) 1fr; gap:1rem; align-items:start; }
+    @media(max-width:900px){ .att-layout{ grid-template-columns:1fr; } }
 
-    .auto-save-notice {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.75rem 1rem;
-      background: rgba(var(--primary-rgb), 0.1);
-      border: 1px solid var(--primary);
-      border-radius: var(--radius);
-      font-size: 0.85rem;
-      color: var(--primary);
-      margin-bottom: 1rem;
-    }
-    .auto-save-notice i { animation: spin 2s linear infinite; }
-    @keyframes spin { 100% { transform: rotate(360deg); } }
+    /* ── Camera panel ──────────────────────────────────────── */
+    .camera-panel { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; }
+    .camera-panel-header { padding:.75rem 1rem; border-bottom:1px solid var(--border);
+      display:flex; align-items:center; gap:.5rem; font-weight:600; font-size:.9rem; }
+    .camera-panel-body { padding:1rem; }
+    .face-video { width:100%; border-radius:10px; border:1px solid var(--border);
+      background:#0f172a; display:block; min-height:200px; }
+    .camera-btns { display:flex; gap:.5rem; margin-top:.75rem; flex-wrap:wrap; }
+    #face-status { display:block; padding:.45rem .7rem; border-radius:8px; margin-top:.6rem;
+      font-size:.8rem; font-weight:500; background:rgba(0,0,0,.06); }
+    #face-status[data-state="ok"]   { background:rgba(34,197,94,.12); color:#15803d; }
+    #face-status[data-state="error"]{ background:rgba(239,68,68,.12); color:#b91c1c; }
+    #face-status[data-state="warn"] { background:rgba(245,158,11,.12); color:#92400e; }
+    .face-events { font-size:.78rem; margin-top:.6rem; max-height:180px; overflow-y:auto; display:grid; gap:.3rem; }
+    .face-event { padding:.3rem .5rem; border:1px solid var(--border); border-radius:6px;
+      background:var(--bg-secondary); color:var(--text-secondary); }
 
-    .attendance-table { width: 100%; }
-    .attendance-table th { text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
-    .attendance-table td { vertical-align: middle; }
-    
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.25rem;
-      padding: 0.35rem 0.75rem;
-      border-radius: 100px;
-      font-size: 0.75rem;
-      font-weight: 600;
+    /* ── Roster panel ──────────────────────────────────────── */
+    .roster-panel { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; }
+    .roster-header { padding:.75rem 1rem; border-bottom:1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.5rem; }
+    .roster-title { font-weight:600; font-size:.9rem; display:flex; align-items:center; gap:.5rem; }
+    .roster-actions { display:flex; gap:.5rem; }
+    .roster-list { max-height:520px; overflow-y:auto; }
+    .roster-item {
+      display:flex; align-items:center; gap:.75rem;
+      padding:.65rem 1rem; border-bottom:1px solid var(--border);
+      transition:background .2s;
     }
-    .status-badge.present { background: #dcfce7; color: #15803d; }
-    .status-badge.absent { background: #fee2e2; color: #b91c1c; }
-    .status-badge.late { background: #fef3c7; color: #b45309; }
+    .roster-item:last-child { border-bottom:none; }
+    .roster-item.is-present { background:rgba(34,197,94,.08); }
+    .roster-item.is-absent  { background:rgba(239,68,68,.06); }
+    .roster-item.is-late    { background:rgba(245,158,11,.07); }
+    .roster-num { font-size:.72rem; color:var(--text-muted); width:24px; flex-shrink:0; text-align:right; }
+    .roster-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; background:#ef4444; transition:background .3s; }
+    .roster-item.is-present .roster-dot { background:#22c55e; }
+    .roster-item.is-late    .roster-dot { background:#f59e0b; }
+    .roster-name { flex:1; font-size:.88rem; font-weight:500; }
+    .roster-face-icon { font-size:.72rem; color:var(--text-muted); margin-top:.1rem; }
+    .roster-face-icon.enrolled { color:#15803d; }
+    .roster-btns { display:flex; gap:.3rem; flex-shrink:0; }
+    .mini-btn { padding:.28rem .55rem; border-radius:6px; border:1px solid var(--border);
+      background:var(--bg-secondary); font-size:.72rem; cursor:pointer; font-weight:600;
+      transition:all .15s; line-height:1; }
+    .mini-btn.p { color:#15803d; } .mini-btn.p:hover,.mini-btn.p.on { background:#22c55e; color:#fff; border-color:#22c55e; }
+    .mini-btn.a { color:#b91c1c; } .mini-btn.a:hover,.mini-btn.a.on { background:#ef4444; color:#fff; border-color:#ef4444; }
+    .mini-btn.l { color:#92400e; } .mini-btn.l:hover,.mini-btn.l.on { background:#f59e0b; color:#fff; border-color:#f59e0b; }
 
-    .quick-mark-btns {
-      display: flex;
-      gap: 0.35rem;
-    }
-    .quick-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.25rem;
-      padding: 0.4rem 0.75rem;
-      border-radius: 100px;
-      font-size: 0.75rem;
-      font-weight: 500;
-      cursor: pointer;
-      border: 2px solid transparent;
-      transition: all 0.2s ease;
-    }
-    .quick-btn.present-btn {
-      background: var(--bg-secondary);
-      color: #22c55e;
-      border-color: var(--border);
-    }
-    .quick-btn.present-btn:hover, .quick-btn.present-btn.active {
-      background: #22c55e;
-      color: white;
-      border-color: #22c55e;
-    }
-    .quick-btn.absent-btn {
-      background: var(--bg-secondary);
-      color: #ef4444;
-      border-color: var(--border);
-    }
-    .quick-btn.absent-btn:hover, .quick-btn.absent-btn.active {
-      background: #ef4444;
-      color: white;
-      border-color: #ef4444;
-    }
-    .quick-btn.late-btn {
-      background: var(--bg-secondary);
-      color: #f59e0b;
-      border-color: var(--border);
-    }
-    .quick-btn.late-btn:hover, .quick-btn.late-btn.active {
-      background: #f59e0b;
-      color: white;
-      border-color: #f59e0b;
-    }
+    /* ── Progress bar ──────────────────────────────────────── */
+    .progress-wrap { margin:.75rem 0; }
+    .progress-bar { height:6px; background:var(--bg-secondary); border-radius:99px; overflow:hidden; }
+    .progress-fill { height:100%; background:linear-gradient(90deg,#22c55e,#4ade80); border-radius:99px; transition:width .3s; }
+    .progress-label { font-size:.75rem; color:var(--text-muted); text-align:right; margin-top:.25rem; }
 
-    .mark-all-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.6rem 1.25rem;
-      background: var(--surface);
-      border: 2px solid var(--border);
-      border-radius: var(--radius);
-      font-size: 0.85rem;
-      font-weight: 500;
-      color: var(--text-primary);
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .mark-all-btn:hover {
-      background: #22c55e;
-      color: white;
-      border-color: #22c55e;
-    }
-
-    .remarks-input {
-      width: 100%;
-      padding: 0.5rem;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: var(--bg-secondary);
-      color: var(--text-primary);
-      font-size: 0.85rem;
-    }
-    .remarks-input:focus {
-      outline: none;
-      border-color: var(--primary);
-    }
-
-    .face-panel {
-      border: 2px dashed var(--border);
-      border-radius: var(--radius-lg);
-      padding: 1rem;
-      margin-bottom: 1rem;
-      background: var(--bg-secondary);
-    }
-    .face-activation-banner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      flex-wrap: wrap;
-      padding: 1rem 1.1rem;
-      margin-bottom: 1rem;
-      border-radius: 14px;
-      border: 1px solid rgba(var(--primary-rgb), 0.26);
-      background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.13), rgba(var(--primary-rgb), 0.05));
-    }
-    .face-activation-banner p {
-      margin: 0.3rem 0 0;
-      font-size: 0.86rem;
-      color: var(--text-secondary);
-      max-width: 720px;
-    }
-    .face-count-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.35rem 0.7rem;
-      border-radius: 999px;
-      background: rgba(var(--primary-rgb), 0.16);
-      color: var(--primary);
-      font-size: 0.8rem;
-      font-weight: 700;
-      margin-top: 0.55rem;
-    }
-    .face-row {
-      display: grid;
-      grid-template-columns: minmax(220px, 360px) 1fr;
-      gap: 1rem;
-      align-items: start;
-    }
-    .face-video {
-      width: 100%;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: #0f172a;
-      min-height: 220px;
-    }
-    .face-actions {
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-      margin-bottom: 0.65rem;
-    }
-    #face-status {
-      font-size: 0.85rem;
-      margin-bottom: 0.5rem;
-      font-weight: 600;
-    }
-    .face-events {
-      font-size: 0.8rem;
-      display: grid;
-      gap: 0.35rem;
-      max-height: 220px;
-      overflow: auto;
-      padding-right: 0.25rem;
-    }
-    .face-event {
-      padding: 0.35rem 0.5rem;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: var(--surface);
-    }
-    @media (max-width: 900px) {
-      .face-row { grid-template-columns: 1fr; }
-    }
+    /* ── Save button ───────────────────────────────────────── */
+    .save-section { padding:1rem; border-top:1px solid var(--border); }
   </style>
 </head>
 <body>
   <div class="app-shell">
     <div class="sidebar-overlay"></div>
-
     <aside class="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-brand">
@@ -315,39 +128,30 @@
     <main class="main-content">
       <header class="topbar">
         <div class="topbar-left">
-          <button class="mobile-menu-btn" aria-label="Toggle menu">
-            <i class="fas fa-bars"></i>
-          </button>
+          <button class="mobile-menu-btn" aria-label="Toggle menu"><i class="fas fa-bars"></i></button>
           <span class="page-title">Attendance Register</span>
         </div>
         <div class="topbar-right">
           <button class="theme-toggle" aria-label="Toggle theme">
-            <i class="fas fa-moon"></i>
-            <i class="fas fa-sun"></i>
+            <i class="fas fa-moon"></i><i class="fas fa-sun"></i>
           </button>
-          <a href="/student-attendance" class="topbar-btn">
-            <i class="fas fa-calendar"></i>
-            <span>Sessions</span>
-          </a>
-          <a href="/logout" class="topbar-btn danger">
-            <i class="fas fa-sign-out-alt"></i>
-            <span>Logout</span>
-          </a>
+          <a href="/student-attendance" class="topbar-btn"><i class="fas fa-calendar"></i><span>Sessions</span></a>
+          <a href="/logout" class="topbar-btn danger"><i class="fas fa-sign-out-alt"></i><span>Logout</span></a>
         </div>
       </header>
 
       <section class="content">
-        <% if (success_msg && String(success_msg).trim() !== "") { %>
+        <% if (success_msg && String(success_msg).trim()) { %>
           <div class="alert success"><i class="fas fa-check-circle"></i> <%= success_msg %></div>
         <% } %>
-        <% if (error_msg && String(error_msg).trim() !== "") { %>
+        <% if (error_msg && String(error_msg).trim()) { %>
           <div class="alert error"><i class="fas fa-exclamation-circle"></i> <%= error_msg %></div>
         <% } %>
 
-        <!-- Stats Cards -->
+        <!-- Stats -->
         <div class="stats-grid">
-          <div class="stat-card total">
-            <div class="stat-label"><i class="fas fa-users"></i> Total Students in Class</div>
+          <div class="stat-card">
+            <div class="stat-label"><i class="fas fa-users"></i> Total</div>
             <div class="stat-value" id="total-count"><%= students ? students.length : 0 %></div>
           </div>
           <div class="stat-card present">
@@ -364,162 +168,128 @@
           </div>
         </div>
 
-        <!-- Attendance Register Card -->
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <h3 class="card-title"><i class="fas fa-clipboard-list"></i> Attendance Register</h3>
-              <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">Mark daily attendance for your classes</p>
-            </div>
+        <!-- Controls -->
+        <div class="att-controls">
+          <div class="form-group">
+            <label>Select Class</label>
+            <select id="class-selector" class="form-input" onchange="loadClass()">
+              <option value="">-- Select a class --</option>
+              <% if (typeof allClasses !== 'undefined' && allClasses.length > 0) { %>
+                <% allClasses.forEach(c => { %>
+                  <option value="<%= c.grade %>|<%= c.student_class %>"
+                    <%= (selectedGrade === String(c.grade) && selectedClass === c.student_class) ? 'selected' : '' %>>
+                    Grade <%= c.grade %> <%= c.student_class %> (<%= c.count %> students)
+                  </option>
+                <% }) %>
+              <% } %>
+            </select>
           </div>
-
-          <!-- Controls -->
-          <div class="attendance-controls">
-            <div class="form-group">
-              <label>Select Class</label>
-              <select id="class-selector" class="form-input" onchange="loadClass()">
-                <option value="">-- Select a class --</option>
-                <% if (typeof allClasses !== 'undefined' && allClasses.length > 0) { %>
-                  <% allClasses.forEach(c => { %>
-                    <option value="<%= c.grade %>|<%= c.student_class %>" 
-                      <%= (selectedGrade === String(c.grade) && selectedClass === c.student_class) ? 'selected' : '' %>>
-                      Form <%= c.grade %> <%= c.student_class %> (<%= c.count %> students)
-                    </option>
-                  <% }) %>
-                <% } %>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Date</label>
-              <input type="date" id="attendance-date" class="form-input" value="<%= selectedDate || '' %>">
-            </div>
-            <button type="button" class="mark-all-btn" onclick="markAllPresent()">
-              <i class="fas fa-check-double"></i> Mark All Present
-            </button>
-            <button type="button" class="mark-all-btn" onclick="markAllAbsent()">
-              <i class="fas fa-user-xmark"></i> Mark All Absent
-            </button>
+          <div class="form-group">
+            <label>Date</label>
+            <input type="date" id="attendance-date" class="form-input" value="<%= selectedDate || '' %>">
           </div>
-
-          <% if (students && students.length > 0) { %>
-            <% const enrolledCount = (students || []).filter(s => s.face_descriptor).length; %>
-            <div class="face-activation-banner">
-              <div>
-                <strong><i class="fas fa-face-viewfinder"></i> Activate facial recognition for this attendance session</strong>
-                <p>Step 1: make sure students in this class have face enrollment saved. Step 2: click Start Face Scanner below and let the camera mark enrolled students present automatically.</p>
-                <div class="face-count-badge"><i class="fas fa-user-check"></i> <%= enrolledCount %> of <%= students.length %> students enrolled</div>
-              </div>
-              <a href="/student" class="btn outline"><i class="fas fa-camera"></i> Review Student Face Setup</a>
-            </div>
-            <div class="face-panel">
-              <h4 style="margin-bottom:0.75rem;"><i class="fas fa-face-viewfinder"></i> Facial Recognition Auto-Marking</h4>
-              <div class="face-row">
-                <div>
-                  <video id="face-video" class="face-video" autoplay muted playsinline></video>
-                </div>
-                <div>
-                  <div class="face-actions">
-                    <button type="button" id="start-face-scan" class="btn primary"><i class="fas fa-video"></i> Start Face Scanner</button>
-                    <button type="button" id="stop-face-scan" class="btn outline"><i class="fas fa-stop"></i> Stop Scanner</button>
-                  </div>
-                  <div id="face-status">Scanner idle.</div>
-                  <div id="face-events" class="face-events"></div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Progress Bar -->
-            <div class="progress-section">
-              <div class="progress-header">
-                <span>Progress: <span id="marked-count">0</span> / <%= students.length %> marked</span>
-                <span id="progress-percent">0%</span>
-              </div>
-              <div class="progress-bar">
-                <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
-              </div>
-            </div>
-
-            <!-- Auto-save Notice -->
-            <div class="auto-save-notice">
-              <i class="fas fa-sync-alt"></i>
-              Facial recognition saves immediately after recognition. Manual changes save when you submit.
-            </div>
-
-            <!-- Attendance Table -->
-            <form id="attendance-form" method="POST" action="/student-attendance/mark">
-              <input type="hidden" name="grade" value="<%= selectedGrade %>">
-              <input type="hidden" name="student_class" value="<%= selectedClass %>">
-              <input type="hidden" name="date" id="form-date" value="<%= selectedDate %>">
-
-              <div class="table-wrapper">
-                <table class="attendance-table">
-                  <thead>
-                    <tr>
-                      <th>Roll No.</th>
-                      <th>Student Name</th>
-                      <th>Status</th>
-                      <th>Quick Mark</th>
-                      <th>Remarks</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <% students.forEach((student, idx) => { %>
-                      <% const rowStatus = ['Present', 'Late', 'Absent'].includes(student.attendance_status) ? student.attendance_status : 'Absent'; %>
-                      <tr data-student-id="<%= student.id %>" data-face-enrolled="<%= student.face_descriptor ? 'true' : 'false' %>">
-                        <td><%= String(idx + 1).padStart(3, '0') %></td>
-                        <td>
-                          <strong><%= student.name %></strong>
-                          <% if (student.face_descriptor) { %>
-                            <div style="font-size:0.75rem;color:#15803d;margin-top:0.2rem;"><i class="fas fa-face-smile"></i> Face enrolled</div>
-                          <% } else { %>
-                            <div style="font-size:0.75rem;color:#b45309;margin-top:0.2rem;"><i class="fas fa-triangle-exclamation"></i> No face enrolled</div>
-                          <% } %>
-                        </td>
-                        <td>
-                          <span class="status-badge <%= rowStatus.toLowerCase() %>" id="status-badge-<%= student.id %>">
-                            <% if (rowStatus === 'Present') { %>
-                              <i class="fas fa-check"></i> Present
-                            <% } else if (rowStatus === 'Late') { %>
-                              <i class="fas fa-clock"></i> Late
-                            <% } else { %>
-                              <i class="fas fa-times"></i> Absent
-                            <% } %>
-                          </span>
-                          <input type="hidden" name="status_<%= student.id %>" id="status-<%= student.id %>" value="<%= rowStatus %>">
-                        </td>
-                        <td>
-                          <div class="quick-mark-btns">
-                            <button type="button" class="quick-btn present-btn <%= rowStatus === 'Present' ? 'active' : '' %>" onclick="setStatus(<%= student.id %>, 'Present')">
-                              <i class="fas fa-check"></i> Present
-                            </button>
-                            <button type="button" class="quick-btn absent-btn <%= rowStatus === 'Absent' ? 'active' : '' %>" onclick="setStatus(<%= student.id %>, 'Absent')">
-                              <i class="fas fa-times"></i> Absent
-                            </button>
-                            <button type="button" class="quick-btn late-btn <%= rowStatus === 'Late' ? 'active' : '' %>" onclick="setStatus(<%= student.id %>, 'Late')">
-                              <i class="fas fa-clock"></i> Late
-                            </button>
-                          </div>
-                        </td>
-                        <td>
-                          <input type="text" name="reason_<%= student.id %>" class="remarks-input" placeholder="Optional remarks..." value="<%= student.attendance_reason || '' %>">
-                        </td>
-                      </tr>
-                    <% }) %>
-                  </tbody>
-                </table>
-              </div>
-
-              <button type="submit" class="btn primary" style="margin-top: 1.5rem; width: 100%; padding: 1rem;">
-                <i class="fas fa-save"></i> Save Attendance
-              </button>
-            </form>
-          <% } else { %>
-            <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
-              <i class="fas fa-users" style="font-size: 3rem; opacity: 0.3; margin-bottom: 1rem; display: block;"></i>
-              <p>Select a class above to start marking attendance</p>
-            </div>
-          <% } %>
         </div>
+
+        <% if (students && students.length > 0) { %>
+          <% const enrolledCount = students.filter(s => s.face_descriptor).length; %>
+
+          <!-- Progress -->
+          <div class="progress-wrap">
+            <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+            <div class="progress-label"><span id="marked-count">0</span> / <%= students.length %> marked &nbsp;·&nbsp; <span id="progress-pct">0%</span></div>
+          </div>
+
+          <!-- Two-column layout: Camera | Roster -->
+          <div class="att-layout">
+
+            <!-- ── Camera Panel ── -->
+            <div class="camera-panel">
+              <div class="camera-panel-header">
+                <i class="fas fa-camera" style="color:var(--primary)"></i>
+                Face Scanner
+                <span style="margin-left:auto;font-size:.75rem;font-weight:400;color:var(--text-muted);">
+                  <%= enrolledCount %>/<%= students.length %> enrolled
+                </span>
+              </div>
+              <div class="camera-panel-body">
+                <video id="face-video" class="face-video" autoplay muted playsinline></video>
+                <div class="camera-btns">
+                  <button type="button" id="start-face-scan" class="btn primary">
+                    <i class="fas fa-video"></i> Start Scanner
+                  </button>
+                  <button type="button" id="stop-face-scan" class="btn outline" disabled>
+                    <i class="fas fa-stop"></i> Stop
+                  </button>
+                </div>
+                <small id="face-status">Scanner idle. Select a class and click Start.</small>
+                <div id="face-events" class="face-events"></div>
+              </div>
+            </div>
+
+            <!-- ── Roster Panel ── -->
+            <div class="roster-panel">
+              <div class="roster-header">
+                <div class="roster-title">
+                  <i class="fas fa-list-check" style="color:var(--primary)"></i>
+                  Student Roster
+                </div>
+                <div class="roster-actions">
+                  <button type="button" class="mini-btn p" onclick="markAll('Present')" title="Mark all present">
+                    <i class="fas fa-check-double"></i> All Present
+                  </button>
+                  <button type="button" class="mini-btn a" onclick="markAll('Absent')" title="Mark all absent">
+                    <i class="fas fa-user-xmark"></i> All Absent
+                  </button>
+                </div>
+              </div>
+
+              <form id="attendance-form" method="POST" action="/student-attendance/mark">
+                <input type="hidden" name="grade" value="<%= selectedGrade %>">
+                <input type="hidden" name="student_class" value="<%= selectedClass %>">
+                <input type="hidden" name="date" id="form-date" value="<%= selectedDate %>">
+
+                <div class="roster-list" id="roster-list">
+                  <% students.forEach((student, idx) => { %>
+                    <% const initStatus = ['Present','Late','Absent'].includes(student.attendance_status) ? student.attendance_status : 'Absent'; %>
+                    <div class="roster-item is-<%= initStatus.toLowerCase() %>" id="row-<%= student.id %>">
+                      <span class="roster-num"><%= String(idx+1).padStart(2,'0') %></span>
+                      <span class="roster-dot"></span>
+                      <div style="flex:1;min-width:0;">
+                        <div class="roster-name"><%= student.name %></div>
+                        <div class="roster-face-icon <%= student.face_descriptor ? 'enrolled' : '' %>">
+                          <% if (student.face_descriptor) { %>
+                            <i class="fas fa-face-smile"></i> Face enrolled
+                          <% } else { %>
+                            <i class="fas fa-triangle-exclamation"></i> No face
+                          <% } %>
+                        </div>
+                      </div>
+                      <div class="roster-btns">
+                        <button type="button" class="mini-btn p <%= initStatus==='Present'?'on':'' %>" onclick="setStatus(<%= student.id %>,'Present')" title="Present">P</button>
+                        <button type="button" class="mini-btn l <%= initStatus==='Late'?'on':'' %>"    onclick="setStatus(<%= student.id %>,'Late')"    title="Late">L</button>
+                        <button type="button" class="mini-btn a <%= initStatus==='Absent'?'on':'' %>"  onclick="setStatus(<%= student.id %>,'Absent')"  title="Absent">A</button>
+                      </div>
+                      <input type="hidden" name="status_<%= student.id %>" id="status-<%= student.id %>" value="<%= initStatus %>">
+                      <input type="hidden" name="reason_<%= student.id %>" id="reason-<%= student.id %>" value="<%= student.attendance_reason || '' %>">
+                    </div>
+                  <% }) %>
+                </div>
+
+                <div class="save-section">
+                  <button type="submit" class="btn primary" style="width:100%;">
+                    <i class="fas fa-save"></i> Save Attendance Session
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+        <% } else { %>
+          <div class="card" style="text-align:center;padding:3rem;color:var(--text-muted);">
+            <i class="fas fa-users" style="font-size:3rem;opacity:.3;display:block;margin-bottom:1rem;"></i>
+            <p>Select a class above to start marking attendance.</p>
+          </div>
+        <% } %>
       </section>
 
       <footer class="footer">
@@ -530,152 +300,118 @@
 
   <script src="/js/main.js"></script>
   <script>
-    // Auto-pick today's date
-    document.addEventListener('DOMContentLoaded', function() {
-      const dateInput = document.getElementById('attendance-date');
-      if (dateInput && !dateInput.value) {
-        const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth() + 1).padStart(2, '0');
-        const dd = String(today.getDate()).padStart(2, '0');
-        dateInput.value = `${yyyy}-${mm}-${dd}`;
-        document.getElementById('form-date').value = dateInput.value;
-      }
-      
-      // Sync date input with form
-      dateInput.addEventListener('change', function() {
-        document.getElementById('form-date').value = this.value;
-      });
-
-      updateStats();
+  // ── Date init ─────────────────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', function () {
+    const d = document.getElementById('attendance-date');
+    if (d && !d.value) {
+      const now = new Date();
+      d.value = now.getFullYear() + '-' +
+        String(now.getMonth()+1).padStart(2,'0') + '-' +
+        String(now.getDate()).padStart(2,'0');
+    }
+    if (d) d.addEventListener('change', function () {
+      const fd = document.getElementById('form-date');
+      if (fd) fd.value = this.value;
     });
+    if (document.getElementById('form-date') && d) {
+      document.getElementById('form-date').value = d.value;
+    }
+    updateStats();
+  });
 
-    function loadClass() {
-      const selector = document.getElementById('class-selector');
-      const dateInput = document.getElementById('attendance-date');
-      
-      if (selector.value) {
-        const [grade, studentClass] = selector.value.split('|');
-        const date = dateInput.value || new Date().toISOString().split('T')[0];
-        window.location.href = `/student-attendance/mark?grade=${encodeURIComponent(grade)}&class=${encodeURIComponent(studentClass)}&date=${date}`;
-      }
+  function loadClass() {
+    const sel = document.getElementById('class-selector');
+    const d = document.getElementById('attendance-date');
+    if (!sel.value) return;
+    const [grade, cls] = sel.value.split('|');
+    const date = (d && d.value) || new Date().toISOString().split('T')[0];
+    window.location.href = '/student-attendance/mark?grade=' + encodeURIComponent(grade) +
+      '&class=' + encodeURIComponent(cls) + '&date=' + date;
+  }
+
+  // ── Status helpers ────────────────────────────────────────────────────────
+  function setStatus(studentId, status) {
+    const hidden = document.getElementById('status-' + studentId);
+    if (hidden) hidden.value = status;
+
+    const row = document.getElementById('row-' + studentId);
+    if (row) {
+      row.className = 'roster-item is-' + status.toLowerCase();
+      row.querySelectorAll('.mini-btn').forEach(b => b.classList.remove('on'));
+      const map = { Present: 'p', Late: 'l', Absent: 'a' };
+      const target = row.querySelector('.mini-btn.' + (map[status] || 'a'));
+      if (target) target.classList.add('on');
+    }
+    updateStats();
+  }
+
+  function markAll(status) {
+    document.querySelectorAll('[id^="status-"]').forEach(function (input) {
+      const id = input.id.replace('status-', '');
+      setStatus(id, status);
+    });
+  }
+
+  function updateStats() {
+    let present = 0, absent = 0, late = 0;
+    document.querySelectorAll('[id^="status-"]').forEach(function (inp) {
+      if (inp.value === 'Present') present++;
+      else if (inp.value === 'Late') late++;
+      else absent++;
+    });
+    document.getElementById('present-count').textContent = present;
+    document.getElementById('absent-count').textContent  = absent;
+    document.getElementById('late-count').textContent    = late;
+
+    const total = parseInt(document.getElementById('total-count').textContent) || 0;
+    const marked = present + absent + late;
+    document.getElementById('marked-count').textContent = marked;
+    const pct = total ? Math.round(marked/total*100) : 0;
+    document.getElementById('progress-pct').textContent = pct + '%';
+    document.getElementById('progress-fill').style.width = pct + '%';
+  }
+
+  // ── Face recognition profiles & callback ──────────────────────────────────
+  window.PSP_FACE_PROFILES = <%- JSON.stringify((students || []).filter(s => s.face_descriptor).map(s => ({ id: s.id, name: s.name, descriptor: s.face_descriptor }))) %>;
+
+  window.PSPFaceAttendance_onRecognized = async function (studentId, name, distance) {
+    // Flash the row green immediately
+    const row = document.getElementById('row-' + studentId);
+    if (row) {
+      row.style.transition = 'box-shadow .3s';
+      row.style.boxShadow = '0 0 0 3px #22c55e';
+      setTimeout(() => { row.style.boxShadow = ''; }, 1800);
     }
 
-    function setStatus(studentId, status) {
-      // Update hidden input
-      document.getElementById('status-' + studentId).value = status;
-      
-      // Update badge
-      const badge = document.getElementById('status-badge-' + studentId);
-      badge.className = 'status-badge ' + status.toLowerCase();
-      
-      const icons = { Present: 'fa-check', Absent: 'fa-times', Late: 'fa-clock' };
-      badge.innerHTML = `<i class="fas ${icons[status]}"></i> ${status}`;
-      
-      // Update buttons
-      const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
-      row.querySelectorAll('.quick-btn').forEach(btn => btn.classList.remove('active'));
-      row.querySelector(`.${status.toLowerCase()}-btn`).classList.add('active');
-      
-      updateStats();
-      autoSave(studentId, status);
-    }
-
-    function markAllPresent() {
-      document.querySelectorAll('tr[data-student-id]').forEach(row => {
-        const studentId = row.dataset.studentId;
-        setStatus(parseInt(studentId), 'Present');
-      });
-    }
-
-    function markAllAbsent() {
-      document.querySelectorAll('tr[data-student-id]').forEach(row => {
-        const studentId = row.dataset.studentId;
-        setStatus(parseInt(studentId), 'Absent');
-      });
-    }
-
-    function updateStats() {
-      let present = 0, absent = 0, late = 0;
-      
-      document.querySelectorAll('input[id^="status-"]').forEach(input => {
-        if (input.value === 'Present') present++;
-        else if (input.value === 'Absent') absent++;
-        else if (input.value === 'Late') late++;
-      });
-      
-      document.getElementById('present-count').textContent = present;
-      document.getElementById('absent-count').textContent = absent;
-      document.getElementById('late-count').textContent = late;
-      
-      const marked = present + absent + late;
-      const totalStudents = parseInt(document.getElementById('total-count').textContent);
-      
-      document.getElementById('marked-count').textContent = marked;
-      const percent = totalStudents > 0 ? Math.round((marked / totalStudents) * 100) : 0;
-      document.getElementById('progress-percent').textContent = percent + '%';
-      document.getElementById('progress-fill').style.width = percent + '%';
-    }
-
-    function autoSave(studentId, status) {
-      // Visual feedback for local draft changes before full submit.
-      const notice = document.querySelector('.auto-save-notice');
-      notice.innerHTML = '<i class="fas fa-pen"></i> Draft updated. Submit to save manual changes.';
-      
-      setTimeout(() => {
-        notice.innerHTML = '<i class="fas fa-check-circle"></i> Draft ready';
-        setTimeout(() => {
-        notice.innerHTML = '<i class="fas fa-sync-alt"></i> Facial recognition saves immediately after recognition. Manual changes save when you submit.';
-        }, 1500);
-      }, 500);
-    }
-
-    window.PSP_FACE_PROFILES = <%- JSON.stringify((students || []).filter(s => s.face_descriptor).map(s => ({ id: s.id, name: s.name, descriptor: s.face_descriptor }))) %>;
-
-    window.PSPFaceAttendanceConfig = {
-      endpoint: '/student-attendance/face-mark',
-      grade: <%- JSON.stringify(selectedGrade || '') %>,
-      studentClass: <%- JSON.stringify(selectedClass || '') %>,
-      date: function() {
-        return document.getElementById('attendance-date') ? document.getElementById('attendance-date').value : '';
-      }
-    };
-
-    window.PSPFaceAttendance_onRecognized = async function(studentId) {
-      const payload = {
+    // Save via API
+    const date = document.getElementById('attendance-date')?.value || '';
+    const resp = await fetch('/student-attendance/face-mark', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         studentId,
-        grade: window.PSPFaceAttendanceConfig.grade,
-        studentClass: window.PSPFaceAttendanceConfig.studentClass,
-        date: window.PSPFaceAttendanceConfig.date()
-      };
+        grade: <%- JSON.stringify(selectedGrade || '') %>,
+        studentClass: <%- JSON.stringify(selectedClass || '') %>,
+        date
+      })
+    });
+    const data = await resp.json();
+    if (!resp.ok || !data.ok) {
+      const err = new Error(data.message || 'Failed to save attendance');
+      err.studentId = studentId;
+      throw err;
+    }
 
-      const response = await fetch(window.PSPFaceAttendanceConfig.endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const data = await response.json();
-      if (!response.ok || !data.ok) {
-        const err = new Error(data.message || 'Facial recognition attendance could not be saved.');
-        err.studentId = studentId;
-        throw err;
-      }
-
-      setStatus(studentId, 'Present');
-      const reason = document.querySelector(`input[name="reason_${studentId}"]`);
-      if (reason) reason.value = data.reason || 'Facial recognition';
-
-      const notice = document.querySelector('.auto-save-notice');
-      if (notice) {
-        notice.innerHTML = `<i class="fas fa-check-circle"></i> ${data.name} marked present by facial recognition`;
-      }
-    };
+    // Update UI
+    setStatus(studentId, 'Present');
+    const reason = document.getElementById('reason-' + studentId);
+    if (reason) reason.value = 'Face recognition';
+    updateStats();
+  };
   </script>
-  <script async src="https://docs.opencv.org/4.x/opencv.js" type="text/javascript"></script>
-  <script src="/js/face-vision.js"></script>
+
   <script src="/vendor/tf.min.js"></script>
   <script src="/vendor/face-api.min.js"></script>
   <script src="/js/face-attendance.js"></script>
 </body>
 </html>
-

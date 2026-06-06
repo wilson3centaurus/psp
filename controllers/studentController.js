@@ -4,6 +4,17 @@ const csv = require('csv-parser');
 const v = require('../utils/validate');
 const { normalizeDescriptor, stringifyDescriptor } = require('../utils/faceBiometric');
 
+// ─── Auto-generate unique student ID ─────────────────────────────────────────
+function generateStudentId() {
+  const year = new Date().getFullYear();
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let suffix = '';
+  for (let i = 0; i < 6; i++) {
+    suffix += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return `PSP-${year}-${suffix}`;
+}
+
 // ─── Shared field validation ──────────────────────────────────────────────────
 function validateStudentFields(body) {
   const checks = [
@@ -11,7 +22,6 @@ function validateStudentFields(body) {
     v.validateGrade(body.grade),
     v.validateClass(body.student_class),
     v.validateGender(body.gender),
-    v.validateStudentId(body.student_id),
     v.validateStudentDOB(body.dob),
     v.validateEnrollmentDate(body.enrollment_date),
     v.validatePhone(body.parent_phone, 'Parent phone', false),
@@ -41,7 +51,7 @@ exports.addStudentPage = (req, res) => res.render('school/addstudent');
 // Add single student
 exports.addStudent = async (req, res) => {
   const {
-    name, grade, student_class, gender, student_id,
+    name, grade, student_class, gender,
     dob, enrollment_date, parent_name, parent_phone, parent_email, medical_notes, face_descriptor
   } = req.body;
   const schoolId = req.session.user.id;
@@ -58,32 +68,43 @@ exports.addStudent = async (req, res) => {
     return res.redirect('/student/add');
   }
 
-  try {
-    await pool.query(
-      `INSERT INTO students
-        (name, grade, student_class, gender, student_id, dob, enrollment_date,
-         parent_name, parent_phone, parent_email, medical_notes, school_id, face_descriptor, face_enrolled_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-      [
-        name.trim(), grade, student_class, gender, student_id.trim(),
-        dob, enrollment_date,
-        (parent_name || '').trim() || null,
-        (parent_phone || '').trim() || null,
-        (parent_email || '').trim() || null,
-        (medical_notes || '').trim() || null,
-        schoolId,
-        stringifyDescriptor(descriptor)
-      ]
-    );
-    req.flash('success_msg', 'Student added successfully.');
-    res.redirect('/student');
-  } catch (err) {
-    console.error('[students] insert error:', err);
-    if (err.code === 'ER_DUP_ENTRY') {
-      req.flash('error_msg', `A student with ID "${student_id}" already exists in this school.`);
-    } else {
+  // Generate unique student ID (retry up to 5 times on collision)
+  let studentId;
+  let inserted = false;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    studentId = generateStudentId();
+    try {
+      await pool.query(
+        `INSERT INTO students
+          (name, grade, student_class, gender, student_id, dob, enrollment_date,
+           parent_name, parent_phone, parent_email, medical_notes, school_id, face_descriptor, face_enrolled_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+        [
+          name.trim(), grade, student_class, gender, studentId,
+          dob, enrollment_date,
+          (parent_name || '').trim() || null,
+          (parent_phone || '').trim() || null,
+          (parent_email || '').trim() || null,
+          (medical_notes || '').trim() || null,
+          schoolId,
+          stringifyDescriptor(descriptor)
+        ]
+      );
+      inserted = true;
+      break;
+    } catch (err) {
+      if (err.code === 'ER_DUP_ENTRY' && attempt < 4) continue;
+      console.error('[students] insert error:', err);
       req.flash('error_msg', `Failed to add student: ${err.message}`);
+      return res.redirect('/student/add');
     }
+  }
+
+  if (inserted) {
+    req.flash('success_msg', `Student added successfully. ID: ${studentId}`);
+    res.redirect('/student');
+  } else {
+    req.flash('error_msg', 'Could not generate a unique student ID. Please try again.');
     res.redirect('/student/add');
   }
 };
@@ -119,7 +140,6 @@ exports.uploadCSV = (req, res) => {
           grade: row.grade,
           student_class: row.student_class,
           gender: row.gender,
-          student_id: row.student_id,
           dob: row.dob,
           enrollment_date: row.enrollment_date,
           parent_name: row.parent_name,
@@ -132,6 +152,9 @@ exports.uploadCSV = (req, res) => {
           continue;
         }
 
+        // Auto-generate ID if not provided in CSV
+        const rowStudentId = (row.student_id || '').trim() || generateStudentId();
+
         try {
           await pool.query(
             `INSERT INTO students
@@ -139,7 +162,7 @@ exports.uploadCSV = (req, res) => {
                parent_name, parent_phone, parent_email, medical_notes, school_id)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
-              row.name.trim(), row.grade, row.student_class, row.gender, row.student_id.trim(),
+              row.name.trim(), row.grade, row.student_class, row.gender, rowStudentId,
               row.dob, row.enrollment_date,
               (row.parent_name || '').trim() || null,
               (row.parent_phone || '').trim() || null,
@@ -151,7 +174,7 @@ exports.uploadCSV = (req, res) => {
           inserted++;
         } catch (dbErr) {
           const msg = dbErr.code === 'ER_DUP_ENTRY'
-            ? `Duplicate student ID "${row.student_id}"`
+            ? `Duplicate student ID for row ${rowNum}`
             : dbErr.message;
           rowErrors.push(`Row ${rowNum}: ${msg}`);
         }
@@ -188,7 +211,7 @@ exports.editStudentPage = async (req, res) => {
 exports.updateStudent = async (req, res) => {
   const { id } = req.params;
   const {
-    name, grade, student_class, gender, student_id,
+    name, grade, student_class, gender,
     dob, enrollment_date, parent_name, parent_phone, parent_email, medical_notes, face_descriptor
   } = req.body;
 
@@ -200,11 +223,11 @@ exports.updateStudent = async (req, res) => {
 
   try {
     const setParts = [
-      'name=?', 'grade=?', 'student_class=?', 'gender=?', 'student_id=?',
+      'name=?', 'grade=?', 'student_class=?', 'gender=?',
       'dob=?', 'enrollment_date=?', 'parent_name=?', 'parent_phone=?', 'parent_email=?', 'medical_notes=?'
     ];
     const params = [
-      name.trim(), grade, student_class, gender, student_id.trim(),
+      name.trim(), grade, student_class, gender,
       dob, enrollment_date,
       (parent_name || '').trim() || null,
       (parent_phone || '').trim() || null,

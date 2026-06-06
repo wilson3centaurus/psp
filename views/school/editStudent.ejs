@@ -76,11 +76,11 @@
             <span class="field-error" id="err-gender"></span>
           </div>
           <div class="form-group">
-            <label for="student_id"><i class="fas fa-id-card"></i> Student ID <span class="required">*</span></label>
-            <input type="text" id="student_id" name="student_id" class="form-input" required
-              value="<%= student.student_id %>" maxlength="50" autocomplete="off">
-            <small class="form-hint">Alphanumeric, hyphens, and underscores only.</small>
-            <span class="field-error" id="err-student-id"></span>
+            <label><i class="fas fa-id-card"></i> Student ID</label>
+            <div class="form-input read-only-field" style="background:var(--bg-secondary);color:var(--text-muted);cursor:default;font-family:monospace;font-size:0.9rem;">
+              <%= student.student_id %>
+            </div>
+            <small class="form-hint">Student ID is automatically assigned and cannot be changed.</small>
           </div>
         </div>
 
@@ -206,11 +206,6 @@
 
       if (!form.elements.gender.value) { showErr('err-gender', 'Please select a gender.'); ok = false; }
       else clearErr('err-gender');
-
-      const sid = (form.elements.student_id ? form.elements.student_id.value : '').trim();
-      if (!sid) { showErr('err-student-id', 'Student ID is required.'); ok = false; }
-      else if (!/^[A-Za-z0-9\-_\/]+$/.test(sid)) { showErr('err-student-id', 'Student ID may only contain letters, numbers, hyphens, and underscores.'); ok = false; }
-      else clearErr('err-student-id');
 
       const dob = form.elements.dob ? form.elements.dob.value : '';
       if (!dob) { showErr('err-dob', 'Date of birth is required.'); ok = false; }

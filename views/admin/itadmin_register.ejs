@@ -62,7 +62,12 @@
 
             <div style="width: 100%;">
               <label>Access Code <span class="required">*</span></label>
-              <input type="password" name="accessCode" id="accessCode" placeholder="Enter IT admin access code" required autocomplete="off">
+              <div class="password-field">
+                <input type="password" name="accessCode" id="accessCode" placeholder="Enter IT admin access code" required autocomplete="off">
+                <button type="button" class="password-toggle" id="toggleCode" aria-label="Show or hide access code">
+                  <i class="fas fa-eye"></i>
+                </button>
+              </div>
               <span class="field-error" id="err-code"></span>
             </div>
 
@@ -159,6 +164,17 @@
       });
     }
 
+    // --- Access code visibility toggle ---
+    const codeInput = document.getElementById('accessCode');
+    const toggleCode = document.getElementById('toggleCode');
+    if (toggleCode && codeInput) {
+      toggleCode.addEventListener('click', function () {
+        const isHidden = codeInput.type === 'password';
+        codeInput.type = isHidden ? 'text' : 'password';
+        toggleCode.innerHTML = isHidden ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+      });
+    }
+
     // --- Password strength meter ---
     const fill = document.getElementById('pwStrengthFill');
     const checks = {
@@ -252,132 +268,6 @@
       schoolFields.style.display = role === 'school' ? 'block' : 'none';
     }
   }
-  </script>
-</body>
-</html>
-<body>
-  <div class="erp-shell">
-    <aside class="erp-sidebar">
-      <div class="sidebar-brand">
-        <img src="/assets/logo.png" alt="System Logo" class="logo">
-        <div class="brand-text">Primary School Performance</div>
-      </div>
-      <nav class="sidebar-nav">
-        <a class="sidebar-link active" href="/itadmin"><i class="fas fa-user-shield"></i> IT Admin</a>
-        <a class="sidebar-link" href="/admin/dashboard"><i class="fas fa-gauge"></i> Admin Dashboard</a>
-        <a class="sidebar-link" href="/login"><i class="fas fa-sign-in-alt"></i> Login</a>
-      </nav>
-    </aside>
-
-    <div class="erp-main">
-      <header class="erp-topbar">
-        <div class="title">IT Admin · Create User</div>
-        <div class="nav-actions">
-          <a class="nav-link" href="/login"><i class="fas fa-sign-in-alt"></i> Go to Login</a>
-        </div>
-      </header>
-
-      <section class="erp-content">
-        <div class="page-header">
-          <div>
-            <h2><i class="fas fa-user-shield"></i> Provision Accounts</h2>
-            <p class="subhead">Use the IT admin access code to create school or admin users.</p>
-          </div>
-        </div>
-
-        <% if (error) { %>
-          <div class="alert alert-danger"><%= error %></div>
-        <% } %>
-        <% if (success) { %>
-          <div class="alert alert-success"><%= success %></div>
-        <% } %>
-
-        <div class="card" style="max-width: 540px;">
-          <form method="POST" action="/itadmin" id="registerForm" class="actions-row" style="flex-direction: column; gap: 0.9rem;">
-            <div style="width: 100%;">
-              <label>Access Code</label>
-              <input type="text" name="accessCode" placeholder="Enter IT admin access code" required>
-            </div>
-            <div style="width: 100%;">
-              <label>Username (Login ID)</label>
-              <input type="text" name="username" placeholder="e.g. baring_primary" required>
-            </div>
-            <div style="width: 100%;">
-              <label>Password</label>
-              <div class="password-field">
-                <input type="password" name="password" id="passwordInput" placeholder="Set a secure password" required>
-                <button type="button" class="password-toggle" id="togglePassword" aria-label="Show or hide password">
-                  <i class="fas fa-eye"></i>
-                </button>
-              </div>
-            </div>
-            <div style="width: 100%;">
-              <label>Role</label>
-              <select name="role" id="roleSelect" required onchange="toggleSchoolFields()">
-                <option value="">Select role</option>
-                <option value="school">School</option>
-                <option value="admin">Admin</option>
-              </select>
-            </div>
-
-            <!-- School-specific fields (shown when role = school) -->
-            <div id="schoolFields" style="display: none; width: 100%;">
-              <div style="border: 1px dashed var(--border); border-radius: var(--radius); padding: 1rem; margin-top: 0.25rem; background: var(--bg-secondary);">
-                <h4 style="margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem; color: var(--text-primary);"><i class="fas fa-school" style="color: var(--primary);"></i> School Details</h4>
-                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                  <div>
-                    <label>Display Name</label>
-                    <input type="text" name="display_name" placeholder="e.g. Baring Primary School">
-                  </div>
-                  <div>
-                    <label>Email Address</label>
-                    <input type="email" name="email" placeholder="e.g. admin@baringprimary.co.zw">
-                  </div>
-                  <div>
-                    <label>Phone Number</label>
-                    <input type="text" name="phone" placeholder="e.g. +263 242 123456">
-                  </div>
-                  <div>
-                    <label>Address</label>
-                    <input type="text" name="address" placeholder="e.g. 123 Main Rd, Harare">
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <button class="btn btn-primary" type="submit" style="width: 100%; margin-top: 0.2rem;">
-              <i class="fas fa-user-plus"></i> Create Account
-            </button>
-          </form>
-        </div>
-      </section>
-
-      <footer class="footer">
-        <p>&copy; 2026 Primary School Performance System | made with <i class="fas fa-heart"></i> by Memory Nikisi</p>
-      </footer>
-    </div>
-  </div>
-
-  <script>
-    (function() {
-      const input = document.getElementById('passwordInput');
-      const toggle = document.getElementById('togglePassword');
-      if (toggle && input) {
-        toggle.addEventListener('click', () => {
-          const isPwd = input.type === 'password';
-          input.type = isPwd ? 'text' : 'password';
-          toggle.innerHTML = isPwd ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
-        });
-      }
-    })();
-
-    function toggleSchoolFields() {
-      const role = document.getElementById('roleSelect').value;
-      const schoolFields = document.getElementById('schoolFields');
-      if (schoolFields) {
-        schoolFields.style.display = role === 'school' ? 'block' : 'none';
-      }
-    }
   </script>
 </body>
 </html>
