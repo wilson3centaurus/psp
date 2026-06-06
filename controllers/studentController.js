@@ -2,6 +2,7 @@ const { pool } = require('../config/db');
 const fs = require('fs');
 const csv = require('csv-parser');
 const v = require('../utils/validate');
+const { normalizeDescriptor, stringifyDescriptor } = require('../utils/faceBiometric');
 
 // ─── Shared field validation ──────────────────────────────────────────────────
 function validateStudentFields(body) {
@@ -41,7 +42,7 @@ exports.addStudentPage = (req, res) => res.render('school/addstudent');
 exports.addStudent = async (req, res) => {
   const {
     name, grade, student_class, gender, student_id,
-    dob, enrollment_date, parent_name, parent_phone, parent_email, medical_notes
+    dob, enrollment_date, parent_name, parent_phone, parent_email, medical_notes, face_descriptor
   } = req.body;
   const schoolId = req.session.user.id;
 
@@ -51,12 +52,18 @@ exports.addStudent = async (req, res) => {
     return res.redirect('/student/add');
   }
 
+  const descriptor = normalizeDescriptor(face_descriptor);
+  if (!descriptor) {
+    req.flash('error_msg', 'Face enrollment is required. Capture a clear face before saving.');
+    return res.redirect('/student/add');
+  }
+
   try {
     await pool.query(
       `INSERT INTO students
         (name, grade, student_class, gender, student_id, dob, enrollment_date,
-         parent_name, parent_phone, parent_email, medical_notes, school_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         parent_name, parent_phone, parent_email, medical_notes, school_id, face_descriptor, face_enrolled_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
         name.trim(), grade, student_class, gender, student_id.trim(),
         dob, enrollment_date,
@@ -64,7 +71,8 @@ exports.addStudent = async (req, res) => {
         (parent_phone || '').trim() || null,
         (parent_email || '').trim() || null,
         (medical_notes || '').trim() || null,
-        schoolId
+        schoolId,
+        stringifyDescriptor(descriptor)
       ]
     );
     req.flash('success_msg', 'Student added successfully.');
@@ -181,7 +189,7 @@ exports.updateStudent = async (req, res) => {
   const { id } = req.params;
   const {
     name, grade, student_class, gender, student_id,
-    dob, enrollment_date, parent_name, parent_phone, parent_email, medical_notes
+    dob, enrollment_date, parent_name, parent_phone, parent_email, medical_notes, face_descriptor
   } = req.body;
 
   const result = validateStudentFields(req.body);
@@ -191,22 +199,27 @@ exports.updateStudent = async (req, res) => {
   }
 
   try {
-    await pool.query(
-      `UPDATE students SET
-        name=?, grade=?, student_class=?, gender=?, student_id=?,
-        dob=?, enrollment_date=?,
-        parent_name=?, parent_phone=?, parent_email=?, medical_notes=?
-       WHERE id=?`,
-      [
-        name.trim(), grade, student_class, gender, student_id.trim(),
-        dob, enrollment_date,
-        (parent_name || '').trim() || null,
-        (parent_phone || '').trim() || null,
-        (parent_email || '').trim() || null,
-        (medical_notes || '').trim() || null,
-        id
-      ]
-    );
+    const setParts = [
+      'name=?', 'grade=?', 'student_class=?', 'gender=?', 'student_id=?',
+      'dob=?', 'enrollment_date=?', 'parent_name=?', 'parent_phone=?', 'parent_email=?', 'medical_notes=?'
+    ];
+    const params = [
+      name.trim(), grade, student_class, gender, student_id.trim(),
+      dob, enrollment_date,
+      (parent_name || '').trim() || null,
+      (parent_phone || '').trim() || null,
+      (parent_email || '').trim() || null,
+      (medical_notes || '').trim() || null
+    ];
+
+    const descriptor = normalizeDescriptor(face_descriptor);
+    if (descriptor) {
+      setParts.push('face_descriptor=?', 'face_enrolled_at=NOW()');
+      params.push(stringifyDescriptor(descriptor));
+    }
+
+    params.push(id);
+    await pool.query(`UPDATE students SET ${setParts.join(', ')} WHERE id=?`, params);
     req.flash('success_msg', 'Student updated successfully.');
   } catch (err) {
     console.error('[students] update error:', err);

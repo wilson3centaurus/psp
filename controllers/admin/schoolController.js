@@ -1,13 +1,33 @@
-﻿const { pool } = require('../../config/db');
+const { pool } = require('../../config/db');
 const fs = require('fs');
 const path = require('path');
+
+async function getUserColumns() {
+  const [rows] = await pool.query('SHOW COLUMNS FROM users');
+  return new Set(rows.map((r) => r.Field));
+}
+
+function optionalSelect(columns, name) {
+  if (columns.has(name)) return `\`${name}\` AS \`${name}\``;
+  return `NULL AS \`${name}\``;
+}
 
 // 1. View all schools
 exports.viewSchools = async (req, res) => {
   try {
+    const userColumns = await getUserColumns();
     const [rows] = await pool.query(
-      "SELECT id, username, display_name, logo, email, phone, address FROM users WHERE role = 'school' ORDER BY username"
+      `SELECT id, username,
+              ${optionalSelect(userColumns, 'display_name')},
+              ${optionalSelect(userColumns, 'logo')},
+              ${optionalSelect(userColumns, 'email')},
+              ${optionalSelect(userColumns, 'phone')},
+              ${optionalSelect(userColumns, 'address')}
+       FROM users
+       WHERE role = 'school'
+       ORDER BY username`
     );
+
     res.render('admin/schools/index', {
       schools: rows,
       success_msg: req.flash('success_msg'),
@@ -46,27 +66,57 @@ exports.updateSchool = async (req, res) => {
   const { display_name, email, phone, address } = req.body;
 
   try {
+    const userColumns = await getUserColumns();
+    const canStoreLogo = userColumns.has('logo');
     let logoFilename = null;
-    if (req.file) {
+
+    if (req.file && canStoreLogo) {
       logoFilename = req.file.filename;
       const [existing] = await pool.query('SELECT logo FROM users WHERE id = ? LIMIT 1', [id]);
       if (existing.length && existing[0].logo) {
         const oldPath = path.join(__dirname, '../../uploads', existing[0].logo);
         if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
       }
+    } else if (req.file && !canStoreLogo) {
+      const uploadedPath = path.join(__dirname, '../../uploads', req.file.filename);
+      if (fs.existsSync(uploadedPath)) fs.unlinkSync(uploadedPath);
     }
 
-    if (logoFilename) {
-      await pool.query(
-        "UPDATE users SET display_name=?, email=?, phone=?, address=?, logo=? WHERE id=? AND role='school'",
-        [display_name, email, phone, address, logoFilename, id]
-      );
-    } else {
-      await pool.query(
-        "UPDATE users SET display_name=?, email=?, phone=?, address=? WHERE id=? AND role='school'",
-        [display_name, email, phone, address, id]
-      );
+    const setClauses = [];
+    const params = [];
+
+    if (userColumns.has('display_name')) {
+      setClauses.push('display_name=?');
+      params.push(display_name || null);
     }
+    if (userColumns.has('email')) {
+      setClauses.push('email=?');
+      params.push(email || null);
+    }
+    if (userColumns.has('phone')) {
+      setClauses.push('phone=?');
+      params.push(phone || null);
+    }
+    if (userColumns.has('address')) {
+      setClauses.push('address=?');
+      params.push(address || null);
+    }
+    if (logoFilename) {
+      setClauses.push('logo=?');
+      params.push(logoFilename);
+    }
+
+    if (!setClauses.length) {
+      req.flash('error_msg', 'Your current database schema does not support editable school profile fields.');
+      return res.redirect('/admin/schools');
+    }
+
+    params.push(id);
+    await pool.query(
+      `UPDATE users SET ${setClauses.join(', ')} WHERE id=? AND role='school'`,
+      params
+    );
+
     req.flash('success_msg', 'School updated successfully.');
   } catch (err) {
     console.error('Update error:', err);
@@ -80,11 +130,15 @@ exports.deleteSchool = async (req, res) => {
   const id = req.params.id;
 
   try {
-    const [existing] = await pool.query('SELECT logo FROM users WHERE id = ? LIMIT 1', [id]);
-    if (existing.length && existing[0].logo) {
-      const logoPath = path.join(__dirname, '../../uploads', existing[0].logo);
-      if (fs.existsSync(logoPath)) fs.unlinkSync(logoPath);
+    const userColumns = await getUserColumns();
+    if (userColumns.has('logo')) {
+      const [existing] = await pool.query('SELECT logo FROM users WHERE id = ? LIMIT 1', [id]);
+      if (existing.length && existing[0].logo) {
+        const logoPath = path.join(__dirname, '../../uploads', existing[0].logo);
+        if (fs.existsSync(logoPath)) fs.unlinkSync(logoPath);
+      }
     }
+
     await pool.query("DELETE FROM users WHERE id=? AND role='school'", [id]);
     req.flash('success_msg', 'School deleted successfully.');
   } catch (err) {
@@ -130,4 +184,4 @@ exports.returnToAdmin = (req, res) => {
     if (err) return res.redirect('/login');
     res.redirect('/admin/schools');
   });
-};
+};

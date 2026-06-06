@@ -2,6 +2,46 @@
 const fs = require('fs');
 const csv = require('csv-parser');
 
+function normalizeDateInput(value) {
+  const text = String(value || '').trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : '';
+}
+
+async function upsertStudentAttendanceRecord({
+  studentId,
+  schoolId,
+  date,
+  status,
+  reason = '',
+  excused = 0,
+  lateMinutes = 0,
+  earlyMinutes = 0
+}) {
+  const [existing] = await pool.query(
+    'SELECT id FROM student_attendance WHERE student_id = ? AND school_id = ? AND date = ? ORDER BY id DESC LIMIT 1',
+    [studentId, schoolId, date]
+  );
+
+  if (existing.length > 0) {
+    await pool.query(
+      `UPDATE student_attendance
+       SET status = ?, reason = ?, excused = ?, late_minutes = ?, early_minutes = ?
+       WHERE id = ?`,
+      [status, reason, excused, lateMinutes, earlyMinutes, existing[0].id]
+    );
+    return existing[0].id;
+  }
+
+  const [result] = await pool.query(
+    `INSERT INTO student_attendance
+      (student_id, school_id, date, status, reason, excused, late_minutes, early_minutes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [studentId, schoolId, date, status, reason, excused, lateMinutes, earlyMinutes]
+  );
+
+  return result.insertId;
+}
+
 // Helper: get distinct attendance dates for a school
 async function getAttendanceDates(schoolId, searchDate) {
   let sql = 'SELECT DISTINCT date FROM student_attendance WHERE school_id = ? ORDER BY date DESC';
@@ -78,7 +118,7 @@ exports.markAttendancePage = async (req, res) => {
   const schoolId = req.session.user.id;
   const selectedGrade = req.query.grade || '';
   const selectedClass = req.query.class || '';
-  const selectedDate = req.query.date || '';
+  const selectedDate = normalizeDateInput(req.query.date) || new Date().toISOString().slice(0, 10);
 
   try {
     const [[schoolInfo]] = await pool.query('SELECT display_name, logo FROM users WHERE id = ? LIMIT 1', [schoolId]);
@@ -95,8 +135,21 @@ exports.markAttendancePage = async (req, res) => {
     }
 
     const [studentRows] = await pool.query(
-      'SELECT * FROM students WHERE school_id = ? AND grade = ? AND student_class = ? ORDER BY name',
-      [schoolId, selectedGrade, selectedClass]
+      `SELECT
+         s.*,
+         sa.status AS attendance_status,
+         sa.reason AS attendance_reason,
+         sa.excused AS attendance_excused,
+         sa.late_minutes AS attendance_late_minutes,
+         sa.early_minutes AS attendance_early_minutes
+       FROM students s
+       LEFT JOIN student_attendance sa
+         ON sa.student_id = s.id
+        AND sa.school_id = s.school_id
+        AND sa.date = ?
+       WHERE s.school_id = ? AND s.grade = ? AND s.student_class = ?
+       ORDER BY s.name`,
+      [selectedDate, schoolId, selectedGrade, selectedClass]
     );
 
     res.render('school/studentAttendance/mark', {
@@ -119,8 +172,9 @@ exports.markAttendancePage = async (req, res) => {
 exports.submitAttendance = async (req, res) => {
   const schoolId = req.session.user.id;
   const { grade, student_class, date } = req.body;
+  const normalizedDate = normalizeDateInput(date);
 
-  if (!date) {
+  if (!normalizedDate) {
     req.flash('error_msg', 'Date is required.');
     return res.redirect('/student-attendance');
   }
@@ -137,19 +191,17 @@ exports.submitAttendance = async (req, res) => {
     }
 
     for (const s of students) {
-      await pool.query(
-        'INSERT INTO student_attendance (student_id, school_id, date, status, reason, excused, late_minutes, early_minutes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [
-          s.id,
-          schoolId,
-          date,
-          req.body[`status_${s.id}`] || 'Absent',
-          req.body[`reason_${s.id}`] || '',
-          req.body[`excused_${s.id}`] ? 1 : 0,
-          req.body[`status_${s.id}`] === 'Late' ? 1 : (Number(req.body[`late_${s.id}`]) || 0),
-          Number(req.body[`early_${s.id}`]) || 0
-        ]
-      );
+      const status = req.body[`status_${s.id}`] || 'Absent';
+      await upsertStudentAttendanceRecord({
+        studentId: s.id,
+        schoolId,
+        date: normalizedDate,
+        status,
+        reason: req.body[`reason_${s.id}`] || '',
+        excused: req.body[`excused_${s.id}`] ? 1 : 0,
+        lateMinutes: status === 'Late' ? (Number(req.body[`late_${s.id}`]) || 1) : (Number(req.body[`late_${s.id}`]) || 0),
+        earlyMinutes: Number(req.body[`early_${s.id}`]) || 0
+      });
     }
     req.flash('success_msg', 'Attendance saved successfully.');
   } catch (err) {
@@ -192,10 +244,16 @@ exports.uploadCSV = (req, res) => {
     .on('end', async () => {
       try {
         for (const r of attendanceRows) {
-          await pool.query(
-            'INSERT INTO student_attendance (student_id, school_id, date, status, reason, excused, late_minutes, early_minutes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [r.student_id, r.school_id, r.date, r.status, r.reason, r.excused, r.late_minutes, r.early_minutes]
-          );
+          await upsertStudentAttendanceRecord({
+            studentId: r.student_id,
+            schoolId: r.school_id,
+            date: r.date,
+            status: r.status,
+            reason: r.reason,
+            excused: r.excused,
+            lateMinutes: r.late_minutes,
+            earlyMinutes: r.early_minutes
+          });
         }
         req.flash('success_msg', 'CSV attendance imported.');
       } catch (err) {
@@ -248,4 +306,56 @@ exports.viewSession = async (req, res) => {
     console.error('[studentAttendance] viewSession error:', err);
     res.render('school/studentAttendance/view', { records: [], date });
   }
-};
+};
+
+/* ===========================
+   6. FACE ID AUTO-MARK
+=========================== */
+exports.markAttendanceByFace = async (req, res) => {
+  const schoolId = req.session.user.id;
+  const studentId = Number(req.body.studentId);
+  const grade = String(req.body.grade || '').trim();
+  const studentClass = String(req.body.studentClass || '').trim();
+  const date = normalizeDateInput(req.body.date);
+
+  if (!studentId || !grade || !studentClass || !date) {
+    return res.status(400).json({ ok: false, message: 'Missing facial recognition attendance fields.' });
+  }
+
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, name
+       FROM students
+       WHERE id = ? AND school_id = ? AND grade = ? AND student_class = ? AND face_descriptor IS NOT NULL
+       LIMIT 1`,
+      [studentId, schoolId, grade, studentClass]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ ok: false, message: 'Recognized student is not enrolled for this class.' });
+    }
+
+    await upsertStudentAttendanceRecord({
+      studentId,
+      schoolId,
+      date,
+      status: 'Present',
+      reason: 'Facial recognition',
+      excused: 0,
+      lateMinutes: 0,
+      earlyMinutes: 0
+    });
+
+    return res.json({
+      ok: true,
+      studentId,
+      name: rows[0].name,
+      status: 'Present',
+      reason: 'Facial recognition',
+      date
+    });
+  } catch (err) {
+    console.error('[studentAttendance] face mark error:', err);
+    return res.status(500).json({ ok: false, message: 'Facial recognition attendance failed.' });
+  }
+};

@@ -102,6 +102,10 @@ Then run schema.sql and seed.sql again.
 
 1. Update your `.env` file with correct database credentials
 2. Run the database setup
-3. Start the server: `npm start`
-4. Visit http://localhost:3000
-5. Login with any of the default credentials above
+3. If upgrading an old DB, run biometric migration:
+   ```bash
+   mysql -u root -p psp < database/migration_v3_face_biometrics.sql
+   ```
+4. Start the server: `npm start`
+5. Visit http://localhost:3000
+6. Login with any of the default credentials above

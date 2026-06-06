@@ -114,6 +114,13 @@
           <div class="card-header">
             <h3 class="card-title"><i class="fas fa-plus"></i> Add Students</h3>
           </div>
+          <div class="face-setup-banner">
+            <div>
+              <div class="face-setup-title"><i class="fas fa-face-viewfinder"></i> Facial Recognition Setup</div>
+              <p class="face-setup-copy">To activate facial recognition for a student, open Add Student or Edit Student, then use the camera section to capture the student's face before saving.</p>
+            </div>
+            <a href="/student/add" class="btn primary"><i class="fas fa-camera"></i> Register With Face</a>
+          </div>
           <div style="display: flex; gap: 1rem; flex-wrap: wrap; padding: 0.5rem 0; align-items: flex-start;">
             <!-- Left pane: Manual Add -->
             <div style="flex: 1; min-width: 200px;">
@@ -168,6 +175,7 @@
                   <th>Class</th>
                   <th>Gender</th>
                   <th>Student ID</th>
+                  <th>Face</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -185,7 +193,15 @@
                       <td><%= student.gender %></td>
                       <td><code><%= student.student_id %></code></td>
                       <td>
+                        <% if (student.face_descriptor) { %>
+                          <span class="face-status-pill enrolled"><i class="fas fa-circle-check"></i> Enrolled</span>
+                        <% } else { %>
+                          <span class="face-status-pill missing"><i class="fas fa-triangle-exclamation"></i> Not Enrolled</span>
+                        <% } %>
+                      </td>
+                      <td>
                         <div class="table-actions">
+                          <a href="/student/edit/<%= student.id %>#face-enroll" class="btn icon secondary" title="<%= student.face_descriptor ? 'Re-enroll face' : 'Enroll face' %>"><i class="fas fa-camera"></i></a>
                           <a href="/student/edit/<%= student.id %>" class="btn icon outline" title="Edit"><i class="fas fa-pen"></i></a>
                           <form action="/student/delete/<%= student.id %>" method="POST" class="inline" onsubmit="return confirm('Delete this student?')">
                             <button type="submit" class="btn icon danger" title="Delete"><i class="fas fa-trash"></i></button>
@@ -209,6 +225,51 @@
   </div>
 
   <script src="/js/main.js"></script>
+  <style>
+    .face-setup-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.12), rgba(var(--primary-rgb), 0.04));
+    }
+    .face-setup-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .face-setup-copy {
+      margin: 0;
+      color: var(--text-secondary);
+      max-width: 720px;
+      font-size: 0.88rem;
+    }
+    .face-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.3rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+    .face-status-pill.enrolled {
+      color: #166534;
+      background: #dcfce7;
+    }
+    .face-status-pill.missing {
+      color: #92400e;
+      background: #fef3c7;
+    }
+  </style>
   <script>
     function updateStudentSelection() {
       const checkboxes = document.querySelectorAll('.student-checkbox');
