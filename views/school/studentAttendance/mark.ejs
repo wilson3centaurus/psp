@@ -194,6 +194,85 @@
       outline: none;
       border-color: var(--primary);
     }
+
+    .face-panel {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1rem;
+      margin-bottom: 1rem;
+      background: var(--bg-secondary);
+    }
+    .face-activation-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      padding: 1rem 1.1rem;
+      margin-bottom: 1rem;
+      border-radius: 14px;
+      border: 1px solid rgba(var(--primary-rgb), 0.26);
+      background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.13), rgba(var(--primary-rgb), 0.05));
+    }
+    .face-activation-banner p {
+      margin: 0.3rem 0 0;
+      font-size: 0.86rem;
+      color: var(--text-secondary);
+      max-width: 720px;
+    }
+    .face-count-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.7rem;
+      border-radius: 999px;
+      background: rgba(var(--primary-rgb), 0.16);
+      color: var(--primary);
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-top: 0.55rem;
+    }
+    .face-row {
+      display: grid;
+      grid-template-columns: minmax(220px, 360px) 1fr;
+      gap: 1rem;
+      align-items: start;
+    }
+    .face-video {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #0f172a;
+      min-height: 220px;
+    }
+    .face-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.65rem;
+    }
+    #face-status {
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+    .face-events {
+      font-size: 0.8rem;
+      display: grid;
+      gap: 0.35rem;
+      max-height: 220px;
+      overflow: auto;
+      padding-right: 0.25rem;
+    }
+    .face-event {
+      padding: 0.35rem 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+    }
+    @media (max-width: 900px) {
+      .face-row { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -273,7 +352,7 @@
           </div>
           <div class="stat-card present">
             <div class="stat-label"><i class="fas fa-check-circle"></i> Present</div>
-            <div class="stat-value" id="present-count"><%= students ? students.length : 0 %></div>
+            <div class="stat-value" id="present-count">0</div>
           </div>
           <div class="stat-card absent">
             <div class="stat-label"><i class="fas fa-times-circle"></i> Absent</div>
@@ -317,24 +396,53 @@
             <button type="button" class="mark-all-btn" onclick="markAllPresent()">
               <i class="fas fa-check-double"></i> Mark All Present
             </button>
+            <button type="button" class="mark-all-btn" onclick="markAllAbsent()">
+              <i class="fas fa-user-xmark"></i> Mark All Absent
+            </button>
           </div>
 
           <% if (students && students.length > 0) { %>
+            <% const enrolledCount = (students || []).filter(s => s.face_descriptor).length; %>
+            <div class="face-activation-banner">
+              <div>
+                <strong><i class="fas fa-face-viewfinder"></i> Activate facial recognition for this attendance session</strong>
+                <p>Step 1: make sure students in this class have face enrollment saved. Step 2: click Start Face Scanner below and let the camera mark enrolled students present automatically.</p>
+                <div class="face-count-badge"><i class="fas fa-user-check"></i> <%= enrolledCount %> of <%= students.length %> students enrolled</div>
+              </div>
+              <a href="/student" class="btn outline"><i class="fas fa-camera"></i> Review Student Face Setup</a>
+            </div>
+            <div class="face-panel">
+              <h4 style="margin-bottom:0.75rem;"><i class="fas fa-face-viewfinder"></i> Facial Recognition Auto-Marking</h4>
+              <div class="face-row">
+                <div>
+                  <video id="face-video" class="face-video" autoplay muted playsinline></video>
+                </div>
+                <div>
+                  <div class="face-actions">
+                    <button type="button" id="start-face-scan" class="btn primary"><i class="fas fa-video"></i> Start Face Scanner</button>
+                    <button type="button" id="stop-face-scan" class="btn outline"><i class="fas fa-stop"></i> Stop Scanner</button>
+                  </div>
+                  <div id="face-status">Scanner idle.</div>
+                  <div id="face-events" class="face-events"></div>
+                </div>
+              </div>
+            </div>
+
             <!-- Progress Bar -->
             <div class="progress-section">
               <div class="progress-header">
-                <span>Progress: <span id="marked-count"><%= students.length %></span> / <%= students.length %> marked</span>
-                <span id="progress-percent">100%</span>
+                <span>Progress: <span id="marked-count">0</span> / <%= students.length %> marked</span>
+                <span id="progress-percent">0%</span>
               </div>
               <div class="progress-bar">
-                <div class="progress-fill" id="progress-fill" style="width: 100%;"></div>
+                <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
               </div>
             </div>
 
             <!-- Auto-save Notice -->
             <div class="auto-save-notice">
               <i class="fas fa-sync-alt"></i>
-              Auto-save enabled - your progress is automatically saved
+              Facial recognition saves immediately after recognition. Manual changes save when you submit.
             </div>
 
             <!-- Attendance Table -->
@@ -356,30 +464,44 @@
                   </thead>
                   <tbody>
                     <% students.forEach((student, idx) => { %>
-                      <tr data-student-id="<%= student.id %>">
+                      <% const rowStatus = ['Present', 'Late', 'Absent'].includes(student.attendance_status) ? student.attendance_status : 'Absent'; %>
+                      <tr data-student-id="<%= student.id %>" data-face-enrolled="<%= student.face_descriptor ? 'true' : 'false' %>">
                         <td><%= String(idx + 1).padStart(3, '0') %></td>
-                        <td><strong><%= student.name %></strong></td>
                         <td>
-                          <span class="status-badge present" id="status-badge-<%= student.id %>">
-                            <i class="fas fa-check"></i> Present
+                          <strong><%= student.name %></strong>
+                          <% if (student.face_descriptor) { %>
+                            <div style="font-size:0.75rem;color:#15803d;margin-top:0.2rem;"><i class="fas fa-face-smile"></i> Face enrolled</div>
+                          <% } else { %>
+                            <div style="font-size:0.75rem;color:#b45309;margin-top:0.2rem;"><i class="fas fa-triangle-exclamation"></i> No face enrolled</div>
+                          <% } %>
+                        </td>
+                        <td>
+                          <span class="status-badge <%= rowStatus.toLowerCase() %>" id="status-badge-<%= student.id %>">
+                            <% if (rowStatus === 'Present') { %>
+                              <i class="fas fa-check"></i> Present
+                            <% } else if (rowStatus === 'Late') { %>
+                              <i class="fas fa-clock"></i> Late
+                            <% } else { %>
+                              <i class="fas fa-times"></i> Absent
+                            <% } %>
                           </span>
-                          <input type="hidden" name="status_<%= student.id %>" id="status-<%= student.id %>" value="Present">
+                          <input type="hidden" name="status_<%= student.id %>" id="status-<%= student.id %>" value="<%= rowStatus %>">
                         </td>
                         <td>
                           <div class="quick-mark-btns">
-                            <button type="button" class="quick-btn present-btn active" onclick="setStatus(<%= student.id %>, 'Present')">
+                            <button type="button" class="quick-btn present-btn <%= rowStatus === 'Present' ? 'active' : '' %>" onclick="setStatus(<%= student.id %>, 'Present')">
                               <i class="fas fa-check"></i> Present
                             </button>
-                            <button type="button" class="quick-btn absent-btn" onclick="setStatus(<%= student.id %>, 'Absent')">
+                            <button type="button" class="quick-btn absent-btn <%= rowStatus === 'Absent' ? 'active' : '' %>" onclick="setStatus(<%= student.id %>, 'Absent')">
                               <i class="fas fa-times"></i> Absent
                             </button>
-                            <button type="button" class="quick-btn late-btn" onclick="setStatus(<%= student.id %>, 'Late')">
+                            <button type="button" class="quick-btn late-btn <%= rowStatus === 'Late' ? 'active' : '' %>" onclick="setStatus(<%= student.id %>, 'Late')">
                               <i class="fas fa-clock"></i> Late
                             </button>
                           </div>
                         </td>
                         <td>
-                          <input type="text" name="reason_<%= student.id %>" class="remarks-input" placeholder="Optional remarks...">
+                          <input type="text" name="reason_<%= student.id %>" class="remarks-input" placeholder="Optional remarks..." value="<%= student.attendance_reason || '' %>">
                         </td>
                       </tr>
                     <% }) %>
@@ -466,6 +588,13 @@
       });
     }
 
+    function markAllAbsent() {
+      document.querySelectorAll('tr[data-student-id]').forEach(row => {
+        const studentId = row.dataset.studentId;
+        setStatus(parseInt(studentId), 'Absent');
+      });
+    }
+
     function updateStats() {
       let present = 0, absent = 0, late = 0;
       
@@ -479,8 +608,7 @@
       document.getElementById('absent-count').textContent = absent;
       document.getElementById('late-count').textContent = late;
       
-      const total = present + absent + late;
-      const marked = total;
+      const marked = present + absent + late;
       const totalStudents = parseInt(document.getElementById('total-count').textContent);
       
       document.getElementById('marked-count').textContent = marked;
@@ -490,17 +618,64 @@
     }
 
     function autoSave(studentId, status) {
-      // Visual feedback for auto-save
+      // Visual feedback for local draft changes before full submit.
       const notice = document.querySelector('.auto-save-notice');
-      notice.innerHTML = '<i class="fas fa-sync-alt"></i> Saving...';
+      notice.innerHTML = '<i class="fas fa-pen"></i> Draft updated. Submit to save manual changes.';
       
       setTimeout(() => {
-        notice.innerHTML = '<i class="fas fa-check-circle"></i> Auto-saved';
+        notice.innerHTML = '<i class="fas fa-check-circle"></i> Draft ready';
         setTimeout(() => {
-          notice.innerHTML = '<i class="fas fa-sync-alt"></i> Auto-save enabled - your progress is automatically saved';
+        notice.innerHTML = '<i class="fas fa-sync-alt"></i> Facial recognition saves immediately after recognition. Manual changes save when you submit.';
         }, 1500);
       }, 500);
     }
+
+    window.PSP_FACE_PROFILES = <%- JSON.stringify((students || []).filter(s => s.face_descriptor).map(s => ({ id: s.id, name: s.name, descriptor: s.face_descriptor }))) %>;
+
+    window.PSPFaceAttendanceConfig = {
+      endpoint: '/student-attendance/face-mark',
+      grade: <%- JSON.stringify(selectedGrade || '') %>,
+      studentClass: <%- JSON.stringify(selectedClass || '') %>,
+      date: function() {
+        return document.getElementById('attendance-date') ? document.getElementById('attendance-date').value : '';
+      }
+    };
+
+    window.PSPFaceAttendance_onRecognized = async function(studentId) {
+      const payload = {
+        studentId,
+        grade: window.PSPFaceAttendanceConfig.grade,
+        studentClass: window.PSPFaceAttendanceConfig.studentClass,
+        date: window.PSPFaceAttendanceConfig.date()
+      };
+
+      const response = await fetch(window.PSPFaceAttendanceConfig.endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) {
+        const err = new Error(data.message || 'Facial recognition attendance could not be saved.');
+        err.studentId = studentId;
+        throw err;
+      }
+
+      setStatus(studentId, 'Present');
+      const reason = document.querySelector(`input[name="reason_${studentId}"]`);
+      if (reason) reason.value = data.reason || 'Facial recognition';
+
+      const notice = document.querySelector('.auto-save-notice');
+      if (notice) {
+        notice.innerHTML = `<i class="fas fa-check-circle"></i> ${data.name} marked present by facial recognition`;
+      }
+    };
   </script>
+  <script async src="https://docs.opencv.org/4.x/opencv.js" type="text/javascript"></script>
+  <script src="/js/face-vision.js"></script>
+  <script src="/vendor/tf.min.js"></script>
+  <script src="/vendor/face-api.min.js"></script>
+  <script src="/js/face-attendance.js"></script>
 </body>
 </html>
+

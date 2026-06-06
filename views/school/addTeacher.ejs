@@ -88,6 +88,19 @@
           <span class="field-error" id="err-ec"></span>
         </div>
 
+        <h3 class="form-section-title" style="margin-top:1.5rem;"><i class="fas fa-camera"></i> Facial Recognition Enrollment <span class="required">*</span></h3>
+        <div class="face-enroll-card" data-face-enrollment data-face-required="true">
+          <input type="hidden" name="face_descriptor" data-face-hidden>
+          <video data-face-video autoplay muted playsinline class="face-video"></video>
+          <div class="face-actions">
+            <button type="button" class="btn outline" data-face-start><i class="fas fa-video"></i> Start Camera</button>
+            <button type="button" class="btn primary" data-face-capture><i class="fas fa-camera"></i> Capture Face</button>
+            <button type="button" class="btn outline" data-face-clear><i class="fas fa-rotate-left"></i> Clear</button>
+          </div>
+          <div class="face-preview" data-face-preview><i class="fas fa-user"></i> Not enrolled</div>
+          <small class="form-hint" data-face-status>Capture one clear front-facing face image in good light.</small>
+        </div>
+
         <div class="form-actions">
           <a href="/teacher" class="btn outline"><i class="fas fa-times"></i> Cancel</a>
           <button type="submit" class="btn primary"><i class="fas fa-save"></i> Save Teacher</button>
@@ -112,32 +125,32 @@
     function validateForm() {
       let ok = true;
 
-      const name = form.name.value.trim();
+      const name = (form.elements.name ? form.elements.name.value : '').trim();
       if (!name) { showErr('err-name', 'Full name is required.'); ok = false; }
       else if (name.length < 2) { showErr('err-name', 'Name must be at least 2 characters.'); ok = false; }
       else if (!/^[A-Za-z\s'\-\.]+$/.test(name)) { showErr('err-name', 'Name may only contain letters, spaces, hyphens, and apostrophes.'); ok = false; }
       else clearErr('err-name');
 
-      if (!form.subject.value) { showErr('err-subject', 'Please select a subject.'); ok = false; }
+      if (!form.elements.subject.value) { showErr('err-subject', 'Please select a subject.'); ok = false; }
       else clearErr('err-subject');
 
-      if (!form.gender.value) { showErr('err-gender', 'Please select a gender.'); ok = false; }
+      if (!form.elements.gender.value) { showErr('err-gender', 'Please select a gender.'); ok = false; }
       else clearErr('err-gender');
 
-      const ec = form.teacher_id.value.trim();
+      const ec = (form.elements.teacher_id ? form.elements.teacher_id.value : '').trim();
       if (!ec) { showErr('err-ec', 'EC Number is required.'); ok = false; }
       else if (ec.length < 4) { showErr('err-ec', 'EC Number must be at least 4 characters.'); ok = false; }
       else if (!/^[A-Za-z0-9]+$/.test(ec)) { showErr('err-ec', 'EC Number may only contain letters and numbers.'); ok = false; }
       else clearErr('err-ec');
 
-      const phone = form.phone.value.trim();
+      const phone = (form.elements.phone ? form.elements.phone.value : '').trim();
       if (phone) {
         const digits = phone.replace(/[\s\-\(\)\.]/g, '');
         if (!/^\+?[0-9]{7,15}$/.test(digits)) { showErr('err-phone', 'Enter a valid phone number, e.g. +263712345678.'); ok = false; }
         else clearErr('err-phone');
       } else clearErr('err-phone');
 
-      const email = form.email.value.trim();
+      const email = (form.elements.email ? form.elements.email.value : '').trim();
       if (email) {
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { showErr('err-email', 'Enter a valid email address.'); ok = false; }
         else clearErr('err-email');
@@ -155,7 +168,23 @@
     });
   })();
   </script>
+  <script async src="https://docs.opencv.org/4.x/opencv.js" type="text/javascript"></script>
+  <script src="/js/face-vision.js"></script>
+  <script src="/vendor/tf.min.js"></script>
+  <script src="/vendor/face-api.min.js"></script>
+  <script src="/js/face-enrollment.js"></script>
   <style>
+    .form-section-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin: 1.25rem 0 0.75rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
     .required { color: var(--error, #e53e3e); margin-left: 2px; }
     .optional-label { font-size: 0.78rem; color: var(--text-muted); font-weight: 400; margin-left: 4px; }
     .field-error {
@@ -163,6 +192,33 @@
       font-size: 0.78rem; margin-top: 0.25rem; font-weight: 500;
     }
     .field-error::before { content: '\f071  '; font-family: 'Font Awesome 6 Free'; font-weight: 900; margin-right: 3px; }
+    .face-enroll-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem;
+      background: var(--bg-secondary);
+    }
+    .face-video {
+      width: 100%;
+      max-width: 420px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #111827;
+      display: block;
+      margin-bottom: 0.75rem;
+    }
+    .face-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.75rem;
+    }
+    .face-preview {
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
   </style>
 </body>
 </html>
+

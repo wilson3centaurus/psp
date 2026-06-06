@@ -13,6 +13,9 @@ router.get('/mark', isAuthenticated, isSchool, teacherAttendanceController.markA
 // Submit attendance manually
 router.post('/mark', isAuthenticated, isSchool, teacherAttendanceController.submitAttendance);
 
+// Facial recognition auto-mark
+router.post('/face-mark', isAuthenticated, isSchool, teacherAttendanceController.markAttendanceByFace);
+
 // Upload attendance from CSV
 router.post('/upload-csv', isAuthenticated, isSchool, teacherAttendanceController.uploadCSV);
 

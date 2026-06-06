@@ -2,11 +2,203 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Mark Teacher Attendance | PSP</title>
+  <title>Teacher Attendance Register | PSP</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="/css/style.css">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-  <link rel="icon" type="image/png" href="/assets/logo.png">
+  <link rel="icon" type="image/png" href="<%= typeof schoolLogo !== 'undefined' && schoolLogo ? '/uploads/' + schoolLogo : '/assets/logo.png' %>">
+  <style>
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .stat-card.total { border-color: var(--primary); background: rgba(var(--primary-rgb), 0.05); }
+    .stat-card.present { border-color: #22c55e; background: rgba(34, 197, 94, 0.05); }
+    .stat-card.absent { border-color: #ef4444; background: rgba(239, 68, 68, 0.05); }
+    .stat-card.late { border-color: #f59e0b; background: rgba(245, 158, 11, 0.05); }
+    .stat-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .attendance-controls {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    .attendance-controls .form-group {
+      flex: 1;
+      min-width: 220px;
+    }
+    .mark-all-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1.25rem;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+    .mark-all-btn:hover {
+      background: #22c55e;
+      color: #fff;
+      border-color: #22c55e;
+    }
+    .auto-save-notice {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      background: rgba(var(--primary-rgb), 0.1);
+      border: 1px solid var(--primary);
+      border-radius: var(--radius);
+      font-size: 0.85rem;
+      color: var(--primary);
+      margin-bottom: 1rem;
+    }
+    .face-panel {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1rem;
+      margin-bottom: 1rem;
+      background: var(--bg-secondary);
+    }
+    .face-row {
+      display: grid;
+      grid-template-columns: minmax(220px, 360px) 1fr;
+      gap: 1rem;
+      align-items: start;
+    }
+    .face-video {
+      width: 100%;
+      min-height: 220px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #0f172a;
+    }
+    .face-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.65rem;
+    }
+    #face-status {
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+    .face-events {
+      font-size: 0.8rem;
+      display: grid;
+      gap: 0.35rem;
+      max-height: 220px;
+      overflow: auto;
+      padding-right: 0.25rem;
+    }
+    .face-event {
+      padding: 0.35rem 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+    }
+    .attendance-table { width: 100%; }
+    .attendance-table th { text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 100px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .status-badge.present { background: #dcfce7; color: #15803d; }
+    .status-badge.absent { background: #fee2e2; color: #b91c1c; }
+    .status-badge.late { background: #fef3c7; color: #b45309; }
+    .quick-mark-btns {
+      display: flex;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+    }
+    .quick-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.4rem 0.75rem;
+      border-radius: 100px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.2s ease;
+    }
+    .quick-btn.present-btn {
+      background: var(--bg-secondary);
+      color: #22c55e;
+      border-color: var(--border);
+    }
+    .quick-btn.present-btn:hover, .quick-btn.present-btn.active {
+      background: #22c55e;
+      color: #fff;
+      border-color: #22c55e;
+    }
+    .quick-btn.absent-btn {
+      background: var(--bg-secondary);
+      color: #ef4444;
+      border-color: var(--border);
+    }
+    .quick-btn.absent-btn:hover, .quick-btn.absent-btn.active {
+      background: #ef4444;
+      color: #fff;
+      border-color: #ef4444;
+    }
+    .quick-btn.late-btn {
+      background: var(--bg-secondary);
+      color: #f59e0b;
+      border-color: var(--border);
+    }
+    .quick-btn.late-btn:hover, .quick-btn.late-btn.active {
+      background: #f59e0b;
+      color: #fff;
+      border-color: #f59e0b;
+    }
+    .remarks-input {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-size: 0.85rem;
+    }
+    @media (max-width: 900px) {
+      .face-row { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 <body>
   <div class="app-shell">
@@ -15,9 +207,9 @@
     <aside class="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-brand">
-          <img src="/assets/logo.png" alt="Logo" class="sidebar-logo">
+          <img src="<%= typeof schoolLogo !== 'undefined' && schoolLogo ? '/uploads/' + schoolLogo : '/assets/logo.png' %>" alt="Logo" class="sidebar-logo">
           <div>
-            <div class="sidebar-brand-text"><%= user.username %></div>
+            <div class="sidebar-brand-text"><%= typeof schoolDisplayName !== 'undefined' && schoolDisplayName ? schoolDisplayName : user.username %></div>
             <div class="sidebar-brand-label">School Portal</div>
           </div>
         </div>
@@ -51,7 +243,7 @@
           <button class="mobile-menu-btn" aria-label="Toggle menu">
             <i class="fas fa-bars"></i>
           </button>
-          <span class="page-title">Mark Teacher Attendance</span>
+          <span class="page-title">Teacher Attendance Register</span>
         </div>
         <div class="topbar-right">
           <button class="theme-toggle" aria-label="Toggle theme">
@@ -70,11 +262,6 @@
       </header>
 
       <section class="content">
-        <div class="page-header">
-          <h1><i class="fas fa-user-clock"></i> Mark Teacher Attendance</h1>
-          <p class="subtitle">Select a date and record teacher attendance.</p>
-        </div>
-
         <% if (success_msg && String(success_msg).trim() !== "") { %>
           <div class="alert success"><i class="fas fa-check-circle"></i> <%= success_msg %></div>
         <% } %>
@@ -82,107 +269,141 @@
           <div class="alert error"><i class="fas fa-exclamation-circle"></i> <%= error_msg %></div>
         <% } %>
 
-        <!-- Biometric Feature Placeholder -->
-        <div class="biometric-section">
-          <div class="coming-soon-badge">
-            <i class="fas fa-clock"></i> Coming Soon
+        <div class="stats-grid">
+          <div class="stat-card total">
+            <div class="stat-label"><i class="fas fa-users"></i> Total Teachers</div>
+            <div class="stat-value" id="total-count"><%= teachers ? teachers.length : 0 %></div>
           </div>
-          <h3><i class="fas fa-fingerprint"></i> Biometric Attendance</h3>
-          <p>We're working on adding fingerprint and facial recognition for faster, more accurate attendance tracking.</p>
-          <div class="biometric-icons">
-            <div class="biometric-icon">
-              <i class="fas fa-fingerprint"></i>
-              <span>Fingerprint</span>
-            </div>
-            <div class="biometric-icon">
-              <i class="fas fa-face-smile"></i>
-              <span>Face ID</span>
-            </div>
-            <div class="biometric-icon">
-              <i class="fas fa-id-card"></i>
-              <span>ID Card Scan</span>
-            </div>
+          <div class="stat-card present">
+            <div class="stat-label"><i class="fas fa-check-circle"></i> Present</div>
+            <div class="stat-value" id="present-count">0</div>
+          </div>
+          <div class="stat-card absent">
+            <div class="stat-label"><i class="fas fa-times-circle"></i> Absent</div>
+            <div class="stat-value" id="absent-count">0</div>
+          </div>
+          <div class="stat-card late">
+            <div class="stat-label"><i class="fas fa-clock"></i> Late</div>
+            <div class="stat-value" id="late-count">0</div>
           </div>
         </div>
 
-        <form method="POST" action="/teacher-attendance/mark">
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title"><i class="fas fa-calendar-day"></i> Select Date</h3>
-              <span class="badge success">Auto-selected</span>
-            </div>
-            <div class="form-row" style="flex-wrap: wrap; align-items: flex-end;">
-              <div class="form-group" style="flex:1; min-width: 200px;">
-                <label><i class="fas fa-calendar-day"></i> Date</label>
-                <input type="date" name="date" id="attendance-date" class="form-input" value="<%= selectedDate || '' %>" required>
-                <small class="form-hint"><i class="fas fa-info-circle"></i> System auto-picks today's date</small>
-              </div>
-              <button type="submit" class="btn primary"><i class="fas fa-save"></i> Save Attendance</button>
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title"><i class="fas fa-face-viewfinder"></i> Facial Recognition Attendance</h3>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">Use the camera to recognize enrolled teachers and mark them present automatically.</p>
             </div>
           </div>
 
-          <div class="card" style="margin-top: 1rem;">
-            <div class="card-header">
-              <h3 class="card-title"><i class="fas fa-users"></i> Teacher List</h3>
-              <span class="badge"><%= teachers ? teachers.length : 0 %> teachers</span>
+          <% if (teachers && teachers.length > 0) { %>
+            <div class="attendance-controls">
+              <div class="form-group">
+                <label>Date</label>
+                <input type="date" id="attendance-date" class="form-input" value="<%= selectedDate || '' %>">
+              </div>
+              <button type="button" class="mark-all-btn" onclick="markAllPresent()">
+                <i class="fas fa-check-double"></i> Mark All Present
+              </button>
+              <button type="button" class="mark-all-btn" onclick="markAllAbsent()">
+                <i class="fas fa-user-xmark"></i> Mark All Absent
+              </button>
             </div>
-            <div class="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Name</th>
-                    <th>Subject</th>
-                    <th>EC#</th>
-                    <th>Status</th>
-                    <th>Late (min)</th>
-                    <th>Left Early (min)</th>
-                    <th>Reason / Notes</th>
-                    <th>Excused?</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <% if (!teachers || !teachers.length) { %>
-                    <tr><td colspan="9" class="empty-state">No teachers found.</td></tr>
-                  <% } else { %>
+
+            <div class="face-panel">
+              <div class="face-row">
+                <div>
+                  <video id="face-video" class="face-video" autoplay muted playsinline></video>
+                </div>
+                <div>
+                  <div class="face-actions">
+                    <button type="button" id="start-face-scan" class="btn primary"><i class="fas fa-video"></i> Start Camera Scanner</button>
+                    <button type="button" id="stop-face-scan" class="btn outline"><i class="fas fa-stop"></i> Stop Scanner</button>
+                  </div>
+                  <div id="face-status">Scanner idle.</div>
+                  <div class="auto-save-notice">
+                    <i class="fas fa-camera"></i>
+                    Facial recognition saves attendance immediately. Manual changes save when you submit the form.
+                  </div>
+                  <div id="face-events" class="face-events"></div>
+                </div>
+              </div>
+            </div>
+
+            <form id="attendance-form" method="POST" action="/teacher-attendance/mark">
+              <input type="hidden" name="date" id="form-date" value="<%= selectedDate %>">
+
+              <div class="table-wrapper">
+                <table class="attendance-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Teacher</th>
+                      <th>EC#</th>
+                      <th>Status</th>
+                      <th>Quick Mark</th>
+                      <th>Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
                     <% teachers.forEach((teacher, idx) => { %>
-                      <tr>
-                        <td><%= idx + 1 %></td>
-                        <td><strong><%= teacher.name %></strong></td>
-                        <td><span class="badge success"><%= teacher.subject %></span></td>
-                        <td><code class="ec-number"><%= teacher.teacher_id %></code></td>
+                      <% const rowStatus = ['Present', 'Late', 'Absent'].includes(teacher.attendance_status) ? teacher.attendance_status : 'Absent'; %>
+                      <tr data-teacher-id="<%= teacher.id %>" data-face-enrolled="<%= teacher.face_descriptor ? 'true' : 'false' %>">
+                        <td><%= String(idx + 1).padStart(3, '0') %></td>
                         <td>
-                          <div class="radio-group">
-                            <label class="radio-label success">
-                              <input type="radio" name="status_<%= teacher.id %>" value="Present" checked> Present
-                            </label>
-                            <label class="radio-label danger">
-                              <input type="radio" name="status_<%= teacher.id %>" value="Absent"> Absent
-                            </label>
+                          <strong><%= teacher.name %></strong>
+                          <% if (teacher.face_descriptor) { %>
+                            <div style="font-size:0.75rem;color:#15803d;margin-top:0.2rem;"><i class="fas fa-face-smile"></i> Face enrolled</div>
+                          <% } else { %>
+                            <div style="font-size:0.75rem;color:#b45309;margin-top:0.2rem;"><i class="fas fa-triangle-exclamation"></i> No face enrolled</div>
+                          <% } %>
+                        </td>
+                        <td><code style="font-size: 0.8rem;"><%= teacher.teacher_id %></code></td>
+                        <td>
+                          <span class="status-badge <%= rowStatus.toLowerCase() %>" id="status-badge-<%= teacher.id %>">
+                            <% if (rowStatus === 'Present') { %>
+                              <i class="fas fa-check"></i> Present
+                            <% } else if (rowStatus === 'Late') { %>
+                              <i class="fas fa-clock"></i> Late
+                            <% } else { %>
+                              <i class="fas fa-times"></i> Absent
+                            <% } %>
+                          </span>
+                          <input type="hidden" name="status_<%= teacher.id %>" id="status-<%= teacher.id %>" value="<%= rowStatus %>">
+                        </td>
+                        <td>
+                          <div class="quick-mark-btns">
+                            <button type="button" class="quick-btn present-btn <%= rowStatus === 'Present' ? 'active' : '' %>" onclick="setStatus(<%= teacher.id %>, 'Present')">
+                              <i class="fas fa-check"></i> Present
+                            </button>
+                            <button type="button" class="quick-btn absent-btn <%= rowStatus === 'Absent' ? 'active' : '' %>" onclick="setStatus(<%= teacher.id %>, 'Absent')">
+                              <i class="fas fa-times"></i> Absent
+                            </button>
+                            <button type="button" class="quick-btn late-btn <%= rowStatus === 'Late' ? 'active' : '' %>" onclick="setStatus(<%= teacher.id %>, 'Late')">
+                              <i class="fas fa-clock"></i> Late
+                            </button>
                           </div>
                         </td>
                         <td>
-                          <input type="number" name="late_<%= teacher.id %>" class="form-input" min="0" step="1" placeholder="0" style="max-width:90px;">
-                        </td>
-                        <td>
-                          <input type="number" name="early_<%= teacher.id %>" class="form-input" min="0" step="1" placeholder="0" style="max-width:90px;">
-                        </td>
-                        <td>
-                          <input type="text" name="reason_<%= teacher.id %>" class="form-input" placeholder="Reason or note" style="min-width: 160px;">
-                        </td>
-                        <td style="text-align:center;">
-                          <label class="checkbox-label">
-                            <input type="checkbox" name="excused_<%= teacher.id %>"> Excused
-                          </label>
+                          <input type="text" name="reason_<%= teacher.id %>" class="remarks-input" placeholder="Optional remarks..." value="<%= teacher.attendance_reason || '' %>">
                         </td>
                       </tr>
                     <% }) %>
-                  <% } %>
-                </tbody>
-              </table>
+                  </tbody>
+                </table>
+              </div>
+
+              <button type="submit" class="btn primary" style="margin-top: 1.5rem; width: 100%; padding: 1rem;">
+                <i class="fas fa-save"></i> Save Attendance
+              </button>
+            </form>
+          <% } else { %>
+            <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+              <i class="fas fa-users" style="font-size: 3rem; opacity: 0.3; margin-bottom: 1rem; display: block;"></i>
+              <p>No teachers found. Add teachers first to use camera attendance.</p>
             </div>
-          </div>
-        </form>
+          <% } %>
+        </div>
       </section>
 
       <footer class="footer">
@@ -193,17 +414,105 @@
 
   <script src="/js/main.js"></script>
   <script>
-    // Auto-pick today's date if no date is selected
     document.addEventListener('DOMContentLoaded', function() {
       const dateInput = document.getElementById('attendance-date');
       if (dateInput && !dateInput.value) {
-        const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth() + 1).padStart(2, '0');
-        const dd = String(today.getDate()).padStart(2, '0');
-        dateInput.value = `${yyyy}-${mm}-${dd}`;
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.value = today;
+        const formDate = document.getElementById('form-date');
+        if (formDate) formDate.value = today;
       }
+      if (dateInput) {
+        dateInput.addEventListener('change', function() {
+          const formDate = document.getElementById('form-date');
+          if (formDate) formDate.value = this.value;
+        });
+      }
+      updateStats();
     });
+
+    function setStatus(teacherId, status) {
+      document.getElementById('status-' + teacherId).value = status;
+
+      const badge = document.getElementById('status-badge-' + teacherId);
+      badge.className = 'status-badge ' + status.toLowerCase();
+
+      const icons = { Present: 'fa-check', Absent: 'fa-times', Late: 'fa-clock' };
+      badge.innerHTML = `<i class="fas ${icons[status]}"></i> ${status}`;
+
+      const row = document.querySelector(`tr[data-teacher-id="${teacherId}"]`);
+      row.querySelectorAll('.quick-btn').forEach(btn => btn.classList.remove('active'));
+      row.querySelector(`.${status.toLowerCase()}-btn`).classList.add('active');
+
+      updateStats();
+    }
+
+    function markAllPresent() {
+      document.querySelectorAll('tr[data-teacher-id]').forEach((row) => {
+        setStatus(Number(row.dataset.teacherId), 'Present');
+      });
+    }
+
+    function markAllAbsent() {
+      document.querySelectorAll('tr[data-teacher-id]').forEach((row) => {
+        setStatus(Number(row.dataset.teacherId), 'Absent');
+      });
+    }
+
+    function updateStats() {
+      let present = 0;
+      let absent = 0;
+      let late = 0;
+
+      document.querySelectorAll('input[id^="status-"]').forEach((input) => {
+        if (input.value === 'Present') present++;
+        else if (input.value === 'Absent') absent++;
+        else if (input.value === 'Late') late++;
+      });
+
+      document.getElementById('present-count').textContent = present;
+      document.getElementById('absent-count').textContent = absent;
+      document.getElementById('late-count').textContent = late;
+    }
+
+    window.PSP_FACE_PROFILES = <%- JSON.stringify((teachers || []).filter(t => t.face_descriptor).map(t => ({ id: t.id, name: t.name, descriptor: t.face_descriptor }))) %>;
+    window.PSPFaceAttendanceConfig = {
+      endpoint: '/teacher-attendance/face-mark',
+      date: function() {
+        return document.getElementById('attendance-date') ? document.getElementById('attendance-date').value : '';
+      }
+    };
+
+    window.PSPFaceAttendance_onRecognized = async function(teacherId) {
+      const response = await fetch(window.PSPFaceAttendanceConfig.endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          teacherId,
+          date: window.PSPFaceAttendanceConfig.date()
+        })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) {
+        const err = new Error(data.message || 'Facial recognition attendance could not be saved.');
+        err.teacherId = teacherId;
+        throw err;
+      }
+
+      setStatus(teacherId, 'Present');
+      const reason = document.querySelector(`input[name="reason_${teacherId}"]`);
+      if (reason) reason.value = data.reason || 'Facial recognition';
+
+      const notice = document.querySelector('.auto-save-notice');
+      if (notice) {
+        notice.innerHTML = `<i class="fas fa-check-circle"></i> ${data.name} marked present by facial recognition`;
+      }
+    };
   </script>
+  <script async src="https://docs.opencv.org/4.x/opencv.js" type="text/javascript"></script>
+  <script src="/js/face-vision.js"></script>
+  <script src="/vendor/tf.min.js"></script>
+  <script src="/vendor/face-api.min.js"></script>
+  <script src="/js/face-attendance.js"></script>
 </body>
 </html>

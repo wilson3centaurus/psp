@@ -48,6 +48,8 @@ CREATE TABLE students (
   parent_phone    VARCHAR(30)  DEFAULT NULL,
   parent_email    VARCHAR(100) DEFAULT NULL,
   medical_notes   TEXT         DEFAULT NULL,
+  face_descriptor LONGTEXT     DEFAULT NULL,
+  face_enrolled_at DATETIME    DEFAULT NULL,
   school_id       INT NOT NULL,
   created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (school_id) REFERENCES users(id) ON DELETE CASCADE
@@ -67,6 +69,8 @@ CREATE TABLE teachers (
   email      VARCHAR(100),
   phone      VARCHAR(20),
   teacher_id VARCHAR(50)  NOT NULL,
+  face_descriptor LONGTEXT DEFAULT NULL,
+  face_enrolled_at DATETIME DEFAULT NULL,
   school_id  INT NOT NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (school_id) REFERENCES users(id) ON DELETE CASCADE

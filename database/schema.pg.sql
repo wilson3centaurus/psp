@@ -49,6 +49,8 @@ CREATE TABLE students (
   student_class VARCHAR(50) NOT NULL,
   gender gender_type NOT NULL,
   student_id VARCHAR(50) NOT NULL,
+  face_descriptor JSONB,
+  face_enrolled_at TIMESTAMPTZ,
   school_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -67,6 +69,8 @@ CREATE TABLE teachers (
   email VARCHAR(100),
   phone VARCHAR(20),
   teacher_id VARCHAR(50) NOT NULL,
+  face_descriptor JSONB,
+  face_enrolled_at TIMESTAMPTZ,
   school_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

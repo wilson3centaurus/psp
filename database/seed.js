@@ -1,271 +1,274 @@
-/**
- * PSP System — Seed Script
- * Seeds 3 primary schools in Mutare, Zimbabwe with realistic data.
- *
- * Usage:  node database/seed.js
- *
- * Run AFTER importing schema.mysql.sql and creating your admin account.
- * The script is SAFE to re-run — it skips schools that already exist.
- */
-
 'use strict';
 
 require('dotenv').config();
-const mysql  = require('mysql2/promise');
+const mysql = require('mysql2/promise');
 const bcrypt = require('bcryptjs');
 
-// ── helpers ──────────────────────────────────────────────────────────────────
+const PASSWORD_PLAIN = 'Demo@1234';
 
-const rand  = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-const pick  = arr => arr[Math.floor(Math.random() * arr.length)];
+const DEMO_USERS = [
+  {
+    username: 'demo_admin',
+    role: 'admin',
+    display_name: 'Demo Administrator',
+    email: 'demo.admin@psp.local',
+    phone: '+263771000001',
+    address: 'Mutare, Zimbabwe'
+  },
+  {
+    username: 'demo_greenfield',
+    role: 'school',
+    display_name: 'Greenfield Demo School',
+    email: 'greenfield.demo@psp.local',
+    phone: '+263771000101',
+    address: 'Greenfield Avenue, Mutare, Zimbabwe'
+  },
+  {
+    username: 'demo_riverside',
+    role: 'school',
+    display_name: 'Riverside Demo School',
+    email: 'riverside.demo@psp.local',
+    phone: '+263771000102',
+    address: 'Riverside Road, Mutare, Zimbabwe'
+  },
+  {
+    username: 'demo_sunshine',
+    role: 'school',
+    display_name: 'Sunshine Demo School',
+    email: 'sunshine.demo@psp.local',
+    phone: '+263771000103',
+    address: 'Sunshine Drive, Mutare, Zimbabwe'
+  }
+];
 
-function randDate(daysAgo) {
-  const d = new Date();
-  d.setDate(d.getDate() - daysAgo);
-  return d.toISOString().slice(0, 10);
+const GRADES = ['1', '2', '3', '4', '5', '6', '7'];
+const CLASSES = ['A', 'B', 'C'];
+const SUBJECTS = [
+  'Mathematics',
+  'English',
+  'Chishona',
+  'Social Science',
+  'Physical Education and Arts',
+  'Science and Technology'
+];
+
+const MALE_NAMES = [
+  'Tinashe Moyo', 'Farai Ncube', 'Takudzwa Dube', 'Blessing Nyathi', 'Kudakwashe Mutasa',
+  'Tapiwa Chikore', 'Anotida Mlambo', 'Munashe Zuze', 'Simbarashe Gatsi', 'Tanaka Mucheche'
+];
+
+const FEMALE_NAMES = [
+  'Rutendo Moyo', 'Shamiso Ncube', 'Tatenda Dube', 'Nyasha Mutasa', 'Chipo Chikore',
+  'Ruvimbo Zuze', 'Kundai Mlambo', 'Faith Nyathi', 'Loveness Gatsi', 'Tendai Mucheche'
+];
+
+const TEACHER_NAMES = [
+  { name: 'Mrs Tariro Moyo', gender: 'Female' },
+  { name: 'Mr Farai Ncube', gender: 'Male' },
+  { name: 'Mrs Rudo Dube', gender: 'Female' },
+  { name: 'Mr Tawanda Mutasa', gender: 'Male' },
+  { name: 'Mrs Memory Chikore', gender: 'Female' },
+  { name: 'Mr Prosper Zuze', gender: 'Male' }
+];
+
+const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+const pick = (items) => items[Math.floor(Math.random() * items.length)];
+
+function randomDobForGrade(grade) {
+  const approxAge = 5 + Number(grade);
+  const year = new Date().getFullYear() - approxAge;
+  const month = String(rand(1, 12)).padStart(2, '0');
+  const day = String(rand(1, 28)).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
-/** Last N school days (Mon–Fri) going back from today */
-function schoolDays(n) {
+function schoolDays(count) {
   const days = [];
-  const d = new Date();
-  while (days.length < n) {
-    d.setDate(d.getDate() - 1);
-    const dow = d.getDay();
-    if (dow !== 0 && dow !== 6) days.push(d.toISOString().slice(0, 10));
+  const date = new Date();
+  while (days.length < count) {
+    date.setDate(date.getDate() - 1);
+    const weekday = date.getDay();
+    if (weekday !== 0 && weekday !== 6) {
+      days.push(date.toISOString().slice(0, 10));
+    }
   }
   return days;
 }
 
 function attendanceStatus() {
-  const r = Math.random();
-  if (r < 0.78) return { status: 'Present',    late_minutes: 0,        early_minutes: 0 };
-  if (r < 0.88) return { status: 'Absent',      late_minutes: 0,        early_minutes: 0 };
-  if (r < 0.93) return { status: 'Late',        late_minutes: rand(5,40), early_minutes: 0 };
-  if (r < 0.97) return { status: 'Left Early',  late_minutes: 0,        early_minutes: rand(10,60) };
-  return           { status: 'Excused',      late_minutes: 0,        early_minutes: 0 };
+  const roll = Math.random();
+  if (roll < 0.82) return { status: 'Present', late: 0, early: 0, reason: null, excused: 0 };
+  if (roll < 0.9) return { status: 'Absent', late: 0, early: 0, reason: 'Sick', excused: 1 };
+  if (roll < 0.95) return { status: 'Late', late: rand(5, 30), early: 0, reason: null, excused: 0 };
+  if (roll < 0.98) return { status: 'Left Early', late: 0, early: rand(10, 45), reason: 'Family errand', excused: 1 };
+  return { status: 'Excused', late: 0, early: 0, reason: 'Approved leave', excused: 1 };
 }
 
-// ── static data ───────────────────────────────────────────────────────────────
+async function upsertDemoUser(pool, user, hashedPassword) {
+  const [rows] = await pool.query('SELECT id FROM users WHERE username = ? LIMIT 1', [user.username]);
 
-const SCHOOLS = [
-  {
-    username:     'mutareprimary1',
-    display_name: 'Mutare Primary School No.1',
-    email:        'admin@mutareprimary1.ac.zw',
-    phone:        '+263 20 260 1234',
-    address:      '12 Herbert Chitepo St, Mutare, Zimbabwe',
-  },
-  {
-    username:     'sakubareps',
-    display_name: 'Sakubva Primary School',
-    email:        'info@sakubareps.ac.zw',
-    phone:        '+263 20 260 5678',
-    address:      '45 Sakubva Road, Mutare, Zimbabwe',
-  },
-  {
-    username:     'chikangups',
-    display_name: 'Chikanga Primary School',
-    email:        'contact@chikangaps.ac.zw',
-    phone:        '+263 20 260 9012',
-    address:      '88 Chikanga Drive, Mutare, Zimbabwe',
-  },
-];
+  if (rows.length) {
+    await pool.query(
+      `UPDATE users
+       SET password = ?, role = ?, display_name = ?, email = ?, phone = ?, address = ?
+       WHERE id = ?`,
+      [hashedPassword, user.role, user.display_name, user.email, user.phone, user.address, rows[0].id]
+    );
+    return rows[0].id;
+  }
 
-const PASSWORD_PLAIN = 'School@1234';
+  const [result] = await pool.query(
+    `INSERT INTO users (username, password, role, display_name, email, phone, address)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [user.username, hashedPassword, user.role, user.display_name, user.email, user.phone, user.address]
+  );
+  return result.insertId;
+}
 
-const GRADES = ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'Grade 7'];
-const CLASSES = ['A', 'B', 'C'];
+async function seedSchoolData(pool, schoolId, school) {
+  const [[studentCountRow]] = await pool.query('SELECT COUNT(*) AS count FROM students WHERE school_id = ?', [schoolId]);
+  if (studentCountRow.count > 0) {
+    console.log(`- ${school.username}: demo data already exists, skipped`);
+    return;
+  }
 
-const MALE_NAMES = [
-  'Takudzwa Moyo','Farai Ncube','Tinashe Dube','Blessing Mhuru','Tonderai Chikwanda',
-  'Simbarashe Banda','Munashe Mutasa','Tapiwa Nyamande','Kudakwashe Gombera','Rudo Choto',
-  'Anesu Makoni','Brian Zindi','Clive Mupfiga','Donald Mawire','Emmanuel Chimhanda',
-  'Felix Mushore','Garikai Chigumba','Hardlife Maramba','Innocent Musiyiwa','Justice Nhamba',
-  'Kelvin Mazarura','Lovemore Chipindu','Maxwell Chidawu','Nelson Machaya','Oscar Mudenge',
-  'Patrick Nyakudya','Quinton Murota','Ronald Mushayabasa','Stanley Chiremba','Thomas Mupondi',
-];
+  const studentIds = [];
+  const teacherIds = [];
+  let studentSequence = 1;
 
-const FEMALE_NAMES = [
-  'Rutendo Moyo','Shamiso Ncube','Tatenda Dube','Nyasha Mhuru','Chipo Chikwanda',
-  'Memory Banda','Ruvimbo Mutasa','Patience Nyamande','Loveness Gombera','Faith Choto',
-  'Grace Makoni','Hope Zindi','Irene Mupfiga','Josephine Mawire','Kudzai Chimhanda',
-  'Linda Mushore','Mercy Chigumba','Nadine Maramba','Olive Musiyiwa','Priscilla Nhamba',
-  'Queen Mazarura','Rachel Chipindu','Sharon Chidawu','Tendai Machaya','Unity Mudenge',
-  'Violet Nyakudya','Winnie Murota','Xenia Mushayabasa','Yolanda Chiremba','Zanele Mupondi',
-];
+  for (const grade of GRADES) {
+    for (const studentClass of CLASSES) {
+      const totalStudents = rand(8, 12);
 
-const TEACHER_MALE = [
-  'Mr T. Chizemo','Mr F. Mupedzisi','Mr B. Nyatoro','Mr S. Chiguma','Mr K. Dondo',
-  'Mr M. Zvinavashe','Mr A. Muchena','Mr R. Mandaza','Mr L. Chasakara','Mr P. Gwenzi',
-];
+      for (let index = 0; index < totalStudents; index += 1) {
+        const isMale = Math.random() < 0.5;
+        const name = isMale ? pick(MALE_NAMES) : pick(FEMALE_NAMES);
+        const studentId = `${school.username.replace('demo_', '').slice(0, 3).toUpperCase()}-${grade}${studentClass}-${String(studentSequence).padStart(3, '0')}`;
+        studentSequence += 1;
 
-const TEACHER_FEMALE = [
-  'Mrs G. Mapuranga','Mrs N. Murwisi','Mrs C. Mutsvairo','Mrs T. Shuro','Mrs P. Chiutsi',
-  'Miss R. Bvunzawabaya','Mrs F. Mhondoro','Mrs A. Chimwemwe','Mrs B. Sithole','Mrs E. Hove',
-];
+        const [result] = await pool.query(
+          `INSERT INTO students
+            (name, grade, student_class, gender, student_id, dob, enrollment_date,
+             parent_name, parent_phone, parent_email, medical_notes, school_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            name,
+            grade,
+            studentClass,
+            isMale ? 'Male' : 'Female',
+            studentId,
+            randomDobForGrade(grade),
+            '2026-01-13',
+            `${pick(['Mr', 'Mrs', 'Ms'])} ${name.split(' ').slice(-1)[0]}`,
+            `+26377${rand(1000000, 9999999)}`,
+            `${studentId.toLowerCase()}@family.demo`,
+            index % 7 === 0 ? 'Monitor reading support progress.' : null,
+            schoolId
+          ]
+        );
+        studentIds.push(result.insertId);
+      }
+    }
+  }
 
-const SUBJECTS = [
-  { id: 'MATH',   name: 'Mathematics' },
-  { id: 'ENG',    name: 'English' },
-  { id: 'SHONA',  name: 'Shona' },
-  { id: 'SCI',    name: 'General Science' },
-  { id: 'SST',    name: 'Social Studies' },
-  { id: 'AGRI',   name: 'Agriculture' },
-  { id: 'FML',    name: 'Family and Religious Studies' },
-];
+  for (let index = 0; index < TEACHER_NAMES.length; index += 1) {
+    const teacher = TEACHER_NAMES[index];
+    const [result] = await pool.query(
+      `INSERT INTO teachers
+        (name, subject, gender, email, phone, teacher_id, school_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        teacher.name,
+        SUBJECTS[index % SUBJECTS.length],
+        teacher.gender,
+        `${school.username}.teacher${index + 1}@psp.local`,
+        `+26378${rand(1000000, 9999999)}`,
+        `${school.username.replace('demo_', '').toUpperCase()}EC${String(index + 1).padStart(3, '0')}`,
+        schoolId
+      ]
+    );
+    teacherIds.push(result.insertId);
+  }
 
-const TEACHER_SUBJECTS = ['Mathematics','English','Shona','General Science','Social Studies','Agriculture','Physical Education','Art and Craft'];
+  for (const grade of GRADES) {
+    for (const subject of SUBJECTS) {
+      await pool.query(
+        `INSERT INTO resources
+          (subject_id, subject_name, grade, num_students, num_books, num_computers, school_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          `${subject.slice(0, 3).toUpperCase()}-${grade}`,
+          subject,
+          grade,
+          rand(28, 38),
+          rand(18, 35),
+          rand(1, 8),
+          schoolId
+        ]
+      );
+    }
+  }
 
-// ── main ──────────────────────────────────────────────────────────────────────
+  const attendanceDays = schoolDays(10);
+  for (const date of attendanceDays) {
+    for (const studentId of studentIds) {
+      const status = attendanceStatus();
+      await pool.query(
+        `INSERT INTO student_attendance
+          (student_id, school_id, date, status, reason, excused, late_minutes, early_minutes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [studentId, schoolId, date, status.status, status.reason, status.excused, status.late, status.early]
+      );
+    }
+
+    for (const teacherId of teacherIds) {
+      const status = attendanceStatus();
+      await pool.query(
+        `INSERT INTO teacher_attendance
+          (teacher_id, school_id, date, status, reason, excused, late_minutes, early_minutes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [teacherId, schoolId, date, status.status, status.reason, status.excused, status.late, status.early]
+      );
+    }
+  }
+
+  console.log(`- ${school.username}: ${studentIds.length} students, ${teacherIds.length} teachers, ${GRADES.length * SUBJECTS.length} resources`);
+}
 
 async function seed() {
   const pool = await mysql.createPool({
-    host:     process.env.DB_HOST     || 'localhost',
-    user:     process.env.DB_USER     || 'root',
-    password: process.env.DB_PASS     || '',
-    database: process.env.DB_NAME     || 'psp',
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASS || '',
+    database: process.env.DB_NAME || 'psp',
     waitForConnections: true,
-    connectionLimit: 5,
+    connectionLimit: 5
   });
 
-  console.log('\n🌱  PSP Seed Script — Mutare Primary Schools\n');
+  try {
+    const hashedPassword = await bcrypt.hash(PASSWORD_PLAIN, 10);
 
-  const hashedPwd = await bcrypt.hash(PASSWORD_PLAIN, 10);
-  const days = schoolDays(20); // last 20 school days for attendance
-
-  for (const school of SCHOOLS) {
-    // ── 1. Insert school user (skip if exists) ────────────────────────────
-    const [existing] = await pool.query(
-      'SELECT id FROM users WHERE username = ? LIMIT 1', [school.username]
-    );
-    let schoolId;
-
-    if (existing.length > 0) {
-      schoolId = existing[0].id;
-      console.log(`⚠️  School "${school.display_name}" already exists (id=${schoolId}), skipping user insert.`);
-    } else {
-      const [res] = await pool.query(
-        `INSERT INTO users (username, password, role, display_name, email, phone, address)
-         VALUES (?, ?, 'school', ?, ?, ?, ?)`,
-        [school.username, hashedPwd, school.display_name, school.email, school.phone, school.address]
-      );
-      schoolId = res.insertId;
-      console.log(`✅  Created school "${school.display_name}" (id=${schoolId})`);
-    }
-
-    // Skip further seeding if students already exist for this school
-    const [[{ cnt }]] = await pool.query(
-      'SELECT COUNT(*) AS cnt FROM students WHERE school_id = ?', [schoolId]
-    );
-    if (cnt > 0) {
-      console.log(`   ↳  Already has ${cnt} students — skipping data seed.\n`);
-      continue;
-    }
-
-    // ── 2. Students ───────────────────────────────────────────────────────
-    const studentIds = [];  // DB ids
-    let sCounter = 1;
-
-    for (const grade of GRADES) {
-      for (const cls of CLASSES) {
-        const numStudents = rand(18, 35);
-        for (let i = 0; i < numStudents; i++) {
-          const isMale  = Math.random() < 0.52;
-          const name    = isMale ? pick(MALE_NAMES) : pick(FEMALE_NAMES);
-          const gender  = isMale ? 'Male' : 'Female';
-          const sid     = `${school.username.slice(0,3).toUpperCase()}${grade.replace('Grade ','G')}${cls}${String(sCounter).padStart(3,'0')}`;
-          sCounter++;
-
-          const [res] = await pool.query(
-            `INSERT INTO students (name, grade, student_class, gender, student_id, school_id)
-             VALUES (?, ?, ?, ?, ?, ?)`,
-            [name, grade, cls, gender, sid, schoolId]
-          );
-          studentIds.push(res.insertId);
-        }
+    console.log('Creating or refreshing demo users...');
+    for (const user of DEMO_USERS) {
+      const id = await upsertDemoUser(pool, user, hashedPassword);
+      if (user.role === 'school') {
+        await seedSchoolData(pool, id, user);
+      } else {
+        console.log(`- ${user.username}: admin account ready`);
       }
     }
-    console.log(`   ↳  Inserted ${studentIds.length} students`);
 
-    // ── 3. Teachers ────────────────────────────────────────────────────────
-    const teacherIds = [];
-    const numTeachers = rand(12, 18);
-    for (let i = 0; i < numTeachers; i++) {
-      const isMale = Math.random() < 0.45;
-      const name   = isMale ? TEACHER_MALE[i % TEACHER_MALE.length] : TEACHER_FEMALE[i % TEACHER_FEMALE.length];
-      const subj   = TEACHER_SUBJECTS[i % TEACHER_SUBJECTS.length];
-      const tid    = `TCH-${school.username.slice(0,3).toUpperCase()}-${String(i+1).padStart(3,'0')}`;
-      const gender = isMale ? 'Male' : 'Female';
-      const email  = `teacher${i+1}@${school.username}.ac.zw`;
-
-      const [res] = await pool.query(
-        `INSERT INTO teachers (name, subject, gender, email, teacher_id, school_id)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [name, subj, gender, email, tid, schoolId]
-      );
-      teacherIds.push(res.insertId);
-    }
-    console.log(`   ↳  Inserted ${teacherIds.length} teachers`);
-
-    // ── 4. Student attendance (last 20 school days) ────────────────────────
-    let stuAttCount = 0;
-    for (const date of days) {
-      // Randomly attend only a subset of students per day (realistic partial records)
-      const subset = studentIds.filter(() => Math.random() > 0.05);
-      for (const sid of subset) {
-        const { status, late_minutes, early_minutes } = attendanceStatus();
-        await pool.query(
-          `INSERT INTO student_attendance (student_id, school_id, date, status, late_minutes, early_minutes)
-           VALUES (?, ?, ?, ?, ?, ?)`,
-          [sid, schoolId, date, status, late_minutes, early_minutes]
-        );
-        stuAttCount++;
-      }
-    }
-    console.log(`   ↳  Inserted ${stuAttCount} student attendance records`);
-
-    // ── 5. Teacher attendance (last 20 school days) ────────────────────────
-    let tchAttCount = 0;
-    for (const date of days) {
-      for (const tid of teacherIds) {
-        const { status, late_minutes, early_minutes } = attendanceStatus();
-        await pool.query(
-          `INSERT INTO teacher_attendance (teacher_id, school_id, date, status, late_minutes, early_minutes)
-           VALUES (?, ?, ?, ?, ?, ?)`,
-          [tid, schoolId, date, status, late_minutes, early_minutes]
-        );
-        tchAttCount++;
-      }
-    }
-    console.log(`   ↳  Inserted ${tchAttCount} teacher attendance records`);
-
-    // ── 6. Resources ───────────────────────────────────────────────────────
-    let resCount = 0;
-    for (const subj of SUBJECTS) {
-      for (const grade of GRADES) {
-        const numStudents  = rand(20, 40);
-        const numBooks     = rand(10, numStudents);
-        const numComputers = rand(0, 5);
-        await pool.query(
-          `INSERT INTO resources (subject_id, subject_name, grade, num_students, num_books, num_computers, school_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [subj.id, subj.name, grade, numStudents, numBooks, numComputers, schoolId]
-        );
-        resCount++;
-      }
-    }
-    console.log(`   ↳  Inserted ${resCount} resource records\n`);
+    console.log('\nDemo credentials');
+    console.log(`- Admin:  demo_admin / ${PASSWORD_PLAIN}`);
+    console.log(`- School: demo_greenfield / ${PASSWORD_PLAIN}`);
+    console.log(`- School: demo_riverside / ${PASSWORD_PLAIN}`);
+    console.log(`- School: demo_sunshine / ${PASSWORD_PLAIN}`);
+  } finally {
+    await pool.end();
   }
-
-  await pool.end();
-  console.log(`✅  Seeding complete!`);
-  console.log(`\nSchool login credentials:`);
-  SCHOOLS.forEach(s => console.log(`   ${s.username}  /  ${PASSWORD_PLAIN}`));
-  console.log('');
 }
 
-seed().catch(err => {
-  console.error('❌  Seed failed:', err.message);
+seed().catch((error) => {
+  console.error('Demo seed failed:', error.message);
   process.exit(1);
 });

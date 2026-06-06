@@ -138,6 +138,26 @@
           <small class="form-hint">This information is kept confidential.</small>
         </div>
 
+        <h3 id="face-enroll" class="form-section-title" style="margin-top:1.5rem;"><i class="fas fa-camera"></i> Facial Recognition Enrollment</h3>
+        <div class="face-step-banner">
+          <div class="face-step-chip">Face</div>
+          <div class="face-step-content">
+            <strong><%= student.face_descriptor ? 'This student already has a saved face profile.' : 'This student does not have a face profile yet.' %></strong>
+            <p><%= student.face_descriptor ? 'Use the buttons below only if you want to replace the current face used for attendance.' : 'Start the camera and capture a face now to enable facial-recognition attendance for this student.' %></p>
+          </div>
+        </div>
+        <div class="face-enroll-card" data-face-enrollment data-face-required="false">
+          <input type="hidden" name="face_descriptor" data-face-hidden>
+          <video data-face-video autoplay muted playsinline class="face-video"></video>
+          <div class="face-actions">
+            <button type="button" class="btn outline" data-face-start><i class="fas fa-video"></i> Start Camera</button>
+            <button type="button" class="btn primary" data-face-capture><i class="fas fa-camera"></i> Capture New Face</button>
+            <button type="button" class="btn outline" data-face-clear><i class="fas fa-rotate-left"></i> Clear</button>
+          </div>
+          <div class="face-preview" data-face-preview><i class="fas fa-user-check"></i> Keep existing face unless recaptured</div>
+          <small class="form-hint" data-face-status>Capture only if you want to replace this student's current enrolled face.</small>
+        </div>
+
         <div class="form-actions">
           <a href="/student" class="btn outline"><i class="fas fa-times"></i> Cancel</a>
           <button type="submit" class="btn primary"><i class="fas fa-save"></i> Update Student</button>
@@ -172,27 +192,27 @@
     function validateForm() {
       let ok = true;
 
-      const name = form.name.value.trim();
+      const name = (form.elements.name ? form.elements.name.value : '').trim();
       if (!name) { showErr('err-name', 'Full name is required.'); ok = false; }
       else if (name.length < 2) { showErr('err-name', 'Name must be at least 2 characters.'); ok = false; }
       else if (!/^[A-Za-z\s'\-\.]+$/.test(name)) { showErr('err-name', 'Name may only contain letters, spaces, hyphens, and apostrophes.'); ok = false; }
       else clearErr('err-name');
 
-      if (!form.grade.value) { showErr('err-grade', 'Please select a grade.'); ok = false; }
+      if (!form.elements.grade.value) { showErr('err-grade', 'Please select a grade.'); ok = false; }
       else clearErr('err-grade');
 
-      if (!form.student_class.value) { showErr('err-class', 'Please select a class.'); ok = false; }
+      if (!form.elements.student_class.value) { showErr('err-class', 'Please select a class.'); ok = false; }
       else clearErr('err-class');
 
-      if (!form.gender.value) { showErr('err-gender', 'Please select a gender.'); ok = false; }
+      if (!form.elements.gender.value) { showErr('err-gender', 'Please select a gender.'); ok = false; }
       else clearErr('err-gender');
 
-      const sid = form.student_id.value.trim();
+      const sid = (form.elements.student_id ? form.elements.student_id.value : '').trim();
       if (!sid) { showErr('err-student-id', 'Student ID is required.'); ok = false; }
       else if (!/^[A-Za-z0-9\-_\/]+$/.test(sid)) { showErr('err-student-id', 'Student ID may only contain letters, numbers, hyphens, and underscores.'); ok = false; }
       else clearErr('err-student-id');
 
-      const dob = form.dob.value;
+      const dob = form.elements.dob ? form.elements.dob.value : '';
       if (!dob) { showErr('err-dob', 'Date of birth is required.'); ok = false; }
       else {
         const age = ageFromDOB(dob);
@@ -203,19 +223,19 @@
         else clearErr('err-dob');
       }
 
-      const enroll = form.enrollment_date.value;
+      const enroll = form.elements.enrollment_date ? form.elements.enrollment_date.value : '';
       if (!enroll) { showErr('err-enrollment', 'Enrollment date is required.'); ok = false; }
       else if (new Date(enroll) > new Date()) { showErr('err-enrollment', 'Enrollment date cannot be in the future.'); ok = false; }
       else clearErr('err-enrollment');
 
-      const pPhone = form.parent_phone.value.trim();
+      const pPhone = (form.elements.parent_phone ? form.elements.parent_phone.value : '').trim();
       if (pPhone) {
         const digits = pPhone.replace(/[\s\-\(\)\.]/g, '');
         if (!/^\+?[0-9]{7,15}$/.test(digits)) { showErr('err-parent-phone', 'Enter a valid phone number.'); ok = false; }
         else clearErr('err-parent-phone');
       } else clearErr('err-parent-phone');
 
-      const pEmail = form.parent_email.value.trim();
+      const pEmail = (form.elements.parent_email ? form.elements.parent_email.value : '').trim();
       if (pEmail) {
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(pEmail)) { showErr('err-parent-email', 'Enter a valid email address.'); ok = false; }
         else clearErr('err-parent-email');
@@ -233,6 +253,11 @@
     });
   })();
   </script>
+  <script async src="https://docs.opencv.org/4.x/opencv.js" type="text/javascript"></script>
+  <script src="/js/face-vision.js"></script>
+  <script src="/vendor/tf.min.js"></script>
+  <script src="/vendor/face-api.min.js"></script>
+  <script src="/js/face-enrollment.js"></script>
   <style>
     .form-section-title {
       font-size: 0.95rem; font-weight: 600; color: var(--primary);
@@ -252,6 +277,58 @@
       font-size: 0.78rem; margin-top: 0.25rem; font-weight: 500;
     }
     .field-error::before { content: '\f071  '; font-family: 'Font Awesome 6 Free'; font-weight: 900; margin-right: 3px; }
+    .face-enroll-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem;
+      background: var(--bg-secondary);
+    }
+    .face-step-banner {
+      display: flex;
+      gap: 0.85rem;
+      align-items: flex-start;
+      padding: 0.95rem 1rem;
+      margin-bottom: 0.85rem;
+      border-radius: 12px;
+      border: 1px solid rgba(var(--primary-rgb), 0.28);
+      background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.13), rgba(var(--primary-rgb), 0.05));
+    }
+    .face-step-chip {
+      min-width: 60px;
+      text-align: center;
+      padding: 0.3rem 0.55rem;
+      border-radius: 999px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+    .face-step-content p {
+      margin: 0.25rem 0 0;
+      font-size: 0.84rem;
+      color: var(--text-secondary);
+    }
+    .face-video {
+      width: 100%;
+      max-width: 420px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #111827;
+      display: block;
+      margin-bottom: 0.75rem;
+    }
+    .face-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.75rem;
+    }
+    .face-preview {
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
   </style>
 </body>
 </html>
+

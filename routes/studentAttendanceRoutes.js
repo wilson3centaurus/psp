@@ -47,7 +47,15 @@ router.post(
   studentAttendanceController.uploadCSV
 );
 
-// 5. View specific attendance by date
+// 5. Face ID auto-mark
+router.post(
+  '/face-mark',
+  isAuthenticated,
+  isSchool,
+  studentAttendanceController.markAttendanceByFace
+);
+
+// 6. View specific attendance by date
 router.get(
   '/view/:date',
   isAuthenticated,

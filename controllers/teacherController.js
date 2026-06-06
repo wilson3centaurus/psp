@@ -2,6 +2,7 @@ const { pool } = require('../config/db');
 const fs = require('fs');
 const csv = require('csv-parser');
 const v = require('../utils/validate');
+const { normalizeDescriptor, stringifyDescriptor } = require('../utils/faceBiometric');
 
 // ─── Shared field validation ──────────────────────────────────────────────────
 function validateTeacherFields(body) {
@@ -40,7 +41,7 @@ exports.addTeacherPage = (req, res) => {
    3. ADD A TEACHER
 =========================== */
 exports.addTeacher = async (req, res) => {
-  const { name, subject, gender, email, phone, teacher_id } = req.body;
+  const { name, subject, gender, email, phone, teacher_id, face_descriptor } = req.body;
   const schoolId = req.session.user.id;
 
   const result = validateTeacherFields(req.body);
@@ -49,15 +50,22 @@ exports.addTeacher = async (req, res) => {
     return res.redirect('/teacher/add');
   }
 
+  const descriptor = normalizeDescriptor(face_descriptor);
+  if (!descriptor) {
+    req.flash('error_msg', 'Face enrollment is required. Capture a clear face before saving.');
+    return res.redirect('/teacher/add');
+  }
+
   try {
     await pool.query(
-      'INSERT INTO teachers (name, subject, gender, email, phone, teacher_id, school_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO teachers (name, subject, gender, email, phone, teacher_id, school_id, face_descriptor, face_enrolled_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())',
       [
         name.trim(), subject, gender,
         (email || '').trim() || null,
         (phone || '').trim() || null,
         teacher_id.trim().toUpperCase(),
-        schoolId
+        schoolId,
+        stringifyDescriptor(descriptor)
       ]
     );
     req.flash('success_msg', 'Teacher added successfully.');
@@ -175,7 +183,7 @@ exports.editTeacherPage = async (req, res) => {
 =========================== */
 exports.updateTeacher = async (req, res) => {
   const { id } = req.params;
-  const { name, subject, gender, email, phone, teacher_id } = req.body;
+  const { name, subject, gender, email, phone, teacher_id, face_descriptor } = req.body;
 
   const result = validateTeacherFields(req.body);
   if (!result.valid) {
@@ -184,16 +192,22 @@ exports.updateTeacher = async (req, res) => {
   }
 
   try {
-    await pool.query(
-      'UPDATE teachers SET name=?, subject=?, gender=?, email=?, phone=?, teacher_id=? WHERE id=?',
-      [
-        name.trim(), subject, gender,
-        (email || '').trim() || null,
-        (phone || '').trim() || null,
-        teacher_id.trim().toUpperCase(),
-        id
-      ]
-    );
+    const setParts = ['name=?', 'subject=?', 'gender=?', 'email=?', 'phone=?', 'teacher_id=?'];
+    const params = [
+      name.trim(), subject, gender,
+      (email || '').trim() || null,
+      (phone || '').trim() || null,
+      teacher_id.trim().toUpperCase()
+    ];
+
+    const descriptor = normalizeDescriptor(face_descriptor);
+    if (descriptor) {
+      setParts.push('face_descriptor=?', 'face_enrolled_at=NOW()');
+      params.push(stringifyDescriptor(descriptor));
+    }
+
+    params.push(id);
+    await pool.query(`UPDATE teachers SET ${setParts.join(', ')} WHERE id=?`, params);
     req.flash('success_msg', 'Teacher updated successfully.');
   } catch (err) {
     console.error('[teachers] update error:', err);
