@@ -265,9 +265,67 @@
     .no-class-notice { text-align: center; padding: 3rem 2rem; color: var(--text-secondary); }
     .no-class-notice i { font-size: 3rem; opacity: 0.25; display: block; margin-bottom: 1rem; }
     .section-divider { margin: 2rem 0; border-top: 2px dashed var(--border); }
+
+    /* School time panel */
+    .time-panel {
+      display:flex; gap:1rem; align-items:flex-end; flex-wrap:wrap;
+      background:var(--surface); border:2px solid var(--border); border-radius:var(--radius-lg);
+      padding:.85rem 1rem; margin-bottom:1.25rem;
+    }
+    .time-panel .form-group { flex:1; min-width:140px; margin-bottom:0; }
+    .time-panel .form-group label { font-size:.78rem; margin-bottom:.25rem; display:block; color:var(--text-secondary); }
+    .time-panel-label { display:flex; align-items:center; gap:.4rem; font-size:.82rem; font-weight:600; color:var(--text-secondary); white-space:nowrap; }
+    .eod-btn {
+      display:inline-flex; align-items:center; gap:.4rem; padding:.6rem 1rem;
+      background:#0f172a; color:#94a3b8; border:2px solid #334155;
+      border-radius:var(--radius); font-size:.82rem; font-weight:600; cursor:pointer;
+      transition:all .2s ease; white-space:nowrap;
+    }
+    .eod-btn:hover { background:#ef4444; color:white; border-color:#ef4444; }
+
+    /* Recognition modal */
+    .recog-overlay { position:fixed; inset:0; background:rgba(0,0,0,.75); display:none; align-items:center; justify-content:center; z-index:9999; }
+    .recog-overlay.active { display:flex; }
+    .recog-card {
+      background:var(--surface); border-radius:24px; padding:3rem 3.5rem; text-align:center;
+      box-shadow:0 30px 80px rgba(0,0,0,.4); max-width:420px; width:90%; animation:popIn .35s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes popIn { from{transform:scale(.6);opacity:0} to{transform:scale(1);opacity:1} }
+    .recog-icon { font-size:5rem; line-height:1; margin-bottom:1rem; }
+    .recog-icon.present { color:#22c55e; }
+    .recog-icon.late    { color:#f59e0b; }
+    .recog-name { font-size:1.6rem; font-weight:800; color:var(--text-primary); margin-bottom:.5rem; }
+    .recog-status { font-size:1.1rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; margin-bottom:.75rem; }
+    .recog-status.present { color:#22c55e; }
+    .recog-status.late    { color:#f59e0b; }
+    .recog-detail { font-size:.9rem; color:var(--text-secondary); }
+    .recog-countdown { margin-top:1.5rem; font-size:.8rem; color:var(--text-secondary); }
+    .recog-progress { height:4px; background:var(--border); border-radius:100px; margin-top:.5rem; overflow:hidden; }
+    .recog-progress-fill { height:100%; background:#22c55e; border-radius:100px; transition:width linear; }
+
+    /* Back button */
+    .back-btn {
+      display:inline-flex; align-items:center; gap:.4rem;
+      padding:.4rem .8rem; border-radius:var(--radius); font-size:.85rem; font-weight:600;
+      cursor:pointer; border:1.5px solid var(--border); background:var(--surface);
+      color:var(--text-secondary); transition:all .15s ease; margin-right:.5rem;
+    }
+    .back-btn:hover { background:var(--primary); color:white; border-color:var(--primary); }
   </style>
 </head>
 <body>
+  <!-- Recognition Modal -->
+  <div class="recog-overlay" id="recog-overlay">
+    <div class="recog-card">
+      <div class="recog-icon" id="recog-icon"><i class="fas fa-check-circle"></i></div>
+      <div class="recog-name" id="recog-name">Student Name</div>
+      <div class="recog-status" id="recog-status">PRESENT</div>
+      <div class="recog-detail" id="recog-detail"></div>
+      <div class="recog-countdown">Closing in <span id="recog-sec">4</span>s</div>
+      <div class="recog-progress"><div class="recog-progress-fill" id="recog-pbar" style="width:100%"></div></div>
+    </div>
+  </div>
+
   <div class="app-shell">
     <div class="sidebar-overlay"></div>
     <aside class="sidebar">
@@ -311,6 +369,7 @@
       <header class="topbar">
         <div class="topbar-left">
           <button class="mobile-menu-btn" aria-label="Toggle menu"><i class="fas fa-bars"></i></button>
+          <button class="back-btn" onclick="history.back()" title="Go back"><i class="fas fa-arrow-left"></i></button>
           <span class="page-title">Student Attendance</span>
         </div>
         <div class="topbar-right">
@@ -360,6 +419,26 @@
             <div class="stat-label"><i class="fas fa-clock"></i> Late</div>
             <div class="stat-value" id="late-count">0</div>
           </div>
+        </div>
+
+        <!-- School Time Settings -->
+        <div class="time-panel">
+          <div class="time-panel-label"><i class="fas fa-school"></i> School Hours</div>
+          <div class="form-group">
+            <label>Start Time (school opens)</label>
+            <input type="time" id="school-start-time" class="form-input" value="07:00">
+          </div>
+          <div class="form-group">
+            <label>Late From (after this = Late)</label>
+            <input type="time" id="school-late-time" class="form-input" value="08:00">
+          </div>
+          <div class="form-group">
+            <label>End Time (school closes)</label>
+            <input type="time" id="school-end-time" class="form-input" value="17:00">
+          </div>
+          <button class="eod-btn" onclick="endOfDay()" title="Mark all students who haven't arrived as Absent">
+            <i class="fas fa-moon"></i> End of Day &mdash; Mark Absent
+          </button>
         </div>
 
         <!-- Controls -->
@@ -421,14 +500,6 @@
                 <span style="font-size:0.8rem;font-weight:400;color:var(--text-secondary);">
                   &mdash; Form <%= selectedGrade %> <%= selectedClass %>
                 </span>
-              </div>
-              <div class="roster-bulk-btns">
-                <button class="bulk-btn bulk-present" onclick="markAll('Present')">
-                  <i class="fas fa-check-double"></i> All Present
-                </button>
-                <button class="bulk-btn bulk-absent" onclick="markAll('Absent')">
-                  <i class="fas fa-times"></i> All Absent
-                </button>
               </div>
             </div>
 
@@ -546,12 +617,129 @@
     ) %>;
   </script>
 
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="/js/main.js"></script>
   <script>
-    var statusMap = {};
+    var statusMap  = {};
+    var lateMap    = {};
+    var modalTimer = null;
 
+    // ── Attendance guard ──────────────────────────────────────────────────────
+    var DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+    function attendanceAllowed(silent) {
+      var now      = new Date();
+      var day      = now.getDay(); // 0=Sun,6=Sat
+      var nowMins  = now.getHours() * 60 + now.getMinutes();
+      var startMin = getSchoolMinutes('school-start-time');
+      var endMin   = getSchoolMinutes('school-end-time');
+
+      if (day === 0 || day === 6) {
+        if (!silent) Swal.fire({
+          icon: 'warning',
+          title: 'Weekend — No School',
+          text: 'Today is ' + DAYS[day] + '. Attendance can only be marked on school days (Monday to Friday).',
+          confirmButtonColor: '#6366f1'
+        });
+        return false;
+      }
+      if (nowMins < startMin) {
+        var diff = startMin - nowMins;
+        var h = Math.floor(diff / 60), m = diff % 60;
+        var timeStr = h > 0 ? h + 'h ' + m + 'min' : m + ' min';
+        if (!silent) Swal.fire({
+          icon: 'info',
+          title: 'School Not Started Yet',
+          text: 'School starts at ' + document.getElementById('school-start-time').value + '. Attendance opens in ' + timeStr + '.',
+          confirmButtonColor: '#6366f1'
+        });
+        return false;
+      }
+      if (nowMins > endMin) {
+        if (!silent) Swal.fire({
+          icon: 'error',
+          title: 'School Day Has Ended',
+          text: 'The school day ended at ' + document.getElementById('school-end-time').value + '. You can still save manual changes but the face scanner is disabled.',
+          confirmButtonColor: '#6366f1'
+        });
+        return false;
+      }
+      return true;
+    }
+
+    // ── School time helpers ───────────────────────────────────────────────────
+    function loadTimePrefs() {
+      var s = localStorage.getItem('psp_school_start') || '07:00';
+      var l = localStorage.getItem('psp_school_late')  || '08:00';
+      var e = localStorage.getItem('psp_school_end')   || '17:00';
+      document.getElementById('school-start-time').value = s;
+      document.getElementById('school-late-time').value  = l;
+      document.getElementById('school-end-time').value   = e;
+    }
+    function saveTimePrefs() {
+      localStorage.setItem('psp_school_start', document.getElementById('school-start-time').value);
+      localStorage.setItem('psp_school_late',  document.getElementById('school-late-time').value);
+      localStorage.setItem('psp_school_end',   document.getElementById('school-end-time').value);
+    }
+    function getSchoolMinutes(id) {
+      var v = document.getElementById(id).value || '07:00';
+      var p = v.split(':');
+      return parseInt(p[0]) * 60 + parseInt(p[1]);
+    }
+    function nowMinutes() { var n = new Date(); return n.getHours() * 60 + n.getMinutes(); }
+    function calcStatus() {
+      var now   = nowMinutes();
+      var start = getSchoolMinutes('school-start-time');
+      var late  = getSchoolMinutes('school-late-time');
+      var end   = getSchoolMinutes('school-end-time');
+      // After late-from cutoff (or after end of day) = Late
+      if (now > late || now > end) return { status: 'Late', lateMinutes: now - start };
+      // Arrived on time (between school open and late cutoff)
+      return { status: 'Present', lateMinutes: 0 };
+    }
+
+    // ── Recognition modal ─────────────────────────────────────────────────────
+    function showRecognitionModal(name, status, lateMinutes) {
+      var overlay = document.getElementById('recog-overlay');
+      var icon    = document.getElementById('recog-icon');
+      var nameEl  = document.getElementById('recog-name');
+      var statEl  = document.getElementById('recog-status');
+      var detEl   = document.getElementById('recog-detail');
+      var secEl   = document.getElementById('recog-sec');
+      var pbar    = document.getElementById('recog-pbar');
+      icon.className = 'recog-icon ' + (status === 'Late' ? 'late' : 'present');
+      icon.innerHTML = status === 'Late' ? '<i class="fas fa-clock"></i>' : '<i class="fas fa-check-circle"></i>';
+      nameEl.textContent = name;
+      statEl.className   = 'recog-status ' + (status === 'Late' ? 'late' : 'present');
+      statEl.textContent = status.toUpperCase();
+      detEl.textContent  = status === 'Late' && lateMinutes > 0
+        ? lateMinutes + ' minute' + (lateMinutes !== 1 ? 's' : '') + ' late'
+        : 'Attendance recorded';
+      pbar.style.background = status === 'Late' ? '#f59e0b' : '#22c55e';
+      overlay.classList.add('active');
+      if (modalTimer) clearInterval(modalTimer);
+      var secs = 4;
+      secEl.textContent = secs;
+      pbar.style.transition = 'none'; pbar.style.width = '100%';
+      setTimeout(function() { pbar.style.transition = 'width ' + secs + 's linear'; pbar.style.width = '0%'; }, 50);
+      modalTimer = setInterval(function() {
+        secs--;
+        if (secEl) secEl.textContent = secs;
+        if (secs <= 0) { clearInterval(modalTimer); overlay.classList.remove('active'); }
+      }, 1000);
+    }
+    document.getElementById('recog-overlay').addEventListener('click', function() {
+      this.classList.remove('active');
+      if (modalTimer) clearInterval(modalTimer);
+    });
+
+    // ── DOM ready ─────────────────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', function () {
-      // Auto-set today
+      loadTimePrefs();
+      document.getElementById('school-start-time').addEventListener('change', saveTimePrefs);
+      document.getElementById('school-late-time').addEventListener('change', saveTimePrefs);
+      document.getElementById('school-end-time').addEventListener('change', saveTimePrefs);
+
       var dateInput = document.getElementById('attendance-date');
       if (dateInput && !dateInput.value) {
         var t = new Date();
@@ -568,22 +756,40 @@
         if (fd && !fd.value && dateInput.value) fd.value = dateInput.value;
       }
 
-      // Sync initial statuses from server-rendered hidden inputs
       document.querySelectorAll('input[id^="status-"]').forEach(function (inp) {
         var id = parseInt(inp.id.replace('status-', ''));
-        if (inp.value) {
-          statusMap[id] = inp.value;
-        }
+        if (inp.value) { statusMap[id] = inp.value; }
       });
       updateStats();
 
-      // Hide video placeholder once stream starts
       var vid = document.getElementById('face-video');
       var ph  = document.getElementById('video-placeholder');
       if (vid && ph) {
         vid.addEventListener('playing', function () { ph.style.display = 'none'; });
         vid.addEventListener('pause',   function () { ph.style.display = ''; });
         vid.addEventListener('emptied', function () { ph.style.display = ''; });
+      }
+
+      checkEndOfDay();
+
+      // Show advisory if outside school hours (non-blocking)
+      setTimeout(function() {
+        var day = new Date().getDay();
+        if (day === 0 || day === 6) {
+          Swal.fire({ icon:'warning', title:'Weekend — No School', text:'Today is ' + DAYS[day] + '. Attendance register is read-only.', confirmButtonColor:'#6366f1', timer:5000, timerProgressBar:true });
+        }
+      }, 800);
+
+      // Guard the Save button
+      var form = document.getElementById('attendance-form');
+      if (form) {
+        form.addEventListener('submit', function(e) {
+          var day = new Date().getDay();
+          if (day === 0 || day === 6) {
+            e.preventDefault();
+            Swal.fire({ icon:'warning', title:'Weekend — No School', text:'You cannot save attendance on a weekend.', confirmButtonColor:'#6366f1' });
+          }
+        });
       }
     });
 
@@ -595,8 +801,7 @@
       var grade = parts[0], cls = parts[1];
       var d = (date && date.value) || new Date().toISOString().split('T')[0];
       window.location.href = '/student-attendance?grade=' +
-        encodeURIComponent(grade) + '&class=' +
-        encodeURIComponent(cls) + '&markDate=' + d;
+        encodeURIComponent(grade) + '&class=' + encodeURIComponent(cls) + '&markDate=' + d;
     }
 
     function applyRowStyle(studentId, status) {
@@ -608,8 +813,9 @@
       else if (status === 'Absent') row.classList.add('is-absent');
     }
 
-    function setStatus(studentId, status, isFaceMatch) {
+    function setStatus(studentId, status, isFaceMatch, lateMinutes) {
       statusMap[studentId] = status;
+      lateMap[studentId]   = lateMinutes || 0;
       var inp = document.getElementById('status-' + studentId);
       if (inp) inp.value = status;
       applyRowStyle(studentId, status);
@@ -623,13 +829,6 @@
       }
     }
 
-    function markAll(status) {
-      document.querySelectorAll('.roster-item').forEach(function (row) {
-        var id = parseInt(row.id.replace('row-', ''));
-        if (!isNaN(id)) setStatus(id, status, false);
-      });
-    }
-
     function updateStats() {
       var present = 0, absent = 0, late = 0;
       Object.keys(statusMap).forEach(function (k) {
@@ -641,11 +840,9 @@
       var marked = present + absent + late;
       var totalEl = document.getElementById('total-count');
       var total   = totalEl ? (parseInt(totalEl.textContent) || 0) : 0;
-
       document.getElementById('present-count').textContent = present;
       document.getElementById('absent-count').textContent  = absent;
       document.getElementById('late-count').textContent    = late;
-
       var mc  = document.getElementById('marked-count');
       var pct = document.getElementById('progress-pct');
       var pf  = document.getElementById('progress-fill');
@@ -654,9 +851,38 @@
       if (pf)  pf.style.width  = (total > 0 ? Math.round(marked / total * 100) : 0) + '%';
     }
 
+    function endOfDay() {
+      if (!confirm('Mark all students with no status as Absent for today?')) return;
+      document.querySelectorAll('.roster-item').forEach(function (row) {
+        var id = parseInt(row.id.replace('row-', ''));
+        if (!isNaN(id) && !statusMap[id]) setStatus(id, 'Absent', false, 0);
+      });
+    }
+
+    function checkEndOfDay() {
+      var end = getSchoolMinutes('school-end-time');
+      if (nowMinutes() >= end) {
+        var hasPending = false;
+        document.querySelectorAll('.roster-item').forEach(function(row) {
+          var id = parseInt(row.id.replace('row-', ''));
+          if (!isNaN(id) && !statusMap[id]) hasPending = true;
+        });
+        if (hasPending) {
+          var btn = document.querySelector('.eod-btn');
+          if (btn) { btn.style.background = '#ef4444'; btn.style.color = 'white'; btn.style.borderColor = '#ef4444'; }
+        }
+      }
+    }
+
     // Called by face-attendance.js when a face is recognised
     window.PSPFaceAttendance_onRecognized = async function (personId, name, distance) {
-      setStatus(personId, 'Present', true);
+      if (!attendanceAllowed(false)) return; // block if outside school hours
+      var calc        = calcStatus();
+      var status      = calc.status;
+      var lateMinutes = calc.lateMinutes;
+
+      setStatus(personId, status, true, lateMinutes);
+      showRecognitionModal(name, status, lateMinutes);
 
       var dateEl  = document.getElementById('attendance-date');
       var gradeEl = document.querySelector('input[name="grade"]');
@@ -667,11 +893,12 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            student_id: personId,
-            status: 'Present',
+            studentId: personId,
+            status: status,
+            lateMinutes: lateMinutes,
             date: (dateEl && dateEl.value) || new Date().toISOString().split('T')[0],
             grade: gradeEl ? gradeEl.value : '',
-            student_class: classEl ? classEl.value : ''
+            studentClass: classEl ? classEl.value : ''
           })
         });
         if (!res.ok) console.warn('[PSP-Attend] face-mark API error', res.status);

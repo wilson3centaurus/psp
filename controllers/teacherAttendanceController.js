@@ -59,23 +59,31 @@ async function upsertTeacherAttendanceRecord({
 exports.listSessions = async (req, res) => {
   const schoolId = req.session.user.id;
   const searchDate = req.query.searchDate || '';
-  const selectedMarkDate = req.query.markDate || '';
+  const selectedMarkDate = req.query.markDate || req.query.date || '';
 
   try {
     const [[schoolInfo]] = await pool.query('SELECT display_name, logo FROM users WHERE id = ? LIMIT 1', [schoolId]);
     const schoolDisplayName = schoolInfo?.display_name || null;
     const schoolLogo = schoolInfo?.logo || null;
 
-    const [sessions, [teachers]] = await Promise.all([
+    const markDate = normalizeDateInput(selectedMarkDate) || new Date().toISOString().slice(0, 10);
+    const [sessions, [teacherRows]] = await Promise.all([
       getAttendanceDates(schoolId, searchDate),
-      pool.query('SELECT * FROM teachers WHERE school_id = ? ORDER BY name', [schoolId])
+      pool.query(
+        `SELECT t.*, ta.status AS attendance_status, ta.reason AS attendance_reason, ta.late_minutes AS attendance_late_minutes
+         FROM teachers t
+         LEFT JOIN teacher_attendance ta ON ta.teacher_id = t.id AND ta.school_id = t.school_id AND ta.date = ?
+         WHERE t.school_id = ? ORDER BY t.name`,
+        [markDate, schoolId]
+      )
     ]);
+    const teachers = teacherRows;
 
     res.render('school/teacherAttendance/sessions', {
       sessions,
       searchDate,
       teachers,
-      selectedDate: selectedMarkDate,
+      selectedDate: markDate,
       schoolDisplayName,
       schoolLogo
     });
@@ -186,8 +194,10 @@ exports.submitAttendance = async (req, res) => {
 =========================== */
 exports.markAttendanceByFace = async (req, res) => {
   const schoolId = req.session.user.id;
-  const teacherId = Number(req.body.teacherId);
+  const teacherId = Number(req.body.teacherId || req.body.teacher_id);
   const date = normalizeDateInput(req.body.date);
+  const status = ['Present', 'Late', 'Absent'].includes(req.body.status) ? req.body.status : 'Present';
+  const lateMinutes = Math.max(0, parseInt(req.body.lateMinutes || 0));
 
   if (!teacherId || !date) {
     return res.status(400).json({ ok: false, message: 'Missing facial recognition attendance fields.' });
@@ -210,10 +220,10 @@ exports.markAttendanceByFace = async (req, res) => {
       teacherId,
       schoolId,
       date,
-      status: 'Present',
-      reason: 'Facial recognition',
+      status,
+      reason: status === 'Late' ? `Facial recognition — ${lateMinutes} min late` : 'Facial recognition',
       excused: 0,
-      lateMinutes: 0,
+      lateMinutes,
       earlyMinutes: 0
     });
 
@@ -221,8 +231,8 @@ exports.markAttendanceByFace = async (req, res) => {
       ok: true,
       teacherId,
       name: rows[0].name,
-      status: 'Present',
-      reason: 'Facial recognition',
+      status,
+      lateMinutes,
       date
     });
   } catch (err) {

@@ -350,10 +350,10 @@ exports.markAttendanceByFace = async (req, res) => {
       studentId,
       schoolId,
       date,
-      status: 'Present',
-      reason: 'Facial recognition',
+      status,
+      reason: status === 'Late' ? `Facial recognition — ${lateMinutes} min late` : 'Facial recognition',
       excused: 0,
-      lateMinutes: 0,
+      lateMinutes,
       earlyMinutes: 0
     });
 
@@ -361,8 +361,8 @@ exports.markAttendanceByFace = async (req, res) => {
       ok: true,
       studentId,
       name: rows[0].name,
-      status: 'Present',
-      reason: 'Facial recognition',
+      status,
+      lateMinutes,
       date
     });
   } catch (err) {

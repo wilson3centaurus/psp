@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -8,265 +8,145 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
   <link rel="icon" type="image/png" href="<%= typeof schoolLogo !== 'undefined' && schoolLogo ? '/uploads/' + schoolLogo : '/assets/logo.png' %>">
   <style>
-    /* Attendance Page Specific Styles */
     .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 1rem;
-      margin-bottom: 1.5rem;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 1rem; margin-bottom: 1.25rem;
     }
-    .stat-card {
-      background: var(--surface);
-      border: 2px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 1.25rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-    .stat-card.total { border-color: var(--primary); background: rgba(var(--primary-rgb), 0.05); }
-    .stat-card.present { border-color: #22c55e; background: rgba(34, 197, 94, 0.05); }
-    .stat-card.absent { border-color: #ef4444; background: rgba(239, 68, 68, 0.05); }
-    .stat-card.late { border-color: #f59e0b; background: rgba(245, 158, 11, 0.05); }
-    .stat-card .stat-label {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-    }
-    .stat-card .stat-label i { font-size: 1rem; }
-    .stat-card.total .stat-label i { color: var(--primary); }
-    .stat-card.present .stat-label i { color: #22c55e; }
-    .stat-card.absent .stat-label i { color: #ef4444; }
-    .stat-card.late .stat-label i { color: #f59e0b; }
-    .stat-card .stat-value {
-      font-size: 2rem;
-      font-weight: 700;
-      color: var(--text-primary);
-    }
-    .stat-card.present .stat-value { color: #22c55e; }
-    .stat-card.absent .stat-value { color: #ef4444; }
-    .stat-card.late .stat-value { color: #f59e0b; }
+    .stat-card { background:var(--surface); border:2px solid var(--border); border-radius:var(--radius-lg); padding:1rem 1.25rem; display:flex; flex-direction:column; gap:.4rem; }
+    .stat-card.total  { border-color:var(--primary);  background:rgba(var(--primary-rgb),.05); }
+    .stat-card.present{ border-color:#22c55e; background:rgba(34,197,94,.06); }
+    .stat-card.absent { border-color:#ef4444; background:rgba(239,68,68,.06); }
+    .stat-card.late   { border-color:#f59e0b; background:rgba(245,158,11,.06); }
+    .stat-card .stat-label { display:flex; align-items:center; gap:.45rem; font-size:.8rem; color:var(--text-secondary); }
+    .stat-card.total  .stat-label i { color:var(--primary); }
+    .stat-card.present .stat-label i { color:#22c55e; }
+    .stat-card.absent  .stat-label i { color:#ef4444; }
+    .stat-card.late    .stat-label i { color:#f59e0b; }
+    .stat-card .stat-value { font-size:1.9rem; font-weight:700; color:var(--text-primary); }
+    .stat-card.present .stat-value { color:#22c55e; }
+    .stat-card.absent  .stat-value { color:#ef4444; }
+    .stat-card.late    .stat-value { color:#f59e0b; }
 
-    .attendance-controls {
-      display: flex;
-      gap: 1rem;
-      align-items: flex-end;
-      flex-wrap: wrap;
-      margin-bottom: 1rem;
+    /* Time panel */
+    .time-panel {
+      display:flex; gap:1rem; align-items:flex-end; flex-wrap:wrap;
+      background:var(--surface); border:2px solid var(--border); border-radius:var(--radius-lg);
+      padding:.85rem 1rem; margin-bottom:1.25rem;
     }
-    .attendance-controls .form-group { flex: 1; min-width: 200px; }
-    .attendance-controls .form-group label { font-size: 0.8rem; margin-bottom: 0.25rem; }
+    .time-panel .form-group { flex:1; min-width:140px; margin-bottom:0; }
+    .time-panel .form-group label { font-size:.78rem; margin-bottom:.25rem; display:block; color:var(--text-secondary); }
+    .time-panel-label { display:flex; align-items:center; gap:.4rem; font-size:.82rem; font-weight:600; color:var(--text-secondary); white-space:nowrap; }
+    .eod-btn {
+      display:inline-flex; align-items:center; gap:.4rem; padding:.6rem 1rem;
+      background:#0f172a; color:#94a3b8; border:2px solid #334155;
+      border-radius:var(--radius); font-size:.82rem; font-weight:600; cursor:pointer;
+      transition:all .2s ease; white-space:nowrap;
+    }
+    .eod-btn:hover { background:#ef4444; color:white; border-color:#ef4444; }
 
-    .progress-section {
-      margin-bottom: 1rem;
-    }
-    .progress-header {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.85rem;
-      margin-bottom: 0.5rem;
-      color: var(--text-secondary);
-    }
-    .progress-bar {
-      height: 8px;
-      background: var(--bg-secondary);
-      border-radius: 100px;
-      overflow: hidden;
-    }
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #22c55e, #4ade80);
-      border-radius: 100px;
-      transition: width 0.3s ease;
-    }
+    .attendance-controls { display:flex; gap:1rem; align-items:flex-end; flex-wrap:wrap; margin-bottom:1.25rem; }
+    .attendance-controls .form-group { flex:1; min-width:180px; margin-bottom:0; }
+    .attendance-controls .form-group label { font-size:.8rem; margin-bottom:.25rem; display:block; color:var(--text-secondary); }
 
-    .auto-save-notice {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.75rem 1rem;
-      background: rgba(var(--primary-rgb), 0.1);
-      border: 1px solid var(--primary);
-      border-radius: var(--radius);
-      font-size: 0.85rem;
-      color: var(--primary);
-      margin-bottom: 1rem;
-    }
-    .auto-save-notice i { animation: spin 2s linear infinite; }
-    @keyframes spin { 100% { transform: rotate(360deg); } }
+    /* Two-column layout */
+    .attendance-workspace { display:grid; grid-template-columns:minmax(260px,420px) 1fr; gap:1.25rem; align-items:start; }
+    @media (max-width:900px) { .attendance-workspace { grid-template-columns:1fr; } }
 
-    .attendance-table { width: 100%; }
-    .attendance-table th { text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
-    .attendance-table td { vertical-align: middle; }
-    
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.25rem;
-      padding: 0.35rem 0.75rem;
-      border-radius: 100px;
-      font-size: 0.75rem;
-      font-weight: 600;
-    }
-    .status-badge.present { background: #dcfce7; color: #15803d; }
-    .status-badge.absent { background: #fee2e2; color: #b91c1c; }
-    .status-badge.late { background: #fef3c7; color: #b45309; }
+    /* Camera panel */
+    .camera-panel { background:var(--surface); border:2px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; position:sticky; top:1rem; }
+    .camera-panel-header { background:#0f172a; padding:.85rem 1rem; display:flex; align-items:center; gap:.6rem; color:#e2e8f0; font-weight:600; font-size:.9rem; }
+    .camera-panel-header i { color:#60a5fa; }
+    .face-video-wrap { background:#0f172a; aspect-ratio:4/3; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }
+    #face-video { width:100%; height:100%; object-fit:cover; display:block; }
+    .face-video-placeholder { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.75rem; color:#475569; font-size:.85rem; pointer-events:none; }
+    .face-video-placeholder i { font-size:3rem; }
+    .camera-actions { display:flex; gap:.6rem; padding:.9rem; }
+    .camera-actions button { flex:1; display:inline-flex; align-items:center; justify-content:center; gap:.4rem; padding:.65rem .5rem; border-radius:var(--radius); font-size:.85rem; font-weight:600; cursor:pointer; border:none; transition:all .2s ease; }
+    #start-face-scan { background:#22c55e; color:white; }
+    #start-face-scan:hover:not(:disabled) { background:#16a34a; }
+    #stop-face-scan  { background:#ef4444; color:white; }
+    #stop-face-scan:hover:not(:disabled)  { background:#dc2626; }
+    button:disabled { opacity:.45; cursor:not-allowed; }
+    #face-status { display:block; padding:.6rem .9rem; font-size:.8rem; color:var(--text-secondary); border-top:1px solid var(--border); min-height:2.2rem; line-height:1.4; }
+    #face-events { padding:.5rem .9rem .9rem; max-height:130px; overflow-y:auto; border-top:1px solid var(--border); }
+    .face-event { font-size:.77rem; color:var(--text-secondary); padding:.25rem 0; border-bottom:1px solid var(--border); }
+    .face-event:last-child { border-bottom:none; }
 
-    .quick-mark-btns {
-      display: flex;
-      gap: 0.35rem;
-    }
-    .quick-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.25rem;
-      padding: 0.4rem 0.75rem;
-      border-radius: 100px;
-      font-size: 0.75rem;
-      font-weight: 500;
-      cursor: pointer;
-      border: 2px solid transparent;
-      transition: all 0.2s ease;
-    }
-    .quick-btn.present-btn {
-      background: var(--bg-secondary);
-      color: #22c55e;
-      border-color: var(--border);
-    }
-    .quick-btn.present-btn:hover, .quick-btn.present-btn.active {
-      background: #22c55e;
-      color: white;
-      border-color: #22c55e;
-    }
-    .quick-btn.absent-btn {
-      background: var(--bg-secondary);
-      color: #ef4444;
-      border-color: var(--border);
-    }
-    .quick-btn.absent-btn:hover, .quick-btn.absent-btn.active {
-      background: #ef4444;
-      color: white;
-      border-color: #ef4444;
-    }
-    .quick-btn.late-btn {
-      background: var(--bg-secondary);
-      color: #f59e0b;
-      border-color: var(--border);
-    }
-    .quick-btn.late-btn:hover, .quick-btn.late-btn.active {
-      background: #f59e0b;
-      color: white;
-      border-color: #f59e0b;
-    }
+    /* Roster panel */
+    .roster-panel { background:var(--surface); border:2px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; }
+    .roster-header { padding:.85rem 1rem; border-bottom:2px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.5rem; }
+    .roster-title { font-weight:700; font-size:.95rem; color:var(--text-primary); display:flex; align-items:center; gap:.4rem; }
+    .roster-progress { padding:.6rem 1rem; border-bottom:1px solid var(--border); }
+    .progress-header { display:flex; justify-content:space-between; font-size:.78rem; color:var(--text-secondary); margin-bottom:.35rem; }
+    .progress-bar { height:6px; background:var(--bg-secondary); border-radius:100px; overflow:hidden; }
+    .progress-fill { height:100%; background:linear-gradient(90deg,#22c55e,#4ade80); border-radius:100px; transition:width .3s ease; }
+    .roster-list { max-height:480px; overflow-y:auto; }
+    .roster-item { display:flex; align-items:center; gap:.6rem; padding:.65rem 1rem; border-bottom:1px solid var(--border); transition:background .2s ease, box-shadow .3s ease; }
+    .roster-item:last-child { border-bottom:none; }
+    .roster-item.is-present { background:rgba(34,197,94,.07); }
+    .roster-item.is-absent  { background:rgba(239,68,68,.05); }
+    .roster-item.is-late    { background:rgba(245,158,11,.07); }
+    .roster-item.flash-recognized { box-shadow:0 0 0 3px #22c55e; background:rgba(34,197,94,.15); }
+    .roster-num { font-size:.72rem; color:var(--text-secondary); min-width:1.6rem; text-align:right; }
+    .roster-dot { width:12px; height:12px; border-radius:50%; background:#94a3b8; flex-shrink:0; transition:background .3s ease; }
+    .roster-item.is-present .roster-dot { background:#22c55e; }
+    .roster-item.is-absent  .roster-dot { background:#ef4444; }
+    .roster-item.is-late    .roster-dot { background:#f59e0b; }
+    .roster-name { flex:1; font-size:.875rem; font-weight:500; color:var(--text-primary); }
+    .face-enrolled-tag { font-size:.68rem; background:rgba(var(--primary-rgb),.1); color:var(--primary); border-radius:100px; padding:.1rem .45rem; white-space:nowrap; }
+    .late-badge { font-size:.68rem; background:rgba(245,158,11,.15); color:#b45309; border-radius:100px; padding:.1rem .45rem; white-space:nowrap; }
+    .roster-btns { display:flex; gap:.25rem; }
+    .r-btn { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; font-size:.7rem; font-weight:700; cursor:pointer; border:2px solid var(--border); background:var(--bg-secondary); color:var(--text-secondary); transition:all .15s ease; }
+    .r-btn.p-btn:hover, .roster-item.is-present .r-btn.p-btn { background:#22c55e; color:white; border-color:#22c55e; }
+    .r-btn.a-btn:hover, .roster-item.is-absent  .r-btn.a-btn { background:#ef4444; color:white; border-color:#ef4444; }
+    .r-btn.l-btn:hover, .roster-item.is-late    .r-btn.l-btn { background:#f59e0b; color:white; border-color:#f59e0b; }
+    .roster-footer { padding:.9rem 1rem; border-top:2px solid var(--border); }
+    .save-btn { width:100%; padding:.85rem; background:var(--primary); color:white; border:none; border-radius:var(--radius); font-size:.9rem; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:.5rem; transition:opacity .2s ease; }
+    .save-btn:hover { opacity:.88; }
+    .section-divider { margin:2rem 0; border-top:2px dashed var(--border); }
 
-    .mark-all-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.6rem 1.25rem;
-      background: var(--surface);
-      border: 2px solid var(--border);
-      border-radius: var(--radius);
-      font-size: 0.85rem;
-      font-weight: 500;
-      color: var(--text-primary);
-      cursor: pointer;
-      transition: all 0.2s ease;
+    /* Recognition modal */
+    .recog-overlay { position:fixed; inset:0; background:rgba(0,0,0,.75); display:none; align-items:center; justify-content:center; z-index:9999; }
+    .recog-overlay.active { display:flex; }
+    .recog-card {
+      background:var(--surface); border-radius:24px; padding:3rem 3.5rem; text-align:center;
+      box-shadow:0 30px 80px rgba(0,0,0,.4); max-width:420px; width:90%; animation:popIn .35s cubic-bezier(.34,1.56,.64,1);
     }
-    .mark-all-btn:hover {
-      background: #22c55e;
-      color: white;
-      border-color: #22c55e;
+    @keyframes popIn { from{transform:scale(.6);opacity:0} to{transform:scale(1);opacity:1} }
+    .recog-icon { font-size:5rem; line-height:1; margin-bottom:1rem; }
+    .recog-icon.present { color:#22c55e; }
+    .recog-icon.late    { color:#f59e0b; }
+    .recog-name { font-size:1.6rem; font-weight:800; color:var(--text-primary); margin-bottom:.5rem; }
+    .recog-status { font-size:1.1rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; margin-bottom:.75rem; }
+    .recog-status.present { color:#22c55e; }
+    .recog-status.late    { color:#f59e0b; }
+    .recog-detail { font-size:.9rem; color:var(--text-secondary); }
+    .recog-countdown { margin-top:1.5rem; font-size:.8rem; color:var(--text-secondary); }
+    .recog-progress { height:4px; background:var(--border); border-radius:100px; margin-top:.5rem; overflow:hidden; }
+    .recog-progress-fill { height:100%; background:#22c55e; border-radius:100px; transition:width linear; }
+    .back-btn {
+      display:inline-flex; align-items:center; gap:.4rem;
+      padding:.4rem .8rem; border-radius:var(--radius); font-size:.85rem; font-weight:600;
+      cursor:pointer; border:1.5px solid var(--border); background:var(--surface);
+      color:var(--text-secondary); transition:all .15s ease; margin-right:.5rem;
     }
-
-    .remarks-input {
-      width: 100%;
-      padding: 0.5rem;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: var(--bg-secondary);
-      color: var(--text-primary);
-      font-size: 0.85rem;
-    }
-    .remarks-input:focus {
-      outline: none;
-      border-color: var(--primary);
-    }
-    
-    .section-divider {
-      margin: 2rem 0;
-      border-top: 2px dashed var(--border);
-    }
-    
-    /* Biometric Section */
-    .biometric-section {
-      background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.1) 0%, rgba(var(--primary-rgb), 0.05) 100%);
-      border: 2px dashed var(--primary);
-      border-radius: var(--radius-lg);
-      padding: 2rem;
-      text-align: center;
-      margin-bottom: 1.5rem;
-      position: relative;
-    }
-    .biometric-section h3 {
-      color: var(--text-primary);
-      margin-bottom: 0.5rem;
-    }
-    .biometric-section p {
-      color: var(--text-secondary);
-      font-size: 0.9rem;
-      max-width: 500px;
-      margin: 0 auto 1.5rem;
-    }
-    .biometric-icons {
-      display: flex;
-      justify-content: center;
-      gap: 2rem;
-      flex-wrap: wrap;
-    }
-    .biometric-icon {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.5rem;
-      opacity: 0.6;
-    }
-    .biometric-icon i {
-      font-size: 2.5rem;
-      color: var(--primary);
-    }
-    .biometric-icon span {
-      font-size: 0.8rem;
-      color: var(--text-secondary);
-    }
-    .coming-soon-badge {
-      position: absolute;
-      top: -10px;
-      right: 20px;
-      background: var(--primary);
-      color: white;
-      padding: 0.25rem 0.75rem;
-      border-radius: 100px;
-      font-size: 0.75rem;
-      font-weight: 600;
-    }
-    
-    .teacher-info {
-      display: flex;
-      flex-direction: column;
-    }
-    .teacher-subject {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
+    .back-btn:hover { background:var(--primary); color:white; border-color:var(--primary); }
   </style>
 </head>
 <body>
+  <!-- Recognition Modal -->
+  <div class="recog-overlay" id="recog-overlay">
+    <div class="recog-card">
+      <div class="recog-icon" id="recog-icon"><i class="fas fa-check-circle"></i></div>
+      <div class="recog-name" id="recog-name">Teacher Name</div>
+      <div class="recog-status" id="recog-status">PRESENT</div>
+      <div class="recog-detail" id="recog-detail"></div>
+      <div class="recog-countdown">Closing in <span id="recog-sec">4</span>s</div>
+      <div class="recog-progress"><div class="recog-progress-fill" id="recog-pbar" style="width:100%"></div></div>
+    </div>
+  </div>
+
   <div class="app-shell">
     <div class="sidebar-overlay"></div>
-
     <aside class="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-brand">
@@ -307,26 +187,18 @@
     <main class="main-content">
       <header class="topbar">
         <div class="topbar-left">
-          <button class="mobile-menu-btn" aria-label="Toggle menu">
-            <i class="fas fa-bars"></i>
-          </button>
+          <button class="mobile-menu-btn" aria-label="Toggle menu"><i class="fas fa-bars"></i></button>
+          <button class="back-btn" onclick="history.back()" title="Go back"><i class="fas fa-arrow-left"></i></button>
           <span class="page-title">Teacher Attendance</span>
         </div>
         <div class="topbar-right">
           <button class="theme-toggle" aria-label="Toggle theme">
-            <i class="fas fa-moon"></i>
-            <i class="fas fa-sun"></i>
+            <i class="fas fa-moon"></i><i class="fas fa-sun"></i>
           </button>
           <% if (typeof adminUser !== 'undefined' && adminUser) { %>
-            <a href="/admin/schools/return" class="topbar-btn warning">
-              <i class="fas fa-arrow-left"></i>
-              <span>Exit Preview</span>
-            </a>
+            <a href="/admin/schools/return" class="topbar-btn warning"><i class="fas fa-arrow-left"></i><span>Exit Preview</span></a>
           <% } else { %>
-            <a href="/logout" class="topbar-btn danger">
-              <i class="fas fa-sign-out-alt"></i>
-              <span>Logout</span>
-            </a>
+            <a href="/logout" class="topbar-btn danger"><i class="fas fa-sign-out-alt"></i><span>Logout</span></a>
           <% } %>
         </div>
       </header>
@@ -334,29 +206,17 @@
       <section class="content">
         <div class="page-header">
           <h1><i class="fas fa-user-clock"></i> Teacher Attendance</h1>
-          <p class="subtitle">Mark attendance and view attendance records.</p>
+          <p class="subtitle">Facial recognition or manual buttons &mdash; mark daily attendance for all teachers.</p>
         </div>
 
-        <% if (typeof success_msg !== 'undefined' && success_msg && String(success_msg).trim() !== "") { %>
+        <% if (typeof success_msg !== 'undefined' && success_msg && String(success_msg).trim() !== '') { %>
           <div class="alert success"><i class="fas fa-check-circle"></i> <%= success_msg %></div>
         <% } %>
-        <% if (typeof error_msg !== 'undefined' && error_msg && String(error_msg).trim() !== "") { %>
+        <% if (typeof error_msg !== 'undefined' && error_msg && String(error_msg).trim() !== '') { %>
           <div class="alert error"><i class="fas fa-exclamation-circle"></i> <%= error_msg %></div>
         <% } %>
 
-        <div class="biometric-banner">
-          <span class="coming-soon-tag"><i class="fas fa-camera"></i> Facial Recognition Ready</span>
-          <div class="biometric-icons">
-            <div class="biometric-icon"><i class="fas fa-camera"></i><span>Live Capture</span></div>
-            <div class="biometric-icon"><i class="fas fa-face-viewfinder"></i><span>Face Match</span></div>
-            <div class="biometric-icon"><i class="fas fa-check-circle"></i><span>Auto Present</span></div>
-          </div>
-          <h3>Facial Recognition Attendance</h3>
-          <p>Teacher registration now captures a live face image on camera, and the attendance scanner uses that enrolled face to recognize the teacher and mark them present automatically.</p>
-        </div>
-
-        <!-- Mark Attendance Section -->
-        <!-- Stats Cards -->
+        <!-- Stats -->
         <div class="stats-grid">
           <div class="stat-card total">
             <div class="stat-label"><i class="fas fa-users"></i> Total Teachers</div>
@@ -376,258 +236,492 @@
           </div>
         </div>
 
-        <!-- Attendance Register Card -->
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <h3 class="card-title"><i class="fas fa-pen"></i> Mark Attendance</h3>
-              <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">Mark daily attendance for all teachers</p>
+        <!-- School Time Settings -->
+        <div class="time-panel">
+          <div class="time-panel-label"><i class="fas fa-school"></i> School Hours</div>
+          <div class="form-group">
+            <label>Start Time (school opens)</label>
+            <input type="time" id="school-start-time" class="form-input" value="07:00">
+          </div>
+          <div class="form-group">
+            <label>Late From (after this = Late)</label>
+            <input type="time" id="school-late-time" class="form-input" value="08:00">
+          </div>
+          <div class="form-group">
+            <label>End Time (school closes)</label>
+            <input type="time" id="school-end-time" class="form-input" value="17:00">
+          </div>
+          <button class="eod-btn" onclick="endOfDay()" title="Mark all teachers who haven't arrived as Absent">
+            <i class="fas fa-moon"></i> End of Day &mdash; Mark Absent
+          </button>
+        </div>
+
+        <!-- Date control -->
+        <div class="attendance-controls">
+          <div class="form-group">
+            <label>Date</label>
+            <input type="date" id="attendance-date" class="form-input" value="<%= selectedDate || '' %>">
+          </div>
+          <button type="button" class="bulk-btn bulk-load" onclick="reloadForDate()" style="display:inline-flex;align-items:center;gap:.3rem;padding:.6rem 1rem;border-radius:var(--radius);font-size:.85rem;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:var(--surface);color:var(--text-primary);white-space:nowrap;">
+            <i class="fas fa-search"></i> Load
+          </button>
+        </div>
+
+        <!-- Two-column workspace -->
+        <div class="attendance-workspace">
+
+          <!-- LEFT: Camera Panel -->
+          <div class="camera-panel">
+            <div class="camera-panel-header">
+              <i class="fas fa-camera"></i>
+              <span>Face Scanner &mdash; Door Camera</span>
             </div>
+            <div class="face-video-wrap">
+              <video id="face-video" autoplay muted playsinline></video>
+              <div class="face-video-placeholder" id="video-placeholder">
+                <i class="fas fa-camera-slash"></i>
+                <span>Camera inactive</span>
+              </div>
+            </div>
+            <div class="camera-actions">
+              <button id="start-face-scan"><i class="fas fa-play"></i> Start Scanner</button>
+              <button id="stop-face-scan" disabled><i class="fas fa-stop"></i> Stop</button>
+            </div>
+            <small id="face-status">Ready &mdash; click Start Scanner to begin.</small>
+            <div id="face-events"></div>
           </div>
 
-          <% if (teachers && teachers.length > 0) { %>
-            <!-- Controls -->
-            <div class="attendance-controls">
-              <div class="form-group">
-                <label>Date</label>
-                <input type="date" id="attendance-date" class="form-input" value="<%= selectedDate || '' %>">
+          <!-- RIGHT: Roster Panel -->
+          <div class="roster-panel">
+            <div class="roster-header">
+              <div class="roster-title">
+                <i class="fas fa-list-check"></i>
+                Teacher Roster
               </div>
-              <button type="button" class="mark-all-btn" onclick="markAllPresent()">
-                <i class="fas fa-check-double"></i> Mark All Present
-              </button>
             </div>
 
-            <!-- Progress Bar -->
-            <div class="progress-section">
+            <!-- Progress bar -->
+            <div class="roster-progress">
               <div class="progress-header">
-                <span>Progress: <span id="marked-count">0</span> / <%= teachers.length %> marked</span>
-                <span id="progress-percent">0%</span>
+                <span>Marked: <span id="marked-count">0</span> / <%= teachers ? teachers.length : 0 %></span>
+                <span id="progress-pct">0%</span>
               </div>
               <div class="progress-bar">
-                <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
+                <div class="progress-fill" id="progress-fill" style="width:0%"></div>
               </div>
             </div>
 
-            <!-- Auto-save Notice -->
-            <div class="auto-save-notice">
-              <i class="fas fa-sync-alt"></i>
-              Auto-save enabled - your progress is automatically saved
-            </div>
-
-            <!-- Attendance Table -->
+            <!-- Attendance form -->
             <form id="attendance-form" method="POST" action="/teacher-attendance/mark">
               <input type="hidden" name="date" id="form-date" value="<%= selectedDate %>">
 
-              <div class="table-wrapper">
-                <table class="attendance-table">
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Teacher</th>
-                      <th>EC#</th>
-                      <th>Status</th>
-                      <th>Quick Mark</th>
-                      <th>Notes</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <% teachers.forEach((teacher, idx) => { %>
-                      <tr data-teacher-id="<%= teacher.id %>">
-                        <td><%= String(idx + 1).padStart(3, '0') %></td>
-                        <td>
-                          <div class="teacher-info">
-                            <strong><%= teacher.name %></strong>
-                            <span class="teacher-subject"><%= teacher.subject %></span>
-                          </div>
-                        </td>
-                        <td><code style="font-size: 0.8rem;"><%= teacher.teacher_id %></code></td>
-                        <td>
-                          <span class="status-badge unmarked" id="status-badge-<%= teacher.id %>">
-                            <i class="fas fa-minus"></i> Unmarked
-                          </span>
-                          <input type="hidden" name="status_<%= teacher.id %>" id="status-<%= teacher.id %>" value="">
-                        </td>
-                        <td>
-                          <div class="quick-mark-btns">
-                            <button type="button" class="quick-btn present-btn" onclick="setStatus(<%= teacher.id %>, 'Present')">
-                              <i class="fas fa-check"></i> Present
-                            </button>
-                            <button type="button" class="quick-btn absent-btn" onclick="setStatus(<%= teacher.id %>, 'Absent')">
-                              <i class="fas fa-times"></i> Absent
-                            </button>
-                            <button type="button" class="quick-btn late-btn" onclick="setStatus(<%= teacher.id %>, 'Late')">
-                              <i class="fas fa-clock"></i> Late
-                            </button>
-                          </div>
-                        </td>
-                        <td>
-                          <input type="text" name="reason_<%= teacher.id %>" class="remarks-input" placeholder="Optional remarks...">
-                        </td>
-                      </tr>
-                    <% }) %>
-                  </tbody>
-                </table>
+              <div class="roster-list">
+                <% if (teachers && teachers.length > 0) { %>
+                  <% teachers.forEach(function(teacher, idx) { %>
+                    <div class="roster-item<% if(teacher.attendance_status === 'Present'){ %> is-present<% } else if(teacher.attendance_status === 'Late'){ %> is-late<% } else if(teacher.attendance_status === 'Absent'){ %> is-absent<% } %>"
+                         id="row-<%= teacher.id %>">
+                      <span class="roster-num"><%= String(idx + 1).padStart(2,'0') %></span>
+                      <span class="roster-dot"></span>
+                      <span class="roster-name">
+                        <%= teacher.name %>
+                        <% if (teacher.face_descriptor) { %>
+                          <span class="face-enrolled-tag"><i class="fas fa-id-card"></i> enrolled</span>
+                        <% } %>
+                        <% if (teacher.attendance_status === 'Late' && teacher.attendance_late_minutes) { %>
+                          <span class="late-badge"><i class="fas fa-clock"></i> <%= teacher.attendance_late_minutes %> min late</span>
+                        <% } %>
+                      </span>
+                      <div class="roster-btns">
+                        <button type="button" class="r-btn p-btn" title="Present" onclick="setStatus(<%= teacher.id %>, 'Present', false, 0)">P</button>
+                        <button type="button" class="r-btn l-btn" title="Late"    onclick="setStatus(<%= teacher.id %>, 'Late',    false, 0)">L</button>
+                        <button type="button" class="r-btn a-btn" title="Absent"  onclick="setStatus(<%= teacher.id %>, 'Absent',  false, 0)">A</button>
+                      </div>
+                      <input type="hidden" name="status_<%= teacher.id %>" id="status-<%= teacher.id %>" value="<%= teacher.attendance_status || '' %>">
+                      <input type="hidden" name="late_minutes_<%= teacher.id %>" id="late-<%= teacher.id %>" value="<%= teacher.attendance_late_minutes || 0 %>">
+                    </div>
+                  <% }); %>
+                <% } else { %>
+                  <div style="padding:2rem;text-align:center;color:var(--text-secondary);">No teachers found for this school.</div>
+                <% } %>
               </div>
 
-              <button type="submit" class="btn primary" style="margin-top: 1.5rem; width: 100%; padding: 1rem;">
-                <i class="fas fa-save"></i> Save Attendance
-              </button>
+              <div class="roster-footer">
+                <button type="submit" class="save-btn">
+                  <i class="fas fa-save"></i> Save Attendance
+                </button>
+              </div>
             </form>
-          <% } else { %>
-            <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
-              <i class="fas fa-users" style="font-size: 3rem; opacity: 0.3; margin-bottom: 1rem; display: block;"></i>
-              <p>No teachers found. Add teachers first to mark attendance.</p>
-              <a href="/teacher" class="btn primary" style="margin-top: 1rem;"><i class="fas fa-plus"></i> Add Teachers</a>
-            </div>
-          <% } %>
-        </div>
+          </div>
+        </div><!-- /attendance-workspace -->
 
-        <!-- Section Divider -->
+        <!-- Sessions History -->
         <div class="section-divider"></div>
-
-        <!-- Attendance Sessions Section -->
         <div class="card">
           <div class="card-header">
             <h3 class="card-title"><i class="fas fa-calendar"></i> Attendance Sessions</h3>
-            <span class="badge"><%= sessions ? sessions.length : 0 %> sessions</span>
+            <span class="badge"><%= typeof sessions !== 'undefined' && sessions ? sessions.length : 0 %> sessions</span>
           </div>
-          <form method="GET" action="/teacher-attendance" class="form-row" style="flex-wrap: wrap; padding: 1rem; gap: 0.5rem; border-bottom: 1px solid var(--border);">
-            <div class="form-group" style="flex:1; min-width: 200px; margin-bottom: 0;">
+          <form method="GET" action="/teacher-attendance" class="form-row" style="flex-wrap:wrap;padding:1rem;gap:.5rem;border-bottom:1px solid var(--border);">
+            <div class="form-group" style="flex:1;min-width:200px;margin-bottom:0;">
               <label>Filter by Date</label>
-              <input type="date" name="searchDate" class="form-input" value="<%= searchDate || '' %>">
+              <input type="date" name="searchDate" class="form-input" value="<%= typeof searchDate !== 'undefined' ? searchDate || '' : '' %>">
             </div>
             <button type="submit" class="btn primary"><i class="fas fa-filter"></i> Filter</button>
             <a href="/teacher-attendance" class="btn outline"><i class="fas fa-rotate-left"></i> Reset</a>
           </form>
           <div class="table-wrapper">
             <table>
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Date</th>
-                  <th>View</th>
-                </tr>
-              </thead>
+              <thead><tr><th>#</th><th>Date</th><th>Action</th></tr></thead>
               <tbody>
-                <% if (!sessions || sessions.length === 0) { %>
+                <% if (typeof sessions === 'undefined' || !sessions || sessions.length === 0) { %>
                   <tr><td colspan="3" class="empty-state">No sessions found.</td></tr>
                 <% } else { %>
-                  <% sessions.forEach((session, idx) => { %>
+                  <% sessions.forEach(function(session, idx) { %>
                     <tr>
                       <td><%= idx + 1 %></td>
                       <td><strong><%= session.date %></strong></td>
                       <td><a class="btn outline small" href="/teacher-attendance/view/<%= session.date %>"><i class="fas fa-eye"></i> View</a></td>
                     </tr>
-                  <% }) %>
+                  <% }); %>
                 <% } %>
               </tbody>
             </table>
           </div>
         </div>
-      </section>
 
+      </section>
       <footer class="footer">
         <p>&copy; 2026 Primary School Performance System | made with <i class="fas fa-heart"></i> by Memory Nikisi</p>
       </footer>
     </main>
   </div>
 
+  <!-- Teacher face profiles -->
+  <script>
+    window.PSP_FACE_PROFILES = <%- JSON.stringify(
+      (teachers || [])
+        .filter(function(t){ return t.face_descriptor; })
+        .map(function(t){ return { id: t.id, name: t.name, descriptor: t.face_descriptor }; })
+    ) %>;
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="/js/main.js"></script>
   <script>
-    // Auto-pick today's date
-    document.addEventListener('DOMContentLoaded', function() {
-      const dateInput = document.getElementById('attendance-date');
-      if (dateInput && !dateInput.value) {
-        const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth() + 1).padStart(2, '0');
-        const dd = String(today.getDate()).padStart(2, '0');
-        dateInput.value = `${yyyy}-${mm}-${dd}`;
-        const formDate = document.getElementById('form-date');
-        if (formDate) formDate.value = dateInput.value;
-      }
-      
-      // Sync date input with form
-      if (dateInput) {
-        dateInput.addEventListener('change', function() {
-          const formDate = document.getElementById('form-date');
-          if (formDate) formDate.value = this.value;
+    var statusMap = {};
+    var lateMap   = {};
+
+    // ── Attendance guard ─────────────────────────────────────────────────
+    var DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+    function attendanceAllowed(silent) {
+      var now      = new Date();
+      var day      = now.getDay();
+      var nowMins  = now.getHours() * 60 + now.getMinutes();
+      var startMin = getSchoolMinutes('school-start-time');
+      var endMin   = getSchoolMinutes('school-end-time');
+
+      if (day === 0 || day === 6) {
+        if (!silent) Swal.fire({
+          icon: 'warning',
+          title: 'Weekend — No School',
+          text: 'Today is ' + DAYS[day] + '. Attendance can only be marked on school days (Monday to Friday).',
+          confirmButtonColor: '#6366f1'
         });
+        return false;
       }
-
-      updateStats();
-    });
-
-    function setStatus(teacherId, status) {
-      // Update hidden input
-      document.getElementById('status-' + teacherId).value = status;
-      
-      // Update badge
-      const badge = document.getElementById('status-badge-' + teacherId);
-      badge.className = 'status-badge ' + status.toLowerCase();
-      
-      const icons = { Present: 'fa-check', Absent: 'fa-times', Late: 'fa-clock' };
-      badge.innerHTML = `<i class="fas ${icons[status]}"></i> ${status}`;
-      
-      // Update buttons
-      const row = document.querySelector(`tr[data-teacher-id="${teacherId}"]`);
-      row.querySelectorAll('.quick-btn').forEach(btn => btn.classList.remove('active'));
-      row.querySelector(`.${status.toLowerCase()}-btn`).classList.add('active');
-      
-      updateStats();
-      autoSave(teacherId, status);
+      if (nowMins < startMin) {
+        var diff = startMin - nowMins;
+        var h = Math.floor(diff / 60), m = diff % 60;
+        var timeStr = h > 0 ? h + 'h ' + m + 'min' : m + ' min';
+        if (!silent) Swal.fire({
+          icon: 'info',
+          title: 'School Not Started Yet',
+          text: 'School starts at ' + document.getElementById('school-start-time').value + '. Attendance opens in ' + timeStr + '.',
+          confirmButtonColor: '#6366f1'
+        });
+        return false;
+      }
+      if (nowMins > endMin) {
+        if (!silent) Swal.fire({
+          icon: 'error',
+          title: 'School Day Has Ended',
+          text: 'The school day ended at ' + document.getElementById('school-end-time').value + '. The face scanner is disabled.',
+          confirmButtonColor: '#6366f1'
+        });
+        return false;
+      }
+      return true;
     }
 
-    function markAllPresent() {
-      document.querySelectorAll('tr[data-teacher-id]').forEach(row => {
-        const teacherId = row.dataset.teacherId;
-        setStatus(parseInt(teacherId), 'Present');
+    // ── School time helpers ───────────────────────────────────────────────────
+    function loadTimePrefs() {
+      var s = localStorage.getItem('psp_school_start') || '07:00';
+      var l = localStorage.getItem('psp_school_late')  || '08:00';
+      var e = localStorage.getItem('psp_school_end')   || '17:00';
+      document.getElementById('school-start-time').value = s;
+      document.getElementById('school-late-time').value  = l;
+      document.getElementById('school-end-time').value   = e;
+    }
+    function saveTimePrefs() {
+      localStorage.setItem('psp_school_start', document.getElementById('school-start-time').value);
+      localStorage.setItem('psp_school_late',  document.getElementById('school-late-time').value);
+      localStorage.setItem('psp_school_end',   document.getElementById('school-end-time').value);
+    }
+    function getSchoolMinutes(id) {
+      var v = document.getElementById(id).value || '07:00';
+      var p = v.split(':');
+      return parseInt(p[0]) * 60 + parseInt(p[1]);
+    }
+    function nowMinutes() {
+      var n = new Date(); return n.getHours() * 60 + n.getMinutes();
+    }
+    function calcStatus() {
+      var now   = nowMinutes();
+      var start = getSchoolMinutes('school-start-time');
+      var late  = getSchoolMinutes('school-late-time');
+      var end   = getSchoolMinutes('school-end-time');
+      // After late-from cutoff (or after end of day) = Late
+      if (now > late || now > end) return { status: 'Late', lateMinutes: now - start };
+      // Arrived on time
+      return { status: 'Present', lateMinutes: 0 };
+    }
+
+    // ── Recognition modal ─────────────────────────────────────────────────────
+    var modalTimer = null;
+    function showRecognitionModal(name, status, lateMinutes) {
+      var overlay = document.getElementById('recog-overlay');
+      var icon    = document.getElementById('recog-icon');
+      var nameEl  = document.getElementById('recog-name');
+      var statEl  = document.getElementById('recog-status');
+      var detEl   = document.getElementById('recog-detail');
+      var secEl   = document.getElementById('recog-sec');
+      var pbar    = document.getElementById('recog-pbar');
+
+      icon.className = 'recog-icon ' + (status === 'Late' ? 'late' : 'present');
+      icon.innerHTML = status === 'Late'
+        ? '<i class="fas fa-clock"></i>'
+        : '<i class="fas fa-check-circle"></i>';
+      nameEl.textContent = name;
+      statEl.className   = 'recog-status ' + (status === 'Late' ? 'late' : 'present');
+      statEl.textContent = status.toUpperCase();
+      detEl.textContent  = status === 'Late' && lateMinutes > 0
+        ? lateMinutes + ' minute' + (lateMinutes !== 1 ? 's' : '') + ' late'
+        : 'Attendance recorded';
+      pbar.style.background = status === 'Late' ? '#f59e0b' : '#22c55e';
+
+      overlay.classList.add('active');
+      if (modalTimer) clearInterval(modalTimer);
+
+      var secs = 4;
+      secEl.textContent = secs;
+      pbar.style.transition = 'none';
+      pbar.style.width = '100%';
+      setTimeout(function() {
+        pbar.style.transition = 'width ' + secs + 's linear';
+        pbar.style.width = '0%';
+      }, 50);
+
+      modalTimer = setInterval(function() {
+        secs--;
+        if (secEl) secEl.textContent = secs;
+        if (secs <= 0) {
+          clearInterval(modalTimer);
+          overlay.classList.remove('active');
+        }
+      }, 1000);
+    }
+    document.getElementById('recog-overlay').addEventListener('click', function() {
+      this.classList.remove('active');
+      if (modalTimer) clearInterval(modalTimer);
+    });
+
+    // ── DOM ready ─────────────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', function () {
+      loadTimePrefs();
+      document.getElementById('school-start-time').addEventListener('change', saveTimePrefs);
+      document.getElementById('school-late-time').addEventListener('change', saveTimePrefs);
+      document.getElementById('school-end-time').addEventListener('change', saveTimePrefs);
+
+      var dateInput = document.getElementById('attendance-date');
+      if (dateInput && !dateInput.value) {
+        var t = new Date();
+        dateInput.value = t.getFullYear() + '-' +
+          String(t.getMonth() + 1).padStart(2, '0') + '-' +
+          String(t.getDate()).padStart(2, '0');
+      }
+      if (dateInput) {
+        dateInput.addEventListener('change', function() {
+          var fd = document.getElementById('form-date');
+          if (fd) fd.value = this.value;
+        });
+        var fd = document.getElementById('form-date');
+        if (fd && !fd.value && dateInput.value) fd.value = dateInput.value;
+      }
+
+      document.querySelectorAll('input[id^="status-"]').forEach(function(inp) {
+        var id = parseInt(inp.id.replace('status-', ''));
+        if (inp.value) { statusMap[id] = inp.value; }
       });
+      document.querySelectorAll('input[id^="late-"]').forEach(function(inp) {
+        var id = parseInt(inp.id.replace('late-', ''));
+        lateMap[id] = parseInt(inp.value || 0);
+      });
+      updateStats();
+
+      var vid = document.getElementById('face-video');
+      var ph  = document.getElementById('video-placeholder');
+      if (vid && ph) {
+        vid.addEventListener('playing', function() { ph.style.display = 'none'; });
+        vid.addEventListener('pause',   function() { ph.style.display = ''; });
+        vid.addEventListener('emptied', function() { ph.style.display = ''; });
+      }
+
+      checkEndOfDay();
+
+      // Advisory if outside school hours
+      setTimeout(function() {
+        var day = new Date().getDay();
+        if (day === 0 || day === 6) {
+          Swal.fire({ icon:'warning', title:'Weekend — No School', text:'Today is ' + DAYS[day] + '. Attendance register is read-only.', confirmButtonColor:'#6366f1', timer:5000, timerProgressBar:true });
+        }
+      }, 800);
+
+      // Guard the Save button
+      var form = document.getElementById('attendance-form');
+      if (form) {
+        form.addEventListener('submit', function(e) {
+          var day = new Date().getDay();
+          if (day === 0 || day === 6) {
+            e.preventDefault();
+            Swal.fire({ icon:'warning', title:'Weekend — No School', text:'You cannot save attendance on a weekend.', confirmButtonColor:'#6366f1' });
+          }
+        });
+      }
+    });
+
+    function reloadForDate() {
+      var d = document.getElementById('attendance-date').value || new Date().toISOString().split('T')[0];
+      window.location.href = '/teacher-attendance?date=' + d;
+    }
+
+    function applyRowStyle(id, status) {
+      var row = document.getElementById('row-' + id);
+      if (!row) return;
+      row.classList.remove('is-present','is-absent','is-late');
+      if      (status === 'Present') row.classList.add('is-present');
+      else if (status === 'Late')    row.classList.add('is-late');
+      else if (status === 'Absent')  row.classList.add('is-absent');
+    }
+
+    function setStatus(teacherId, status, isFaceMatch, lateMinutes) {
+      statusMap[teacherId] = status;
+      lateMap[teacherId]   = lateMinutes || 0;
+      var inp = document.getElementById('status-' + teacherId);
+      if (inp) inp.value = status;
+      var lateInp = document.getElementById('late-' + teacherId);
+      if (lateInp) lateInp.value = lateMinutes || 0;
+      applyRowStyle(teacherId, status);
+
+      // Update late badge
+      var row = document.getElementById('row-' + teacherId);
+      if (row) {
+        var existing = row.querySelector('.late-badge');
+        if (existing) existing.remove();
+        if (status === 'Late' && lateMinutes > 0) {
+          var nameEl = row.querySelector('.roster-name');
+          if (nameEl) {
+            var badge = document.createElement('span');
+            badge.className = 'late-badge';
+            badge.innerHTML = '<i class="fas fa-clock"></i> ' + lateMinutes + ' min late';
+            nameEl.appendChild(badge);
+          }
+        }
+        if (isFaceMatch) {
+          row.classList.add('flash-recognized');
+          setTimeout(function() { row.classList.remove('flash-recognized'); }, 1500);
+        }
+      }
+      updateStats();
     }
 
     function updateStats() {
-      let present = 0, absent = 0, late = 0;
-      
-      document.querySelectorAll('input[id^="status-"]').forEach(input => {
-        if (input.value === 'Present') present++;
-        else if (input.value === 'Absent') absent++;
-        else if (input.value === 'Late') late++;
+      var present = 0, absent = 0, late = 0;
+      Object.keys(statusMap).forEach(function(k) {
+        var v = statusMap[k];
+        if      (v === 'Present') present++;
+        else if (v === 'Absent')  absent++;
+        else if (v === 'Late')    late++;
       });
-      
+      var marked = present + absent + late;
+      var total  = parseInt(document.getElementById('total-count').textContent) || 0;
       document.getElementById('present-count').textContent = present;
-      document.getElementById('absent-count').textContent = absent;
-      document.getElementById('late-count').textContent = late;
-      
-      const total = present + absent + late;
-      const marked = total;
-      const totalTeachers = parseInt(document.getElementById('total-count').textContent);
-      
-      const markedCount = document.getElementById('marked-count');
-      const progressPercent = document.getElementById('progress-percent');
-      const progressFill = document.getElementById('progress-fill');
-      
-      if (markedCount) markedCount.textContent = marked;
-      if (progressPercent && progressFill) {
-        const percent = totalTeachers > 0 ? Math.round((marked / totalTeachers) * 100) : 0;
-        progressPercent.textContent = percent + '%';
-        progressFill.style.width = percent + '%';
+      document.getElementById('absent-count').textContent  = absent;
+      document.getElementById('late-count').textContent    = late;
+      var mc  = document.getElementById('marked-count');
+      var pct = document.getElementById('progress-pct');
+      var pf  = document.getElementById('progress-fill');
+      if (mc)  mc.textContent  = marked;
+      if (pct) pct.textContent = (total > 0 ? Math.round(marked/total*100) : 0) + '%';
+      if (pf)  pf.style.width  = (total > 0 ? Math.round(marked/total*100) : 0) + '%';
+    }
+
+    function endOfDay() {
+      if (!confirm('Mark all teachers with no status as Absent for today?')) return;
+      document.querySelectorAll('.roster-item').forEach(function(row) {
+        var id = parseInt(row.id.replace('row-', ''));
+        if (!isNaN(id) && !statusMap[id]) {
+          setStatus(id, 'Absent', false, 0);
+        }
+      });
+    }
+
+    function checkEndOfDay() {
+      var end = getSchoolMinutes('school-end-time');
+      if (nowMinutes() >= end) {
+        var hasPending = false;
+        document.querySelectorAll('.roster-item').forEach(function(row) {
+          var id = parseInt(row.id.replace('row-', ''));
+          if (!isNaN(id) && !statusMap[id]) hasPending = true;
+        });
+        if (hasPending) {
+          var btn = document.querySelector('.eod-btn');
+          if (btn) { btn.style.background = '#ef4444'; btn.style.color = 'white'; btn.style.borderColor = '#ef4444'; }
+        }
       }
     }
 
-    function autoSave(teacherId, status) {
-      // Visual feedback for auto-save
-      const notice = document.querySelector('.auto-save-notice');
-      if (notice) {
-        notice.innerHTML = '<i class="fas fa-sync-alt"></i> Saving...';
-        
-        setTimeout(() => {
-          notice.innerHTML = '<i class="fas fa-check-circle"></i> Auto-saved';
-          setTimeout(() => {
-            notice.innerHTML = '<i class="fas fa-sync-alt"></i> Auto-save enabled - your progress is automatically saved';
-          }, 1500);
-        }, 500);
+    // ── Face recognition callback ─────────────────────────────────────────────
+    window.PSPFaceAttendance_onRecognized = async function(personId, name, distance) {
+      if (!attendanceAllowed(false)) return; // block outside school hours
+      var calc        = calcStatus();
+      var status      = calc.status;
+      var lateMinutes = calc.lateMinutes;
+
+      setStatus(personId, status, true, lateMinutes);
+      showRecognitionModal(name, status, lateMinutes);
+
+      var dateEl = document.getElementById('attendance-date');
+      try {
+        var res = await fetch('/teacher-attendance/face-mark', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            teacherId: personId,
+            status: status,
+            lateMinutes: lateMinutes,
+            date: (dateEl && dateEl.value) || new Date().toISOString().split('T')[0]
+          })
+        });
+        if (!res.ok) console.warn('[PSP-Attend] teacher face-mark API error', res.status);
+      } catch (e) {
+        console.warn('[PSP-Attend] teacher face-mark fetch failed', e);
       }
-    }
+    };
   </script>
+
+  <script src="/vendor/tf.min.js"></script>
+  <script src="/vendor/face-api.min.js"></script>
+  <script src="/js/face-attendance.js"></script>
 </body>
 </html>
