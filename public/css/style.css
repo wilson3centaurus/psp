@@ -218,6 +218,18 @@ p { color: var(--text-secondary); }
 .topbar-btn:hover { background: var(--surface-hover); color: var(--text-primary); }
 .topbar-btn.danger { color: var(--error); }
 .topbar-btn.danger:hover { background: var(--error-light); }
+.topbar-btn.warning { color: #f59e0b; }
+.topbar-btn.warning:hover { background: rgba(245,158,11,.1); }
+/* Topbar back button — always visible */
+.topbar-back {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: var(--radius);
+  background: var(--primary); color: white;
+  border: none; cursor: pointer; font-size: 0.95rem;
+  transition: var(--transition); flex-shrink: 0;
+  text-decoration: none;
+}
+.topbar-back:hover { opacity: 0.82; }
 
 /* Theme toggle */
 .theme-toggle {

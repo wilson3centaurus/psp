@@ -68,9 +68,9 @@
           <div class="form-group">
             <label for="phone"><i class="fas fa-phone"></i> Phone <span class="optional-label">(optional)</span></label>
             <input type="tel" id="phone" name="phone" class="form-input"
-              value="<%= teacher.phone || '' %>" maxlength="30"
-              placeholder="e.g. +263712345678">
-            <small class="form-hint">Format: +263712345678 or 0712345678</small>
+              value="<%= teacher.phone || '' %>" maxlength="10"
+              placeholder="e.g. 0712345678">
+            <small class="form-hint">Exactly 10 digits (e.g. 0712345678)</small>
             <span class="field-error" id="err-phone"></span>
           </div>
           <div class="form-group">
@@ -85,7 +85,7 @@
         <div class="form-group">
           <label for="teacher_id"><i class="fas fa-id-badge"></i> EC Number <span class="required">*</span></label>
           <input type="text" id="teacher_id" name="teacher_id" class="form-input"
-            value="<%= teacher.teacher_id %>" required minlength="4" maxlength="20" autocomplete="off">
+            value="<%= teacher.teacher_id %>" required maxlength="8" autocomplete="off">
           <small class="form-hint"><i class="fas fa-info-circle"></i> Employee Code Number assigned by the Ministry of Education (e.g. 5207039Z)</small>
           <span class="field-error" id="err-ec"></span>
         </div>
@@ -141,14 +141,13 @@
 
       const ec = (form.elements.teacher_id ? form.elements.teacher_id.value : '').trim();
       if (!ec) { showErr('err-ec', 'EC Number is required.'); ok = false; }
-      else if (ec.length < 4) { showErr('err-ec', 'EC Number must be at least 4 characters.'); ok = false; }
-      else if (!/^[A-Za-z0-9]+$/.test(ec)) { showErr('err-ec', 'EC Number may only contain letters and numbers.'); ok = false; }
+      else if (!/^[0-9]{7}[A-Za-z]$/.test(ec)) { showErr('err-ec', 'EC Number must be 7 digits followed by 1 letter (e.g. 1234567G).'); ok = false; }
       else clearErr('err-ec');
 
       const phone = (form.elements.phone ? form.elements.phone.value : '').trim();
       if (phone) {
         const digits = phone.replace(/[\s\-\(\)\.]/g, '');
-        if (!/^\+?[0-9]{7,15}$/.test(digits)) { showErr('err-phone', 'Enter a valid phone number, e.g. +263712345678.'); ok = false; }
+        if (!/^\d{10}$/.test(digits)) { showErr('err-phone', 'Phone must be exactly 10 digits (e.g. 0712345678).'); ok = false; }
         else clearErr('err-phone');
       } else clearErr('err-phone');
 

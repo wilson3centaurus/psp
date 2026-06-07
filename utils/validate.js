@@ -137,8 +137,8 @@ exports.validatePhone = function (phone, label = 'Phone number', required = fals
   }
   // Strip spaces, dashes, parentheses for digit count
   const digits = v.replace(/[\s\-\(\)\.]/g, '');
-  if (!/^\+?[0-9]{7,15}$/.test(digits))
-    return err(`${label} is not valid. Use a format like +263712345678 or 0712345678.`);
+  if (!/^\d{10}$/.test(digits))
+    return err(`${label} must be exactly 10 digits (e.g. 0712345678).`);
   return ok();
 };
 
@@ -162,16 +162,13 @@ exports.validateSubject = function (subject) {
 
 /**
  * Validates a teacher EC (Employee Code) Number.
- * Zimbabwe ministry format: typically 7 digits + 1 uppercase letter (e.g. 5207039Z).
- * We accept 4–20 alphanumeric characters to accommodate variations.
+ * Zimbabwe ministry format: exactly 7 digits followed by 1 letter (e.g. 1234567G).
  */
 exports.validateECNumber = function (ecNum) {
   const v = clean(ecNum);
   if (!v) return err('EC Number is required.');
-  if (v.length < 4 || v.length > 20)
-    return err('EC Number must be between 4 and 20 characters.');
-  if (!/^[A-Za-z0-9]+$/.test(v))
-    return err('EC Number may only contain letters and numbers (e.g. 5207039Z).');
+  if (!/^[0-9]{7}[A-Za-z]$/.test(v))
+    return err('EC Number must be exactly 7 digits followed by 1 letter (e.g. 1234567G).');
   return ok();
 };
 

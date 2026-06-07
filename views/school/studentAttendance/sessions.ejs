@@ -369,7 +369,7 @@
       <header class="topbar">
         <div class="topbar-left">
           <button class="mobile-menu-btn" aria-label="Toggle menu"><i class="fas fa-bars"></i></button>
-          <button class="back-btn" onclick="history.back()" title="Go back"><i class="fas fa-arrow-left"></i></button>
+          <button onclick="history.back()" title="Go back" class="topbar-back"><i class="fas fa-arrow-left"></i></button>
           <span class="page-title">Student Attendance</span>
         </div>
         <div class="topbar-right">
@@ -451,7 +451,7 @@
                 <% allClasses.forEach(function(c) { %>
                   <option value="<%= c.grade %>|<%= c.student_class %>"
                     <%= (selectedGrade === String(c.grade) && selectedClass === c.student_class) ? 'selected' : '' %>>
-                    Form <%= c.grade %> <%= c.student_class %> (<%= c.count %> students)
+                    Class <%= c.grade %> <%= c.student_class %> (<%= c.count %> students)
                   </option>
                 <% }); %>
               <% } %>
@@ -498,7 +498,7 @@
                 <i class="fas fa-list-check"></i>
                 Class Roster
                 <span style="font-size:0.8rem;font-weight:400;color:var(--text-secondary);">
-                  &mdash; Form <%= selectedGrade %> <%= selectedClass %>
+                  &mdash; Class <%= selectedGrade %> <%= selectedClass %>
                 </span>
               </div>
             </div>
