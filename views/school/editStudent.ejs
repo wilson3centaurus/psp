@@ -118,8 +118,8 @@
           <div class="form-group">
             <label for="parent_phone"><i class="fas fa-phone"></i> Parent Phone</label>
             <input type="tel" id="parent_phone" name="parent_phone" class="form-input"
-              value="<%= student.parent_phone || '' %>" maxlength="30" placeholder="e.g. +263712345678">
-            <small class="form-hint">Format: +263712345678 or 0712345678</small>
+              value="<%= student.parent_phone || '' %>" maxlength="10" placeholder="e.g. 0712345678">
+            <small class="form-hint">Exactly 10 digits — no spaces, no +263 prefix (e.g. 0712345678)</small>
             <span class="field-error" id="err-parent-phone"></span>
           </div>
           <div class="form-group">
@@ -136,6 +136,7 @@
           <textarea id="medical_notes" name="medical_notes" class="form-input" rows="3"
             maxlength="1000" placeholder="Any allergies, disabilities, or special requirements…"><%= student.medical_notes || '' %></textarea>
           <small class="form-hint">This information is kept confidential.</small>
+          <span class="field-error" id="err-notes"></span>
         </div>
 
         <h3 id="face-enroll" class="form-section-title" style="margin-top:1.5rem;"><i class="fas fa-camera"></i> Facial Recognition Enrollment</h3>
@@ -173,6 +174,40 @@
     const form = document.getElementById('editStudentForm');
     if (!form) return;
 
+    // ── Email domain autocomplete ─────────────────────────────
+    const EMAIL_DOMAINS = ['gmail.com','yahoo.com','yahoo.co.zw','hotmail.com','outlook.com','protonmail.com','icloud.com','live.com','school.ac.zw'];
+    function setupEmailSuggest(inputId) {
+      const inp = document.getElementById(inputId);
+      if (!inp) return;
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'position:relative;';
+      inp.parentNode.insertBefore(wrapper, inp);
+      wrapper.appendChild(inp);
+      const ul = document.createElement('ul');
+      ul.style.cssText = 'position:absolute;top:calc(100% + 2px);left:0;right:0;background:var(--surface);border:1px solid var(--primary);border-radius:8px;z-index:999;list-style:none;margin:0;padding:4px 0;box-shadow:0 6px 18px rgba(0,0,0,.15);display:none;max-height:220px;overflow-y:auto;';
+      wrapper.appendChild(ul);
+      inp.addEventListener('input', function() {
+        const val = this.value, at = val.indexOf('@');
+        if (at < 0) { ul.style.display = 'none'; return; }
+        const after = val.slice(at + 1).toLowerCase(), pre = val.slice(0, at + 1);
+        const hits = after === '' ? EMAIL_DOMAINS : EMAIL_DOMAINS.filter(function(d){ return d.startsWith(after); });
+        if (!hits.length) { ul.style.display = 'none'; return; }
+        ul.innerHTML = '';
+        hits.forEach(function(d) {
+          const li = document.createElement('li');
+          li.textContent = pre + d;
+          li.style.cssText = 'padding:9px 14px;cursor:pointer;font-size:0.875rem;border-radius:4px;';
+          li.addEventListener('mouseenter', function() { this.style.background = 'var(--bg-secondary)'; });
+          li.addEventListener('mouseleave', function() { this.style.background = ''; });
+          li.addEventListener('mousedown', function(e) { e.preventDefault(); inp.value = pre + d; ul.style.display = 'none'; });
+          ul.appendChild(li);
+        });
+        ul.style.display = 'block';
+      });
+      document.addEventListener('click', function(e) { if (!wrapper.contains(e.target)) ul.style.display = 'none'; });
+    }
+    setupEmailSuggest('parent_email');
+
     function showErr(id, msg) {
       const el = document.getElementById(id);
       if (el) { el.textContent = msg; el.style.display = msg ? 'block' : 'none'; }
@@ -181,60 +216,136 @@
 
     function ageFromDOB(dobStr) {
       if (!dobStr) return null;
-      const birth = new Date(dobStr);
-      const today = new Date();
+      const birth = new Date(dobStr), today = new Date();
       let age = today.getFullYear() - birth.getFullYear();
       const m = today.getMonth() - birth.getMonth();
       if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
       return age;
     }
 
+    function checkEmail(email) {
+      if (!email) return null;
+      if (email.length > 254) return 'Email is too long (max 254 characters).';
+      const atCount = (email.match(/@/g) || []).length;
+      if (atCount === 0) return 'Email must contain an @ symbol \u2014 e.g. name@gmail.com.';
+      if (atCount > 1)  return 'Email must contain exactly one @ symbol.';
+      const parts = email.split('@'), local = parts[0], domain = parts[1];
+      if (!local) return 'Email must have a name before the @ symbol.';
+      if (local.length > 64) return 'The part before @ is too long (max 64 characters).';
+      if (/^[.\-_+]/.test(local)) return 'Email username cannot start with "' + local[0] + '" \u2014 remove it.';
+      if (/[.\-_+]$/.test(local)) return 'Email username cannot end with "' + local[local.length-1] + '" \u2014 remove it.';
+      if (/\.{2,}/.test(local)) return 'Email username cannot contain consecutive dots.';
+      if (!/^[a-zA-Z0-9._%+\-]+$/.test(local)) return 'Email username has an invalid character. Only letters, numbers, dots, underscores and hyphens are allowed.';
+      if (!domain) return 'Email must have a domain after the @ symbol \u2014 e.g. gmail.com.';
+      if (!/^[a-zA-Z0-9.\-]+$/.test(domain)) return 'Email domain has an invalid character.';
+      if (/^[-.]/.test(domain) || /[-.]$/.test(domain)) return 'Email domain cannot start or end with a hyphen or dot.';
+      if (/\.{2,}/.test(domain)) return 'Email domain cannot contain consecutive dots.';
+      if (!domain.includes('.')) return 'Email domain must include a TLD \u2014 e.g. @gmail.com, not just @gmail.';
+      const tld = domain.split('.').pop();
+      if (tld.length < 2) return 'Email extension is too short \u2014 use .com, .org, .zw etc.';
+      if (tld.length > 6) return 'Email extension ".' + tld + '" is too long \u2014 use .com, .org, .zw.';
+      if (!/^[a-zA-Z]+$/.test(tld)) return 'Email extension must contain only letters (e.g. .com, .org, .zw).';
+      return null;
+    }
+
     function validateForm() {
       let ok = true;
 
       const name = (form.elements.name ? form.elements.name.value : '').trim();
-      if (!name) { showErr('err-name', 'Full name is required.'); ok = false; }
-      else if (name.length < 2) { showErr('err-name', 'Name must be at least 2 characters.'); ok = false; }
-      else if (!/^[A-Za-z\s'\-\.]+$/.test(name)) { showErr('err-name', 'Name may only contain letters, spaces, hyphens, and apostrophes.'); ok = false; }
-      else clearErr('err-name');
+      const nameWords = name.split(/\s+/).filter(function(w){ return w.length > 0; });
+      if (!name) {
+        showErr('err-name', 'Full name is required \u2014 enter first and last name.'); ok = false;
+      } else if (!/^[A-Za-z\s\'\-\.]+$/.test(name)) {
+        showErr('err-name', 'Name may only contain letters, spaces, hyphens and apostrophes \u2014 no numbers or symbols.'); ok = false;
+      } else if (/\s{2,}/.test(name)) {
+        showErr('err-name', 'Name cannot have two spaces in a row.'); ok = false;
+      } else if (nameWords.length < 2) {
+        showErr('err-name', 'Please enter both first and last name (e.g. "Tendai Moyo").'); ok = false;
+      } else if (nameWords.some(function(w){ return w.length < 2; })) {
+        showErr('err-name', 'Each part of the name must be at least 2 letters long.'); ok = false;
+      } else { clearErr('err-name'); }
 
-      if (!form.elements.grade.value) { showErr('err-grade', 'Please select a grade.'); ok = false; }
-      else clearErr('err-grade');
+      const gradeVal = form.elements.grade ? form.elements.grade.value : '';
+      if (!gradeVal) { showErr('err-grade', 'Please select a grade \u2014 this field is required.'); ok = false; }
+      else if (!['1','2','3','4','5','6','7'].includes(gradeVal)) { showErr('err-grade', 'Invalid grade selected.'); ok = false; }
+      else { clearErr('err-grade'); }
 
-      if (!form.elements.student_class.value) { showErr('err-class', 'Please select a class.'); ok = false; }
-      else clearErr('err-class');
+      const classVal = form.elements.student_class ? form.elements.student_class.value : '';
+      if (!classVal) { showErr('err-class', 'Please select a class \u2014 this field is required.'); ok = false; }
+      else if (!['A','B','C','D','E','F'].includes(classVal)) { showErr('err-class', 'Invalid class selected.'); ok = false; }
+      else { clearErr('err-class'); }
 
-      if (!form.elements.gender.value) { showErr('err-gender', 'Please select a gender.'); ok = false; }
-      else clearErr('err-gender');
+      if (!form.elements.gender || !form.elements.gender.value) {
+        showErr('err-gender', 'Please select a gender \u2014 this field is required.'); ok = false;
+      } else if (!['Male','Female','Other'].includes(form.elements.gender.value)) {
+        showErr('err-gender', 'Invalid gender selected.'); ok = false;
+      } else { clearErr('err-gender'); }
 
       const dob = form.elements.dob ? form.elements.dob.value : '';
-      if (!dob) { showErr('err-dob', 'Date of birth is required.'); ok = false; }
-      else {
-        const age = ageFromDOB(dob);
-        if (age === null || isNaN(age)) { showErr('err-dob', 'Please enter a valid date.'); ok = false; }
-        else if (age < 5) { showErr('err-dob', 'Student must be at least 5 years old.'); ok = false; }
-        else if (age > 18) { showErr('err-dob', `Age ${age} exceeds the maximum of 18 for primary school.`); ok = false; }
-        else if (new Date(dob) > new Date()) { showErr('err-dob', 'Date of birth cannot be in the future.'); ok = false; }
-        else clearErr('err-dob');
+      if (!dob) {
+        showErr('err-dob', 'Date of birth is required \u2014 this field cannot be left blank.'); ok = false;
+      } else {
+        const dobDate = new Date(dob);
+        const today = new Date(); today.setHours(0,0,0,0);
+        if (isNaN(dobDate.getTime())) {
+          showErr('err-dob', 'Date of birth is not a valid date \u2014 please re-enter correctly.'); ok = false;
+        } else if (dobDate >= today) {
+          showErr('err-dob', 'Date of birth cannot be today or in the future.'); ok = false;
+        } else {
+          const age = ageFromDOB(dob);
+          if (age < 3) { showErr('err-dob', 'Student is too young (age ' + age + ') \u2014 minimum enrollment age is 3 years.'); ok = false; }
+          else if (age > 20) { showErr('err-dob', 'Student age (' + age + ') is too high \u2014 maximum is 20 years.'); ok = false; }
+          else { clearErr('err-dob'); }
+        }
       }
 
       const enroll = form.elements.enrollment_date ? form.elements.enrollment_date.value : '';
-      if (!enroll) { showErr('err-enrollment', 'Enrollment date is required.'); ok = false; }
-      else if (new Date(enroll) > new Date()) { showErr('err-enrollment', 'Enrollment date cannot be in the future.'); ok = false; }
-      else clearErr('err-enrollment');
+      if (!enroll) {
+        showErr('err-enrollment', 'Enrollment date is required \u2014 this field cannot be left blank.'); ok = false;
+      } else {
+        const enrollDate = new Date(enroll);
+        const today = new Date(); today.setHours(0,0,0,0);
+        const thirtyAgo = new Date(); thirtyAgo.setFullYear(thirtyAgo.getFullYear() - 30);
+        if (isNaN(enrollDate.getTime())) {
+          showErr('err-enrollment', 'Enrollment date is not a valid date \u2014 please re-enter correctly.'); ok = false;
+        } else if (enrollDate > today) {
+          showErr('err-enrollment', 'Enrollment date cannot be in the future.'); ok = false;
+        } else if (enrollDate < thirtyAgo) {
+          showErr('err-enrollment', 'Enrollment date cannot be more than 30 years in the past.'); ok = false;
+        } else if (dob && !isNaN(new Date(dob).getTime())) {
+          const diffYrs = (enrollDate - new Date(dob)) / (365.25 * 24 * 3600 * 1000);
+          if (diffYrs < 3) { showErr('err-enrollment', 'Enrollment date must be at least 3 years after the date of birth.'); ok = false; }
+          else { clearErr('err-enrollment'); }
+        } else { clearErr('err-enrollment'); }
+      }
+
+      const pName = (form.elements.parent_name ? form.elements.parent_name.value : '').trim();
+      if (pName) {
+        const pWords = pName.split(/\s+/).filter(function(w){ return w.length > 0; });
+        if (pName.length < 4) { showErr('err-parent-name', 'Parent name is too short \u2014 enter full name.'); ok = false; }
+        else if (!/^[A-Za-z\s\'\-\.]+$/.test(pName)) { showErr('err-parent-name', 'Parent name may only contain letters, spaces, hyphens and apostrophes.'); ok = false; }
+        else if (pWords.length < 2) { showErr('err-parent-name', 'Please enter parent\'s first and last name.'); ok = false; }
+        else { clearErr('err-parent-name'); }
+      } else { clearErr('err-parent-name'); }
 
       const pPhone = (form.elements.parent_phone ? form.elements.parent_phone.value : '').trim();
       if (pPhone) {
         const digits = pPhone.replace(/[\s\-\(\)\.]/g, '');
-        if (!/^\+?[0-9]{7,15}$/.test(digits)) { showErr('err-parent-phone', 'Enter a valid phone number.'); ok = false; }
-        else clearErr('err-parent-phone');
-      } else clearErr('err-parent-phone');
+        if (!/^\d{10}$/.test(digits)) { showErr('err-parent-phone', 'Phone must be exactly 10 digits (e.g. 0712345678) \u2014 no +263 prefix or spaces.'); ok = false; }
+        else { clearErr('err-parent-phone'); }
+      } else { clearErr('err-parent-phone'); }
 
       const pEmail = (form.elements.parent_email ? form.elements.parent_email.value : '').trim();
       if (pEmail) {
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(pEmail)) { showErr('err-parent-email', 'Enter a valid email address.'); ok = false; }
+        const emailErr = checkEmail(pEmail);
+        if (emailErr) { showErr('err-parent-email', emailErr); ok = false; }
         else clearErr('err-parent-email');
-      } else clearErr('err-parent-email');
+      } else { clearErr('err-parent-email'); }
+
+      const notes = (form.elements.medical_notes ? form.elements.medical_notes.value : '').trim();
+      if (notes && notes.length < 5) { showErr('err-notes', 'Medical notes must be at least 5 characters if provided \u2014 or leave blank.'); ok = false; }
+      else if (notes && notes.length > 1000) { showErr('err-notes', 'Medical notes cannot exceed 1,000 characters.'); ok = false; }
+      else { clearErr('err-notes'); }
 
       return ok;
     }
@@ -245,6 +356,11 @@
         const firstErr = form.querySelector('.field-error[style*="block"]');
         if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
+    });
+
+    form.querySelectorAll('input, select, textarea').forEach(function(el) {
+      el.addEventListener('blur', validateForm);
+      el.addEventListener('change', validateForm);
     });
   })();
   </script>

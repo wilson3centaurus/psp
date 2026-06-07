@@ -231,6 +231,22 @@ p { color: var(--text-secondary); }
 }
 .topbar-back:hover { opacity: 0.82; }
 
+/* Global field-error style (used by all form pages) */
+.field-error {
+  display: none;
+  color: var(--error, #e53e3e);
+  font-size: 0.78rem;
+  margin-top: 0.25rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.field-error::before {
+  content: '\f071\00a0';
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  margin-right: 3px;
+}
+
 /* Theme toggle */
 .theme-toggle {
   background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius);

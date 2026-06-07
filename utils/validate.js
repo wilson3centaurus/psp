@@ -16,9 +16,9 @@ const VALID_SUBJECTS = [
 ];
 const VALID_ROLES = ['school', 'admin'];
 
-// Primary school age window (Zimbabwe): 5 – 18 years
-const MIN_AGE_YEARS = 5;
-const MAX_AGE_YEARS = 18;
+// Primary school age window (Zimbabwe): 3 – 20 years
+const MIN_AGE_YEARS = 3;
+const MAX_AGE_YEARS = 20;
 
 // ─────────────────────────────────────────────
 // HELPERS
@@ -48,10 +48,14 @@ function notEmpty(val) {
 exports.validateName = function (name, label = 'Name') {
   const v = clean(name);
   if (!v) return err(`${label} is required.`);
-  if (v.length < 2)  return err(`${label} must be at least 2 characters.`);
+  if (v.length < 4)  return err(`${label} is too short — please enter your full name.`);
   if (v.length > 100) return err(`${label} must not exceed 100 characters.`);
   if (!/^[A-Za-z\s'\-\.]+$/.test(v))
-    return err(`${label} may only contain letters, spaces, hyphens, apostrophes, and periods.`);
+    return err(`${label} may only contain letters, spaces, hyphens, apostrophes, and periods — no numbers or symbols.`);
+  if (/\s{2,}/.test(v)) return err(`${label} cannot have consecutive spaces.`);
+  const words = v.split(/\s+/).filter(w => w.length > 0);
+  if (words.length < 2) return err(`${label} must include both first and last name (e.g. "Tendai Moyo").`);
+  if (words.some(w => w.length < 2)) return err(`Each part of the ${label.toLowerCase()} must be at least 2 letters.`);
   return ok();
 };
 
@@ -110,17 +114,23 @@ exports.validateStudentDOB = function (dob) {
   return ok();
 };
 
-exports.validateEnrollmentDate = function (date) {
+exports.validateEnrollmentDate = function (date, dob) {
   if (!notEmpty(date)) return err('Enrollment date is required.');
   const d = new Date(date);
   if (isNaN(d.getTime())) return err('Enrollment date is not a valid date.');
   const today = new Date();
   today.setHours(23, 59, 59, 0);
   if (d > today) return err('Enrollment date cannot be in the future.');
-  // Not more than 20 years ago
   const minDate = new Date();
-  minDate.setFullYear(minDate.getFullYear() - 20);
-  if (d < minDate) return err('Enrollment date seems too far in the past. Please check.');
+  minDate.setFullYear(minDate.getFullYear() - 30);
+  if (d < minDate) return err('Enrollment date cannot be more than 30 years in the past.');
+  if (dob) {
+    const dobDate = new Date(dob);
+    if (!isNaN(dobDate.getTime())) {
+      const diffYrs = (d - dobDate) / (365.25 * 24 * 3600 * 1000);
+      if (diffYrs < 3) return err('Enrollment date must be at least 3 years after the date of birth.');
+    }
+  }
   return ok();
 };
 
@@ -143,14 +153,31 @@ exports.validatePhone = function (phone, label = 'Phone number', required = fals
 };
 
 exports.validateEmail = function (email, label = 'Email', required = false) {
-  const v = clean(email);
+  const v = clean(email).toLowerCase();
   if (!v) {
     if (required) return err(`${label} is required.`);
     return ok();
   }
-  // RFC-5322 simplified check
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v))
-    return err(`${label} "${v}" is not a valid email address.`);
+  if (v.length > 254) return err(`${label} is too long (max 254 characters).`);
+  const atCount = (v.match(/@/g) || []).length;
+  if (atCount === 0) return err(`${label} must contain an @ symbol (e.g. name@gmail.com).`);
+  if (atCount > 1)   return err(`${label} must contain only one @ symbol.`);
+  const [local, domain] = v.split('@');
+  if (!local || local.length === 0) return err(`${label} must have a name before the @ (e.g. john@gmail.com).`);
+  if (local.length > 64) return err(`The part before @ in ${label} is too long (max 64 characters).`);
+  if (/^[.\-_+]/.test(local)) return err(`${label} username cannot start with "${local[0]}" — remove it.`);
+  if (/[.\-_+]$/.test(local)) return err(`${label} username cannot end with "${local[local.length-1]}" — remove it.`);
+  if (/[.]{2,}/.test(local)) return err(`${label} username cannot have two dots in a row.`);
+  if (!/^[a-zA-Z0-9._%+\-]+$/.test(local)) return err(`${label} username contains an invalid character. Use only letters, numbers, dots, underscores or hyphens.`);
+  if (!domain || domain.length === 0) return err(`${label} must have a domain after the @ (e.g. name@gmail.com).`);
+  if (!/^[a-zA-Z0-9.\-]+$/.test(domain)) return err(`${label} domain contains an invalid character.`);
+  if (/^[\-.]/.test(domain) || /[\-.]$/.test(domain)) return err(`${label} domain cannot start or end with a hyphen or dot.`);
+  if (/[.]{2,}/.test(domain)) return err(`${label} domain cannot have two dots in a row.`);
+  if (!domain.includes('.')) return err(`${label} domain must include a TLD — e.g. @gmail.com, not just @gmail.`);
+  const tld = domain.split('.').pop();
+  if (tld.length < 2) return err(`${label} extension is too short — use .com, .org, .zw etc.`);
+  if (tld.length > 6) return err(`${label} extension ".${tld}" is too long — use .com, .org, .zw etc.`);
+  if (!/^[a-zA-Z]+$/.test(tld)) return err(`${label} extension must be letters only (e.g. .com, .org, .zw).`);
   return ok();
 };
 

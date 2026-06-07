@@ -118,44 +118,119 @@
     const form = document.getElementById('editTeacherForm');
     if (!form) return;
 
+    // ── Email domain autocomplete ───────────────────────────
+    const EMAIL_DOMAINS = ['gmail.com','yahoo.com','yahoo.co.zw','hotmail.com','outlook.com','protonmail.com','icloud.com','live.com','school.ac.zw'];
+    function setupEmailSuggest(inputId) {
+      const inp = document.getElementById(inputId);
+      if (!inp) return;
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'position:relative;';
+      inp.parentNode.insertBefore(wrapper, inp);
+      wrapper.appendChild(inp);
+      const ul = document.createElement('ul');
+      ul.style.cssText = 'position:absolute;top:calc(100% + 2px);left:0;right:0;background:var(--surface);border:1px solid var(--primary);border-radius:8px;z-index:999;list-style:none;margin:0;padding:4px 0;box-shadow:0 6px 18px rgba(0,0,0,.15);display:none;max-height:220px;overflow-y:auto;';
+      wrapper.appendChild(ul);
+      inp.addEventListener('input', function() {
+        const val = this.value, at = val.indexOf('@');
+        if (at < 0) { ul.style.display = 'none'; return; }
+        const after = val.slice(at + 1).toLowerCase(), pre = val.slice(0, at + 1);
+        const hits = after === '' ? EMAIL_DOMAINS : EMAIL_DOMAINS.filter(function(d){ return d.startsWith(after); });
+        if (!hits.length) { ul.style.display = 'none'; return; }
+        ul.innerHTML = '';
+        hits.forEach(function(d) {
+          const li = document.createElement('li');
+          li.textContent = pre + d;
+          li.style.cssText = 'padding:9px 14px;cursor:pointer;font-size:0.875rem;border-radius:4px;';
+          li.addEventListener('mouseenter', function() { this.style.background = 'var(--bg-secondary)'; });
+          li.addEventListener('mouseleave', function() { this.style.background = ''; });
+          li.addEventListener('mousedown', function(e) { e.preventDefault(); inp.value = pre + d; ul.style.display = 'none'; });
+          ul.appendChild(li);
+        });
+        ul.style.display = 'block';
+      });
+      document.addEventListener('click', function(e) { if (!wrapper.contains(e.target)) ul.style.display = 'none'; });
+    }
+    setupEmailSuggest('email');
+
     function showErr(id, msg) {
       const el = document.getElementById(id);
       if (el) { el.textContent = msg; el.style.display = msg ? 'block' : 'none'; }
     }
     function clearErr(id) { showErr(id, ''); }
 
+    function checkEmail(email) {
+      if (!email) return null;
+      if (email.length > 254) return 'Email is too long (max 254 characters).';
+      const atCount = (email.match(/@/g) || []).length;
+      if (atCount === 0) return 'Email must contain an @ symbol \u2014 e.g. name@gmail.com.';
+      if (atCount > 1)  return 'Email must contain exactly one @ symbol.';
+      const parts = email.split('@'), local = parts[0], domain = parts[1];
+      if (!local) return 'Email must have a name before the @ symbol.';
+      if (local.length > 64) return 'The part before @ is too long (max 64 characters).';
+      if (/^[.\-_+]/.test(local)) return 'Email username cannot start with "' + local[0] + '" \u2014 remove it.';
+      if (/[.\-_+]$/.test(local)) return 'Email username cannot end with "' + local[local.length-1] + '" \u2014 remove it.';
+      if (/\.{2,}/.test(local)) return 'Email username cannot contain consecutive dots.';
+      if (!/^[a-zA-Z0-9._%+\-]+$/.test(local)) return 'Email username has an invalid character. Only letters, numbers, dots, underscores and hyphens allowed.';
+      if (!domain) return 'Email must have a domain after the @ \u2014 e.g. gmail.com.';
+      if (!/^[a-zA-Z0-9.\-]+$/.test(domain)) return 'Email domain has an invalid character.';
+      if (/^[-.]/.test(domain) || /[-.]$/.test(domain)) return 'Email domain cannot start or end with a hyphen or dot.';
+      if (/\.{2,}/.test(domain)) return 'Email domain cannot contain consecutive dots.';
+      if (!domain.includes('.')) return 'Email domain must include a TLD \u2014 e.g. @gmail.com, not just @gmail.';
+      const tld = domain.split('.').pop();
+      if (tld.length < 2) return 'Email extension is too short \u2014 use .com, .org, .zw etc.';
+      if (tld.length > 6) return 'Email extension ".' + tld + '" is too long \u2014 use .com, .org, .zw.';
+      if (!/^[a-zA-Z]+$/.test(tld)) return 'Email extension must contain only letters (e.g. .com, .org, .zw).';
+      return null;
+    }
+
     function validateForm() {
       let ok = true;
 
       const name = (form.elements.name ? form.elements.name.value : '').trim();
-      if (!name) { showErr('err-name', 'Full name is required.'); ok = false; }
-      else if (name.length < 2) { showErr('err-name', 'Name must be at least 2 characters.'); ok = false; }
-      else if (!/^[A-Za-z\s'\-\.]+$/.test(name)) { showErr('err-name', 'Name may only contain letters, spaces, hyphens, and apostrophes.'); ok = false; }
-      else clearErr('err-name');
+      const nameWords = name.split(/\s+/).filter(function(w){ return w.length > 0; });
+      if (!name) {
+        showErr('err-name', 'Full name is required \u2014 enter first and last name.'); ok = false;
+      } else if (!/^[A-Za-z\s\'\-\.]+$/.test(name)) {
+        showErr('err-name', 'Name may only contain letters, spaces, hyphens and apostrophes \u2014 no numbers or symbols.'); ok = false;
+      } else if (/\s{2,}/.test(name)) {
+        showErr('err-name', 'Name cannot have two spaces in a row.'); ok = false;
+      } else if (nameWords.length < 2) {
+        showErr('err-name', 'Please enter both first and last name (e.g. "John Mutasa").'); ok = false;
+      } else if (nameWords.some(function(w){ return w.length < 2; })) {
+        showErr('err-name', 'Each part of the name must be at least 2 letters.'); ok = false;
+      } else { clearErr('err-name'); }
 
-      if (!form.elements.subject.value) { showErr('err-subject', 'Please select a subject.'); ok = false; }
-      else clearErr('err-subject');
+      if (!form.elements.subject || !form.elements.subject.value) {
+        showErr('err-subject', 'Please select a subject \u2014 this field is required.'); ok = false;
+      } else { clearErr('err-subject'); }
 
-      if (!form.elements.gender.value) { showErr('err-gender', 'Please select a gender.'); ok = false; }
-      else clearErr('err-gender');
+      if (!form.elements.gender || !form.elements.gender.value) {
+        showErr('err-gender', 'Please select a gender \u2014 this field is required.'); ok = false;
+      } else if (!['Male','Female','Other'].includes(form.elements.gender.value)) {
+        showErr('err-gender', 'Invalid gender selected.'); ok = false;
+      } else { clearErr('err-gender'); }
 
       const ec = (form.elements.teacher_id ? form.elements.teacher_id.value : '').trim();
-      if (!ec) { showErr('err-ec', 'EC Number is required.'); ok = false; }
-      else if (!/^[0-9]{7}[A-Za-z]$/.test(ec)) { showErr('err-ec', 'EC Number must be 7 digits followed by 1 letter (e.g. 1234567G).'); ok = false; }
-      else clearErr('err-ec');
+      if (!ec) {
+        showErr('err-ec', 'EC Number is required \u2014 this field cannot be left blank.'); ok = false;
+      } else if (!/^[0-9]{7}[A-Za-z]$/.test(ec)) {
+        showErr('err-ec', 'EC Number must be exactly 7 digits followed by 1 letter (e.g. 1234567G). Current format is wrong.'); ok = false;
+      } else { clearErr('err-ec'); }
 
       const phone = (form.elements.phone ? form.elements.phone.value : '').trim();
       if (phone) {
         const digits = phone.replace(/[\s\-\(\)\.]/g, '');
-        if (!/^\d{10}$/.test(digits)) { showErr('err-phone', 'Phone must be exactly 10 digits (e.g. 0712345678).'); ok = false; }
-        else clearErr('err-phone');
-      } else clearErr('err-phone');
+        if (!/^\d{10}$/.test(digits)) {
+          showErr('err-phone', 'Phone must be exactly 10 digits (e.g. 0712345678) \u2014 no +263 prefix or spaces.'); ok = false;
+        } else { clearErr('err-phone'); }
+      } else { clearErr('err-phone'); }
 
       const email = (form.elements.email ? form.elements.email.value : '').trim();
       if (email) {
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { showErr('err-email', 'Enter a valid email address.'); ok = false; }
+        const emailErr = checkEmail(email);
+        if (emailErr) { showErr('err-email', emailErr); ok = false; }
         else clearErr('err-email');
-      } else clearErr('err-email');
+      } else { clearErr('err-email'); }
 
       return ok;
     }
@@ -166,6 +241,11 @@
         const firstErr = form.querySelector('.field-error[style*="block"]');
         if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
+    });
+
+    form.querySelectorAll('input, select').forEach(function(el) {
+      el.addEventListener('blur', validateForm);
+      el.addEventListener('change', validateForm);
     });
   })();
   </script>

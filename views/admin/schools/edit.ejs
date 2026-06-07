@@ -105,6 +105,7 @@
         <button class="menu-toggle" id="menuToggle">
           <i class="fas fa-bars"></i>
         </button>
+        <button onclick="history.back()" title="Go back" class="topbar-back"><i class="fas fa-arrow-left"></i></button>
         <h1 class="page-title">Edit School</h1>
         <div class="topbar-actions">
           <a href="/admin/schools" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Back</a>
@@ -125,7 +126,7 @@
             <h3><i class="fas fa-edit"></i> Edit School Information</h3>
           </div>
           
-          <form action="/admin/schools/edit/<%= school.id %>" method="POST" enctype="multipart/form-data">
+          <form action="/admin/schools/edit/<%= school.id %>" method="POST" enctype="multipart/form-data" id="editSchoolForm" novalidate>
             <div style="display: grid; grid-template-columns: auto 1fr; gap: 2rem; align-items: start;">
               <!-- Logo Section -->
               <div>
@@ -161,22 +162,27 @@
 
                 <div class="form-group" style="margin-bottom: 1rem;">
                   <label><i class="fas fa-school"></i> Display Name</label>
-                  <input type="text" name="display_name" class="form-input" value="<%= school.display_name || '' %>" placeholder="e.g., Greenfield Primary School">
+                  <input type="text" name="display_name" id="school_display_name" class="form-input" value="<%= school.display_name || '' %>" placeholder="e.g., Greenfield Primary School" maxlength="100">
+                  <span class="field-error" id="err-display-name" style="display:none;color:#e53e3e;font-size:0.8rem;margin-top:4px;font-weight:500;"></span>
                 </div>
 
                 <div class="form-group" style="margin-bottom: 1rem;">
                   <label><i class="fas fa-envelope"></i> Email Address</label>
-                  <input type="email" name="email" class="form-input" value="<%= school.email || '' %>" placeholder="school@example.com">
+                  <input type="text" name="email" id="school_email" class="form-input" value="<%= school.email || '' %>" placeholder="e.g. admin@school.ac.zw or info@school.gmail.com" maxlength="254" autocomplete="off">
+                  <span class="field-error" id="err-school-email" style="display:none;color:#e53e3e;font-size:0.8rem;margin-top:4px;font-weight:500;"></span>
                 </div>
 
                 <div class="form-group" style="margin-bottom: 1rem;">
                   <label><i class="fas fa-phone"></i> Phone Number</label>
-                  <input type="tel" name="phone" class="form-input" value="<%= school.phone || '' %>" placeholder="+263 77 123 4567">
+                  <input type="tel" name="phone" id="school_phone" class="form-input" value="<%= school.phone || '' %>" placeholder="e.g. 0712345678" maxlength="10">
+                  <small style="color:var(--text-muted);font-size:0.8rem;">Exactly 10 digits (e.g. 0712345678)</small>
+                  <span class="field-error" id="err-school-phone" style="display:none;color:#e53e3e;font-size:0.8rem;margin-top:4px;font-weight:500;"></span>
                 </div>
 
                 <div class="form-group" style="margin-bottom: 1rem;">
                   <label><i class="fas fa-map-marker-alt"></i> Address</label>
-                  <textarea name="address" class="form-input" rows="3" placeholder="123 School Street, City, Country"><%= school.address || '' %></textarea>
+                  <textarea name="address" id="school_address" class="form-input" rows="3" placeholder="123 School Street, City, Country" maxlength="300"><%= school.address || '' %></textarea>
+                  <span class="field-error" id="err-school-address" style="display:none;color:#e53e3e;font-size:0.8rem;margin-top:4px;font-weight:500;"></span>
                 </div>
 
                 <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
@@ -198,6 +204,131 @@
   </div>
 
   <script src="/js/main.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+  (function() {
+    'use strict';
+    var form = document.getElementById('editSchoolForm');
+    if (!form) return;
+
+    // ── Email domain autocomplete ───────────────────────────
+    var EMAIL_DOMAINS = ['gmail.com','yahoo.com','yahoo.co.zw','hotmail.com','outlook.com','protonmail.com','icloud.com','live.com','school.ac.zw','gov.zw'];
+    (function setupEmailSuggest() {
+      var inp = document.getElementById('school_email');
+      if (!inp) return;
+      var wrapper = document.createElement('div');
+      wrapper.style.cssText = 'position:relative;';
+      inp.parentNode.insertBefore(wrapper, inp);
+      wrapper.appendChild(inp);
+      var ul = document.createElement('ul');
+      ul.style.cssText = 'position:absolute;top:calc(100% + 2px);left:0;right:0;background:var(--surface, #fff);border:1px solid var(--primary, #6366f1);border-radius:8px;z-index:999;list-style:none;margin:0;padding:4px 0;box-shadow:0 6px 18px rgba(0,0,0,.15);display:none;max-height:220px;overflow-y:auto;';
+      wrapper.appendChild(ul);
+      inp.addEventListener('input', function() {
+        var val = this.value, at = val.indexOf('@');
+        if (at < 0) { ul.style.display = 'none'; return; }
+        var after = val.slice(at + 1).toLowerCase(), pre = val.slice(0, at + 1);
+        var hits = after === '' ? EMAIL_DOMAINS : EMAIL_DOMAINS.filter(function(d){ return d.startsWith(after); });
+        if (!hits.length) { ul.style.display = 'none'; return; }
+        ul.innerHTML = '';
+        hits.forEach(function(d) {
+          var li = document.createElement('li');
+          li.textContent = pre + d;
+          li.style.cssText = 'padding:9px 14px;cursor:pointer;font-size:0.875rem;border-radius:4px;';
+          li.addEventListener('mouseenter', function() { this.style.background = 'var(--bg-secondary, #f3f4f6)'; });
+          li.addEventListener('mouseleave', function() { this.style.background = ''; });
+          li.addEventListener('mousedown', function(e) { e.preventDefault(); inp.value = pre + d; ul.style.display = 'none'; });
+          ul.appendChild(li);
+        });
+        ul.style.display = 'block';
+      });
+      document.addEventListener('click', function(e) { if (!wrapper.contains(e.target)) ul.style.display = 'none'; });
+    })();
+
+    function showErr(id, msg) {
+      var el = document.getElementById(id);
+      if (el) { el.textContent = msg; el.style.display = msg ? 'block' : 'none'; }
+    }
+    function clearErr(id) { showErr(id, ''); }
+
+    function checkEmail(email) {
+      if (!email) return null;
+      if (email.length > 254) return 'Email is too long (max 254 characters).';
+      var atCount = (email.match(/@/g) || []).length;
+      if (atCount === 0) return 'Email must contain an @ symbol \u2014 e.g. name@gmail.com.';
+      if (atCount > 1)  return 'Email must contain exactly one @ symbol.';
+      var parts = email.split('@'), local = parts[0], domain = parts[1];
+      if (!local) return 'Email must have a name before the @ symbol.';
+      if (local.length > 64) return 'The part before @ is too long (max 64 characters).';
+      if (/^[.\-_+]/.test(local)) return 'Email username cannot start with "' + local[0] + '" \u2014 remove it.';
+      if (/[.\-_+]$/.test(local)) return 'Email username cannot end with "' + local[local.length-1] + '" \u2014 remove it.';
+      if (/\.{2,}/.test(local)) return 'Email username cannot contain consecutive dots.';
+      if (!/^[a-zA-Z0-9._%+\-]+$/.test(local)) return 'Email username has an invalid character.';
+      if (!domain) return 'Email must have a domain after the @ \u2014 e.g. gmail.com.';
+      if (!/^[a-zA-Z0-9.\-]+$/.test(domain)) return 'Email domain has an invalid character.';
+      if (/^[-.]/.test(domain) || /[-.]$/.test(domain)) return 'Email domain cannot start or end with a hyphen or dot.';
+      if (/\.{2,}/.test(domain)) return 'Email domain cannot contain consecutive dots.';
+      if (!domain.includes('.')) return 'Email domain must include a TLD \u2014 e.g. @gmail.com.';
+      var tld = domain.split('.').pop();
+      if (tld.length < 2) return 'Email extension is too short \u2014 use .com, .org, .zw etc.';
+      if (tld.length > 6) return 'Email extension ".' + tld + '" is too long.';
+      if (!/^[a-zA-Z]+$/.test(tld)) return 'Email extension must contain only letters.';
+      return null;
+    }
+
+    function validateForm() {
+      var ok = true;
+
+      // Display Name (optional but meaningful if provided)
+      var dn = (document.getElementById('school_display_name') ? document.getElementById('school_display_name').value : '').trim();
+      if (dn && dn.length < 3) {
+        showErr('err-display-name', 'Display name is too short \u2014 enter the full school name.'); ok = false;
+      } else if (dn && dn.length > 100) {
+        showErr('err-display-name', 'Display name cannot exceed 100 characters.'); ok = false;
+      } else if (dn && /[<>"';\\]/.test(dn)) {
+        showErr('err-display-name', 'Display name contains an invalid character \u2014 remove < > " \' ; \\'); ok = false;
+      } else { clearErr('err-display-name'); }
+
+      // Email (optional \u2014 brutal if provided)
+      var email = (document.getElementById('school_email') ? document.getElementById('school_email').value : '').trim();
+      if (email) {
+        var emailErr = checkEmail(email);
+        if (emailErr) { showErr('err-school-email', emailErr); ok = false; }
+        else clearErr('err-school-email');
+      } else { clearErr('err-school-email'); }
+
+      // Phone (optional \u2014 exactly 10 digits if provided)
+      var ph = (document.getElementById('school_phone') ? document.getElementById('school_phone').value : '').trim();
+      if (ph) {
+        var digits = ph.replace(/[\s\-\(\)\.]/g, '');
+        if (!/^\d{10}$/.test(digits)) {
+          showErr('err-school-phone', 'Phone must be exactly 10 digits (e.g. 0712345678) \u2014 no +263 prefix or spaces.'); ok = false;
+        } else { clearErr('err-school-phone'); }
+      } else { clearErr('err-school-phone'); }
+
+      // Address (optional \u2014 meaningful if provided)
+      var addr = (document.getElementById('school_address') ? document.getElementById('school_address').value : '').trim();
+      if (addr && addr.length < 5) {
+        showErr('err-school-address', 'Address is too short \u2014 enter the full street address.'); ok = false;
+      } else if (addr && addr.length > 300) {
+        showErr('err-school-address', 'Address cannot exceed 300 characters.'); ok = false;
+      } else { clearErr('err-school-address'); }
+
+      return ok;
+    }
+
+    form.addEventListener('submit', function(e) {
+      if (!validateForm()) {
+        e.preventDefault();
+        var firstErr = form.querySelector('[id^="err-"][style*="block"]');
+        if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+
+    form.querySelectorAll('input, textarea').forEach(function(el) {
+      el.addEventListener('blur', validateForm);
+    });
+  })();
+  </script>
   <script>
     function previewLogo(input) {
       const preview = document.getElementById('logoPreview');

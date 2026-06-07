@@ -144,8 +144,8 @@
                       <td>
                         <div class="table-actions">
                           <a href="/resources/edit/<%= res.id %>" class="btn icon outline" title="Edit"><i class="fas fa-edit"></i></a>
-                          <form action="/resources/delete/<%= res.id %>" method="POST" onsubmit="return confirm('Delete this resource?')" class="inline">
-                            <button type="submit" class="btn icon danger" title="Delete"><i class="fas fa-trash"></i></button>
+                          <form action="/resources/delete/<%= res.id %>" method="POST" class="inline delete-resource-form">
+                            <button type="button" class="btn icon danger delete-resource-btn" title="Delete"><i class="fas fa-trash"></i></button>
                           </form>
                         </div>
                       </td>
@@ -165,5 +165,26 @@
   </div>
 
   <script src="/js/main.js"></script>
-</body>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    document.querySelectorAll('.delete-resource-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var form = this.closest('.delete-resource-form');
+        Swal.fire({
+          title: 'Delete this resource record?',
+          html: 'This will permanently remove the resource data for this subject/grade.<br>This action <strong>cannot be undone</strong>.',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#e53e3e',
+          cancelButtonColor: '#6b7280',
+          confirmButtonText: '\u{1F5D1} Yes, delete it',
+          cancelButtonText: 'Cancel',
+          reverseButtons: true,
+          focusCancel: true,
+        }).then(function(result) {
+          if (result.isConfirmed) form.submit();
+        });
+      });
+    });
+  </script>
 </html>

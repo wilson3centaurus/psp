@@ -149,7 +149,7 @@
           </div>
           <% if (teachers.length > 0) { %>
           <div style="padding: 0.5rem 0; display: flex; gap: 0.5rem; align-items: center;">
-            <button type="button" id="deleteSelectedTeachers" class="btn danger" style="display: none;" onclick="document.getElementById('bulkDeleteTeacherForm').submit()">
+            <button type="button" id="deleteSelectedTeachers" class="btn danger" style="display: none;">
               <i class="fas fa-trash"></i> Delete Selected (<span id="selectedTeacherCount">0</span>)
             </button>
             <button type="button" id="selectAllTeachersBtn" class="btn outline" onclick="toggleSelectAllTeachers()">
@@ -157,7 +157,7 @@
             </button>
           </div>
           <% } %>
-          <form id="bulkDeleteTeacherForm" action="/teacher/bulk-delete" method="POST" onsubmit="return confirm('Are you sure you want to delete the selected teachers? This cannot be undone.')">
+          <form id="bulkDeleteTeacherForm" action="/teacher/bulk-delete" method="POST">
           <div class="table-wrapper">
             <table>
               <thead>
@@ -192,8 +192,8 @@
                       <td>
                         <div class="table-actions">
                           <a href="/teacher/edit/<%= teacher.id %>" class="btn icon outline" title="Edit"><i class="fas fa-pen"></i></a>
-                          <form action="/teacher/delete/<%= teacher.id %>" method="POST" class="inline" onsubmit="return confirm('Delete this teacher?')">
-                            <button type="submit" class="btn icon danger" title="Delete"><i class="fas fa-trash"></i></button>
+                          <form action="/teacher/delete/<%= teacher.id %>" method="POST" class="inline delete-teacher-form">
+                            <button type="button" class="btn icon danger delete-teacher-btn" title="Delete"><i class="fas fa-trash"></i></button>
                           </form>
                         </div>
                       </td>
@@ -214,6 +214,7 @@
   </div>
 
   <script src="/js/main.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script>
     function updateTeacherSelection() {
       const checkboxes = document.querySelectorAll('.teacher-checkbox');
@@ -221,7 +222,6 @@
       const deleteBtn = document.getElementById('deleteSelectedTeachers');
       const countSpan = document.getElementById('selectedTeacherCount');
       const selectAllCb = document.getElementById('selectAllTeachersCb');
-
       if (deleteBtn) {
         deleteBtn.style.display = checked.length > 0 ? 'inline-flex' : 'none';
         countSpan.textContent = checked.length;
@@ -236,8 +236,61 @@
       const selectAllCb = document.getElementById('selectAllTeachersCb');
       const newState = masterCb ? masterCb.checked : !selectAllCb.checked;
       if (!masterCb) selectAllCb.checked = newState;
-      checkboxes.forEach(cb => cb.checked = newState);
+      checkboxes.forEach(function(cb) { cb.checked = newState; });
       updateTeacherSelection();
+    }
+
+    // ── Individual delete with SweetAlert2 ───────────────────────
+    document.querySelectorAll('.delete-teacher-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var form = this.closest('.delete-teacher-form');
+        Swal.fire({
+          title: 'Delete this teacher?',
+          html: 'This action is <strong>permanent</strong>. The teacher and all their records will be removed and <strong>cannot be recovered</strong>.',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#e53e3e',
+          cancelButtonColor: '#6b7280',
+          confirmButtonText: '\u{1F5D1} Yes, delete permanently',
+          cancelButtonText: 'Cancel',
+          reverseButtons: true,
+          focusCancel: true,
+        }).then(function(result) {
+          if (result.isConfirmed) form.submit();
+        });
+      });
+    });
+
+    // ── Bulk delete — requires typing DELETE ─────────────────────
+    var bulkBtn = document.getElementById('deleteSelectedTeachers');
+    if (bulkBtn) {
+      bulkBtn.addEventListener('click', function() {
+        var count = document.querySelectorAll('.teacher-checkbox:checked').length;
+        if (!count) return;
+        Swal.fire({
+          title: 'Delete ' + count + ' teacher' + (count > 1 ? 's' : '') + '?',
+          html: 'You are about to <strong>permanently delete ' + count + ' teacher record' + (count > 1 ? 's' : '') + '</strong>.<br>This <strong>cannot be undone</strong>.<br><br>Type <code style="background:#fee2e2;padding:2px 6px;border-radius:4px;">DELETE</code> below to confirm:',
+          icon: 'warning',
+          input: 'text',
+          inputPlaceholder: 'Type DELETE to confirm',
+          inputAttributes: { autocomplete: 'off', style: 'text-transform:uppercase;font-weight:700;letter-spacing:2px;' },
+          showCancelButton: true,
+          confirmButtonColor: '#e53e3e',
+          cancelButtonColor: '#6b7280',
+          confirmButtonText: 'Delete all ' + count,
+          cancelButtonText: 'Cancel',
+          reverseButtons: true,
+          focusCancel: true,
+          preConfirm: function(val) {
+            if (val !== 'DELETE') {
+              Swal.showValidationMessage('\u26a0\ufe0f You must type DELETE (in capitals) to confirm this action');
+              return false;
+            }
+          }
+        }).then(function(result) {
+          if (result.isConfirmed) document.getElementById('bulkDeleteTeacherForm').submit();
+        });
+      });
     }
   </script>
 </body>

@@ -46,6 +46,7 @@
         <button class="menu-toggle" id="menuToggle">
           <i class="fas fa-bars"></i>
         </button>
+        <button onclick="history.back()" title="Go back" class="topbar-back"><i class="fas fa-arrow-left"></i></button>
         <h1 class="page-title">Schools</h1>
         <div class="topbar-actions">
           <span class="badge badge-primary"><%= schools.length %> schools</span>
@@ -121,8 +122,8 @@
                           <a href="/admin/schools/dashboard/<%= school.id %>" class="btn btn-outline btn-sm">
                             <i class="fas fa-arrow-right"></i> View
                           </a>
-                          <form action="/admin/schools/delete/<%= school.id %>" method="POST" onsubmit="return confirm('Delete this school and all its data?')" style="display: inline;">
-                            <button class="btn btn-danger btn-sm" type="submit">
+                          <form action="/admin/schools/delete/<%= school.id %>" method="POST" class="delete-school-form" style="display: inline;">
+                            <button class="btn btn-danger btn-sm delete-school-btn" type="button">
                               <i class="fas fa-trash"></i>
                             </button>
                           </form>
@@ -144,6 +145,7 @@
   </div>
 
   <script src="/js/main.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script>
     // Initialize theme from localStorage
     const savedTheme = localStorage.getItem('theme') || 'light';
@@ -152,6 +154,36 @@
     if (themeIcon) {
       themeIcon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
     }
+
+    // ── School delete — requires typing DELETE (destructive!) ───
+    document.querySelectorAll('.delete-school-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var form = this.closest('.delete-school-form');
+        Swal.fire({
+          title: '\u26a0\ufe0f Delete this school?',
+          html: '<strong>CRITICAL WARNING:</strong><br>This will permanently delete the school and <strong>ALL</strong> its data — students, teachers, attendance records, resources, and analytics.<br><br>This action is <strong>irreversible</strong>.<br><br>Type <code style="background:#fee2e2;padding:2px 8px;border-radius:4px;font-weight:700;">DELETE</code> to confirm:',
+          icon: 'error',
+          input: 'text',
+          inputPlaceholder: 'Type DELETE to confirm',
+          inputAttributes: { autocomplete: 'off', style: 'text-transform:uppercase;font-weight:700;letter-spacing:2px;text-align:center;' },
+          showCancelButton: true,
+          confirmButtonColor: '#e53e3e',
+          cancelButtonColor: '#374151',
+          confirmButtonText: '\u{1F5D1} Permanently delete school',
+          cancelButtonText: 'Cancel — keep school',
+          reverseButtons: true,
+          focusCancel: true,
+          preConfirm: function(val) {
+            if (val !== 'DELETE') {
+              Swal.showValidationMessage('\u274c You must type DELETE (in capitals) to confirm this destructive action');
+              return false;
+            }
+          }
+        }).then(function(result) {
+          if (result.isConfirmed) form.submit();
+        });
+      });
+    });
   </script>
 </body>
 </html>

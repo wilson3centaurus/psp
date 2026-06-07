@@ -27,7 +27,7 @@
         <div class="alert error"><i class="fas fa-exclamation-circle"></i> <%= error_msg %></div>
       <% } %>
 
-      <form action="/resources/edit/<%= resource.id %>" method="POST">
+      <form action="/resources/edit/<%= resource.id %>" method="POST" id="editResourceForm" novalidate>
         <!-- Subject Information -->
         <div class="form-section">
           <h3 class="form-section-title"><i class="fas fa-book-open"></i> Subject Information</h3>
@@ -43,10 +43,13 @@
                 <option value="Physical Education and Arts" <%= resource.subject_name === 'Physical Education and Arts' ? 'selected' : '' %>>Physical Education and Arts</option>
                 <option value="Science and Technology" <%= resource.subject_name === 'Science and Technology' ? 'selected' : '' %>>Science and Technology</option>
               </select>
+              <span class="field-error" id="err-subject"></span>
             </div>
             <div class="form-group">
               <label for="subject_id"><i class="fas fa-id-badge"></i> Subject ID</label>
-              <input type="text" name="subject_id" id="subject_id" class="form-input" value="<%= resource.subject_id %>" required>
+              <input type="text" name="subject_id" id="subject_id" class="form-input" value="<%= resource.subject_id %>" maxlength="20" required>
+              <small class="form-hint">2–20 characters — letters, numbers, hyphens only (e.g. MATH-01)</small>
+              <span class="field-error" id="err-subject-id"></span>
             </div>
           </div>
 
@@ -62,6 +65,7 @@
               <option value="Grade 6" <%= resource.grade === 'Grade 6' ? 'selected' : '' %>>Grade 6</option>
               <option value="Grade 7" <%= resource.grade === 'Grade 7' ? 'selected' : '' %>>Grade 7</option>
             </select>
+            <span class="field-error" id="err-grade"></span>
           </div>
         </div>
 
@@ -70,8 +74,9 @@
           <h3 class="form-section-title"><i class="fas fa-users"></i> Class Information</h3>
           <div class="form-group">
             <label for="num_students"><i class="fas fa-user-graduate"></i> Number of Students</label>
-            <input type="number" name="num_students" id="num_students" class="form-input" min="0" value="<%= resource.num_students %>" required>
-            <small class="form-hint"><i class="fas fa-info-circle"></i> Total students enrolled in this subject/grade</small>
+            <input type="number" name="num_students" id="num_students" class="form-input" min="0" max="5000" value="<%= resource.num_students %>" required>
+            <small class="form-hint"><i class="fas fa-info-circle"></i> Total students enrolled in this subject/grade (0–5,000)</small>
+            <span class="field-error" id="err-students"></span>
           </div>
         </div>
 
@@ -80,7 +85,9 @@
           <h3 class="form-section-title"><i class="fas fa-book"></i> Learning Materials</h3>
           <div class="form-group">
             <label for="num_books"><i class="fas fa-book-open"></i> Total Books</label>
-            <input type="number" name="num_books" id="num_books" class="form-input" min="0" value="<%= resource.num_books %>" required>
+            <input type="number" name="num_books" id="num_books" class="form-input" min="0" max="50000" value="<%= resource.num_books %>" required>
+            <small class="form-hint">Total textbooks/workbooks available (0–50,000)</small>
+            <span class="field-error" id="err-books"></span>
           </div>
         </div>
 
@@ -89,7 +96,9 @@
           <h3 class="form-section-title"><i class="fas fa-laptop"></i> Technology Resources</h3>
           <div class="form-group">
             <label for="num_computers"><i class="fas fa-desktop"></i> Total Computers/Devices</label>
-            <input type="number" name="num_computers" id="num_computers" class="form-input" min="0" value="<%= resource.num_computers %>" required>
+            <input type="number" name="num_computers" id="num_computers" class="form-input" min="0" max="5000" value="<%= resource.num_computers %>" required>
+            <small class="form-hint">Total computers/tablets/devices (0–5,000)</small>
+            <span class="field-error" id="err-computers"></span>
           </div>
         </div>
 
@@ -123,6 +132,93 @@
   </div>
 
   <script src="/js/main.js"></script>
+  <script>
+  (function() {
+    'use strict';
+    var form = document.getElementById('editResourceForm');
+    if (!form) return;
+
+    function showErr(id, msg) {
+      var el = document.getElementById(id);
+      if (el) { el.textContent = msg; el.style.display = msg ? 'block' : 'none'; }
+    }
+    function clearErr(id) { showErr(id, ''); }
+
+    function validateForm() {
+      var ok = true;
+
+      // Subject (required)
+      if (!form.elements.subject_name || !form.elements.subject_name.value) {
+        showErr('err-subject', 'Please select a subject \u2014 this field is required.'); ok = false;
+      } else { clearErr('err-subject'); }
+
+      // Subject ID (required, 2-20, alphanumeric/hyphens)
+      var sid = (form.elements.subject_id ? form.elements.subject_id.value : '').trim();
+      if (!sid) {
+        showErr('err-subject-id', 'Subject ID is required \u2014 this field cannot be blank.'); ok = false;
+      } else if (sid.length < 2) {
+        showErr('err-subject-id', 'Subject ID must be at least 2 characters.'); ok = false;
+      } else if (sid.length > 20) {
+        showErr('err-subject-id', 'Subject ID must not exceed 20 characters.'); ok = false;
+      } else if (!/^[A-Za-z0-9\-_]+$/.test(sid)) {
+        showErr('err-subject-id', 'Subject ID may only contain letters, numbers, hyphens and underscores (e.g. MATH-01).'); ok = false;
+      } else { clearErr('err-subject-id'); }
+
+      // Grade (required)
+      if (!form.elements.grade || !form.elements.grade.value) {
+        showErr('err-grade', 'Please select a grade \u2014 this field is required.'); ok = false;
+      } else { clearErr('err-grade'); }
+
+      // Number of students (required, 0-5000)
+      var stuVal = form.elements.num_students ? form.elements.num_students.value : '';
+      var students = parseInt(stuVal, 10);
+      if (stuVal === '' || isNaN(students)) {
+        showErr('err-students', 'Number of students is required \u2014 enter 0 if none.'); ok = false;
+      } else if (students < 0) {
+        showErr('err-students', 'Number of students cannot be negative.'); ok = false;
+      } else if (students > 5000) {
+        showErr('err-students', 'Number of students cannot exceed 5,000 per class record.'); ok = false;
+      } else { clearErr('err-students'); }
+
+      // Number of books (required, 0-50000)
+      var bookVal = form.elements.num_books ? form.elements.num_books.value : '';
+      var books = parseInt(bookVal, 10);
+      if (bookVal === '' || isNaN(books)) {
+        showErr('err-books', 'Total books is required \u2014 enter 0 if none.'); ok = false;
+      } else if (books < 0) {
+        showErr('err-books', 'Total books cannot be negative.'); ok = false;
+      } else if (books > 50000) {
+        showErr('err-books', 'Total books cannot exceed 50,000.'); ok = false;
+      } else { clearErr('err-books'); }
+
+      // Number of computers (required, 0-5000)
+      var compVal = form.elements.num_computers ? form.elements.num_computers.value : '';
+      var comps = parseInt(compVal, 10);
+      if (compVal === '' || isNaN(comps)) {
+        showErr('err-computers', 'Total computers/devices is required \u2014 enter 0 if none.'); ok = false;
+      } else if (comps < 0) {
+        showErr('err-computers', 'Total computers cannot be negative.'); ok = false;
+      } else if (comps > 5000) {
+        showErr('err-computers', 'Total computers cannot exceed 5,000.'); ok = false;
+      } else { clearErr('err-computers'); }
+
+      return ok;
+    }
+
+    form.addEventListener('submit', function(e) {
+      if (!validateForm()) {
+        e.preventDefault();
+        var firstErr = form.querySelector('[id^="err-"][style*="block"]');
+        if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+
+    form.querySelectorAll('input, select').forEach(function(el) {
+      el.addEventListener('blur', validateForm);
+      el.addEventListener('change', validateForm);
+    });
+  })();
+  </script>
   <script>
     // Update ratio indicators
     function updateRatios() {
